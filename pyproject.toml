@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=65"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "environment-maintenance"
+version = "0.1.0"
+description = "Declarative, application-independent environment checks and repair routing"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+environment-maintenance = "environment_maintenance.cli:main"
+maintenance-repair = "environment_maintenance.repair:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
