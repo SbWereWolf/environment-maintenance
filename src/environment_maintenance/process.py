@@ -11,11 +11,13 @@ def run(action, *, cwd, environ, request=None):
     start=time.monotonic(); timed_out=False; error=None; code=None
     limit=action.get('max_output_bytes',262144)
     env=dict(environ);env.update(action.get('env',{}))
+    directory=Path(action.get('cwd',cwd))
+    if not directory.is_absolute():directory=Path(cwd)/directory
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err, tempfile.TemporaryFile() as inp:
         if request is not None:inp.write(request.encode('utf-8'))
         inp.seek(0)
         try:
-            proc=subprocess.Popen(action['argv'],cwd=action.get('cwd',str(cwd)),env=env,
+            proc=subprocess.Popen(action['argv'],cwd=directory,env=env,
                                   stdin=inp,stdout=out,stderr=err,start_new_session=True)
             try:code=proc.wait(timeout=action['timeout'])
             except subprocess.TimeoutExpired:

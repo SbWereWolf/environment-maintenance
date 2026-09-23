@@ -13,7 +13,7 @@ from environment_maintenance.process import run
 
 
 def command(script):
-    return {'argv': [sys.executable, '-c', script], 'timeout': 3}
+    return {'argv': [sys.executable, '-S', '-c', script], 'timeout': 3}
 
 
 def catalogue(tmp_path, requirements=None, params=None):
@@ -144,18 +144,18 @@ def test_executable_not_found_reported(tmp_path):
 
 
 def test_timeout_reported(tmp_path):
-    out=run({'argv':[sys.executable,'-c','import time;time.sleep(4)'],'timeout':0.1},cwd=tmp_path,environ={})
+    out=run({'argv':[sys.executable,'-S','-c','import time;time.sleep(4)'],'timeout':0.1},cwd=tmp_path,environ={})
     assert out['timed_out'] and out['status']=='failed'
 
 
 def test_no_shell_injection(tmp_path):
     x='; touch '+str(tmp_path/'pwned')
-    out=run({'argv':[sys.executable,'-c','import sys;print(sys.argv[1])',x],'timeout':2},cwd=tmp_path,environ={})
+    out=run({'argv':[sys.executable,'-S','-c','import sys;print(sys.argv[1])',x],'timeout':2},cwd=tmp_path,environ={})
     assert out['stdout'].strip()==x and not (tmp_path/'pwned').exists()
 
 
 def test_inherit_environment_is_explicit(tmp_path):
-    out=run({'argv':[sys.executable,'-c','import os;print(os.getenv("SECRET_UNDECLARED", "absent"))'],'timeout':2},cwd=tmp_path,environ={})
+    out=run({'argv':[sys.executable,'-S','-c','import os;print(os.getenv("SECRET_UNDECLARED", "absent"))'],'timeout':2},cwd=tmp_path,environ={})
     assert out['stdout'].strip()=='absent'
 
 

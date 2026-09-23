@@ -1,28 +1,43 @@
-# environment-maintenance
+# environment-maintenance 0.1.1
 
 Самостоятельное приложение обслуживания окружения. Не импортирует Poise и не зависит
-от его базы. Первое ядро реализует общий исполнитель требований; доменные модули и
-каталог конкретной установки добавляются отдельно.
+от его базы. Общий исполнитель читает каталог требований; отдельные доменные модули
+владеют проверкой, ремонтом и рекомендациями для своей области.
 
 ## Запуск
 
-Python 3.11+; runtime-зависимостей нет. Из исходников:
+Python 3.11+; runtime-зависимостей нет. Из корня исходников:
 
 ```bash
-PYTHONPATH=src python -m environment_maintenance check --catalog examples/requirements.json
-PYTHONPATH=src python -m environment_maintenance infra --catalog requirements.json --repairs repairs.json --dry-run
-PYTHONPATH=src python -m environment_maintenance deps --catalog requirements.json --values machine.json --set root=/srv/app
+PYTHONPATH=src python -B -m environment_maintenance check --catalog examples/requirements.json
+PYTHONPATH=src python -B -m environment_maintenance infra --catalog requirements.json --repairs repairs.json --dry-run
+PYTHONPATH=src python -B -m environment_maintenance deps --catalog requirements.json --values machine.json --set root=/srv/app
 ```
 
-Каталог — JSON, без исполнения Python/YAML-конструкторов. JSON является подмножеством
-YAML, но произвольный YAML-синтаксис в версии 0.1.0 не поддерживается. Форматы
-`environment-maintenance/requirements/v1` и `environment-maintenance/repairs/v1`
-версионированы; неизвестные поля отклоняются. Для каждого требования обязательны
-`id`, `kind` (`infra`/`deps`), `check`, `apply`, `recommendation`.
+Работающий пример создаётся в **новом** каталоге:
+
+```bash
+python examples/create_demo.py /tmp/environment-maintenance-demo
+PYTHONPATH=src python -B -m environment_maintenance deps --catalog /tmp/environment-maintenance-demo/requirements.json --repairs /tmp/environment-maintenance-demo/repairs.json
+PYTHONPATH=src python -B -m environment_maintenance infra --catalog /tmp/environment-maintenance-demo/requirements.json --repairs /tmp/environment-maintenance-demo/repairs.json
+PYTHONPATH=src python -B -m environment_maintenance check --catalog /tmp/environment-maintenance-demo/requirements.json --repairs /tmp/environment-maintenance-demo/repairs.json
+```
+
+Пример создаёт каталог, JSON-конфиг и SQLite с одной таблицей. Это демонстрационный
+профиль приложения, **не профиль развёртывания Poise**.
+
+## Контракт каталогов
+
+Каталог — JSON, без исполнения Python/YAML-конструкторов. Произвольный YAML-синтаксис
+не поддерживается. Форматы `environment-maintenance/requirements/v1` и
+`environment-maintenance/repairs/v1` версионированы; неизвестные поля и повторяющиеся
+JSON-ключи отклоняются. Для каждого требования обязательны `id`, `kind`
+(`infra`/`deps`), `check`, `apply`, `recommendation`.
 
 Команда описывается массивом `argv` и положительным `timeout` (секунды), необязательными
 `cwd`, `env`, `max_output_bytes`. Оболочка автоматически не запускается. Используйте
 параметры отдельными аргументами: не вставляйте их в исполняемый Python/shell-текст.
+Относительный `cwd` считается от каталога соответствующего конфигурационного файла.
 Каталог является доверенной программой оператора, а не sandbox: декларация `check`
 сама обязана вызывать только диагностические команды. Ядро в `check` и `--dry-run`
 не вызывает `apply`; временные файлы захвата вывода создаются вне проверяемой среды.
@@ -46,10 +61,44 @@ mode (`check`/`apply`/`recommend`), parameters, failure. Все режимы и�
 модуль и общие библиотеки. Ответ обязан вернуть тот же ID/mode и versioned schema;
 несовпадение, противоречащий exit/status и усечённый вывод не считаются успехом.
 
-Коды результата: 0 ready/repaired/not_required; 2 invalid; 3 action_required;
-4 failed. Полный JSON содержит первоначальную и повторную проверку, ремонт и
-рекомендацию. Ошибки exec и timeout не объявляются выполненными требованиями.
+## Доменные модули
 
-Границы первого среза: product-specific Poise provisioning, его CLI router, ПСИ и
-ПМИ ещё не реализованы. Рабочие БД Poise не изменены. Проверки при разработке —
-самопроверка одним агентом, не независимое ревью.
+| Модуль `environment_maintenance.repairs.*` | Что делает | Что не делает автоматически |
+|---|---|---|
+| `directory` | Проверяет наличие, тип, точные права и доступ; создаёт отсутствующий каталог | Не меняет владельца и права существующего каталога рекурсивно |
+| `json_config` | Проверяет JSON и обязательные поля; создаёт отсутствующий файл из шаблона | Не перезаписывает конфиг пользователя и не заменяет повреждённый файл |
+| `sqlite_schema` | Проверяет целостность, версию, структуру и внешние ключи; создаёт отсутствующую БД по декларации | Не удаляет существующую БД и не угадывает миграции |
+| `python_runtime` | Проверяет диапазон версии выбранного интерпретатора; объясняет несовместимость | Не заменяет запущенный Python, не вызывает apt или upgrade без явно заданного требования |
+
+Каждый модуль имеет собственные диагностические коды и каталог русских рекомендаций.
+Общая техника протокола, запуска процессов, параметров, файловых операций используется
+через библиотеки `shared`, `process`, `parameters`, `catalogue`; экспертиза не собрана в
+универсальный repair-комбайн.
+
+Существующий файл не перезаписывается при гонке создания. Симлинки в пути и его
+родителях отклоняются. DDL при проверке SQLite не может подключать внешние базы:
+`ATTACH`, `DETACH` и `PRAGMA` запрещены авторизатором. Обслуживание выполняется
+единственным оператором, без конкурирующих изменений каталогов другим процессом.
+Это не изолированная песочница для недоверенных конфигураций.
+
+Коды результата: 0 — ready/repaired/not_required; 2 — invalid; 3 — action_required;
+4 — failed. Полный JSON содержит первоначальную и повторную проверку, ремонт и
+рекомендацию. Ошибки exec, timeout и неполный захват вывода не объявляются успехом.
+`max_output_bytes` ограничивает сохраняемый в ответе вывод, не дисковую квоту процесса.
+
+## Проверки
+
+```bash
+PYTHONPATH=src python -B -m pytest -p no:cacheprovider -q tests/test_contract.py tests/test_modules.py tests/test_boundaries.py
+```
+
+Набор проверяет симметрию команд, переопределения, отсутствие apply в check/dry-run,
+валидацию до эффектов, отдельные модули и сохранение пользовательских данных. Отдельный
+операторский протокол поставки проверяет установку wheel без сети и публичный цикл
+под непривилегированным UID. Это не независимое ревью.
+
+## Следующая граница
+
+Прикладной профиль и адаптеры схемы/конфигурации Poise, тонкий роутер `poise infra/deps/check`,
+ПСИ, ПМИ и новая эксплуатационная установка ещё не реализованы этим пакетом. Рабочие БД
+Poise не изменялись. Пример не подменяет будущие приёмо-сдаточные испытания поставки.

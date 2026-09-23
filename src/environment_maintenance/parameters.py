@@ -13,7 +13,7 @@ def resolve(spec, values=None, environ=None, overrides=None):
     for k,s in spec.items():
         if not isinstance(k,str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.-]*',k) or not isinstance(s,dict):
             raise ContractError('Invalid parameter declaration')
-        if set(s)-{'type','default','env','secret','description'} or s.get('type') not in TYPES:
+        if set(s)-{'type','default','env','secret','description'} or not isinstance(s.get('type'),str) or s['type'] not in TYPES:
             raise ContractError(f'{k}: explicit known type required')
         if 'env' in s and not isinstance(s['env'],str):raise ContractError(f'{k}: env must be string')
         if 'secret' in s and type(s['secret']) is not bool:raise ContractError(f'{k}: secret must be boolean')
