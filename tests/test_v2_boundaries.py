@@ -317,6 +317,36 @@ def test_cli_redacts_literal_secret_values_and_resolved_cwd(tmp_path):
     }
 
 
+def test_cli_redacts_embedded_output_from_literal_secret_environment(tmp_path):
+    secret = "SYNTHETIC_CLI_LITERAL_OUTPUT_SECRET"
+    observed = tmp_path / "cli-literal-output.json"
+    selected = fixture_action(
+        "literal_env_output.py",
+        observed,
+        env={"TOKEN": secret},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+    source = Path(__file__).resolve().parents[1] / "src"
+
+    completed = invoke_cli(
+        [sys.executable, "-S", "-B", "-m", "environment_maintenance"],
+        "check",
+        "--catalog-dir",
+        root,
+        env={"PYTHONPATH": str(source)},
+    )
+
+    assert completed.returncode == 4 and completed.stderr == ""
+    assert secret not in completed.stdout
+    action_result = json.loads(completed.stdout)["requirements"][0]["initial_check"]
+    assert action_result["invocation"]["env"]["TOKEN"] == "[REDACTED]"
+    assert action_result["stdout"] == "prefix[REDACTED]suffix\n"
+
+
 @pytest.mark.parametrize(
     "script",
     [

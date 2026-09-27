@@ -356,6 +356,24 @@ def test_resolved_symlink_target_does_not_expose_secret_path_component(tmp_path)
     )
 
 
+def test_secret_spanning_cwd_path_components_is_redacted_as_one_value(tmp_path):
+    secret = "SYNTHETIC/SEGMENT_SECRET_92841"
+    root = catalog(
+        tmp_path,
+        [requirement(check=result_action("check-satisfied.json", cwd="${secret}"))],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+    (root / secret).mkdir(parents=True)
+
+    result = execute(load_catalog(root), "check", environ={})
+
+    assert result["status"] == "ready"
+    assert secret not in json.dumps(result, sort_keys=True)
+    assert result["requirements"][0]["initial_check"]["invocation"]["cwd"].endswith(
+        "/[REDACTED]"
+    )
+
+
 @pytest.mark.parametrize(
     ("stream", "mode", "complete", "timed_out"),
     [
@@ -443,6 +461,53 @@ def test_inherited_environment_secret_flow_redacts_complete_and_partial_output(
     assert secret[:9] not in json.dumps(result, sort_keys=True)
 
 
+@pytest.mark.parametrize(
+    ("stream", "mode", "limit", "complete", "timed_out"),
+    [
+        ("stdout", "complete", 4096, True, False),
+        ("stderr", "complete", 4096, True, False),
+        ("stdout", "truncated", 9, False, False),
+        ("stderr", "truncated", 9, False, False),
+        ("stdout", "timeout", 4096, True, True),
+    ],
+)
+def test_inherited_secret_source_survives_empty_effective_override(
+    tmp_path,
+    stream,
+    mode,
+    limit,
+    complete,
+    timed_out,
+):
+    secret = "SYNTHETIC_INHERITED_OVERRIDE_SECRET_92841"
+    selected = fixture_action(
+        "inherited_secret_output.py",
+        stream,
+        mode,
+        limit=limit,
+        bound=0.03 if mode == "timeout" else 3,
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={"secret": {"type": "string", "env": "TOKEN", "secret": True}},
+        inherit_env=["TOKEN"],
+    )
+
+    result = execute(
+        load_catalog(root),
+        "check",
+        overrides=["secret="],
+        environ={"TOKEN": secret},
+    )
+    action_result = result["requirements"][0]["initial_check"]
+
+    assert action_result["capture_complete"] is complete
+    assert action_result["timed_out"] is timed_out
+    assert action_result[stream] == "[REDACTED]"
+    assert secret[:9] not in json.dumps(result, sort_keys=True)
+
+
 def test_unused_short_secret_preserves_unavailable_guidance(tmp_path):
     root = catalog(
         tmp_path,
@@ -474,6 +539,89 @@ def test_unrelated_literal_short_secret_preserves_unavailable_guidance(tmp_path)
     assert row["initial_check"]["invocation"]["argv"][-1] == "[REDACTED]"
     assert row["cause"] == "offline repository"
     assert row["recommendations"] == ["Connect the package mirror."]
+
+
+def test_explicit_action_env_override_removes_inherited_secret_flow(tmp_path):
+    observed = tmp_path / "effective-token.txt"
+    selected = fixture_action(
+        "unavailable_with_env.py",
+        observed,
+        env={"TOKEN": "safe"},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={"secret": {"type": "string", "env": "TOKEN", "secret": True}},
+        inherit_env=["TOKEN"],
+    )
+
+    result = execute(load_catalog(root), "check", environ={"TOKEN": "a"})
+    row = result["requirements"][0]
+
+    assert observed.read_text(encoding="utf-8") == "safe"
+    assert row["initial_check"]["invocation"]["env"]["TOKEN"] == "safe"
+    assert row["cause"] == "package unavailable"
+    assert row["recommendations"] == ["install package manually"]
+
+
+def test_unused_unicode_short_secret_preserves_unicode_guidance(tmp_path):
+    root = catalog(
+        tmp_path,
+        [requirement(check=result_action("check-unavailable-russian.json"))],
+        parameters={"secret": {"type": "string", "default": "а", "secret": True}},
+    )
+
+    result = execute(load_catalog(root), "check", environ={})
+    row = result["requirements"][0]
+
+    assert row["cause"] == "пакет недоступен"
+    assert row["recommendations"] == ["Установите пакет вручную"]
+
+
+@pytest.mark.parametrize("fixture", ["check-satisfied.json", "check-unavailable.json"])
+def test_unused_short_secret_preserves_structural_response_schema(tmp_path, fixture):
+    root = catalog(
+        tmp_path,
+        [requirement(check=result_action(fixture))],
+        parameters={"secret": {"type": "string", "default": "a", "secret": True}},
+    )
+
+    result = execute(load_catalog(root), "check", environ={})
+
+    assert result["requirements"][0]["initial_check"]["response"]["schema"] == (
+        "environment-maintenance/action-result/v2"
+    )
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_literal_secret_action_env_redacts_embedded_child_output(tmp_path, role):
+    secret = f"SYNTHETIC_LITERAL_OUTPUT_SECRET_{role}"
+    observed = tmp_path / f"literal-output-{role}.json"
+    selected = fixture_action(
+        "literal_env_output.py",
+        observed,
+        env={"TOKEN": secret},
+    )
+    if role == "check":
+        item = requirement(check=selected)
+    else:
+        initial = "missing" if role == "install" else "invalid"
+        item, _, _ = stateful_requirement(tmp_path, initial)
+        item[role] = selected
+    root = catalog(
+        tmp_path,
+        [item],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+
+    result = execute(load_catalog(root), "run", environ={})
+    row = result["requirements"][0]
+    action_result = row["initial_check"] if role == "check" else row["mutation"]
+
+    assert json.loads(observed.read_text(encoding="utf-8")) == {"token": secret}
+    assert action_result["invocation"]["env"]["TOKEN"] == "[REDACTED]"
+    assert action_result["stdout"] == "prefix[REDACTED]suffix\n"
+    assert secret not in json.dumps(result, sort_keys=True)
 
 
 def test_satisfied_runs_only_check(tmp_path):
