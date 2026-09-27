@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import tomllib
 import zipfile
 
 import pytest
@@ -16,6 +17,23 @@ from v2_helpers import FIXTURES, RESULT_SCHEMA, action, catalog, fixture_action,
 
 
 BUILD_PYTHON = Path(sys.executable)
+TEXT_RELEASE_SUFFIXES = {".json", ".md", ".py", ".toml", ".txt"}
+TEXT_RELEASE_NAMES = {"PKG-INFO"}
+
+
+def assert_v2_only_sources(paths, forbidden, forbidden_basenames):
+    for selected in paths:
+        files = (
+            [selected]
+            if selected.is_file()
+            else [path for path in selected.rglob("*") if path.is_file()]
+        )
+        for path in files:
+            assert path.name not in forbidden_basenames
+            assert "repairs" not in path.parts
+            if path.suffix in TEXT_RELEASE_SUFFIXES or path.name in TEXT_RELEASE_NAMES:
+                text = path.read_text(encoding="utf-8")
+                assert not any(token in text for token in forbidden), (path, forbidden)
 
 
 def invoke_cli(command, *arguments, env=None):
@@ -607,21 +625,26 @@ def test_cli_maps_domain_status_to_exact_exit_code(tmp_path, result_name, exit_c
     assert json.loads(completed.stdout)["status"] == status
 
 
+def test_release_source_scanner_does_not_decode_generated_bytecode(tmp_path):
+    source = tmp_path / "src"
+    cache = source / "__pycache__"
+    cache.mkdir(parents=True)
+    (source / "module.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (cache / "module.cpython.pyc").write_bytes(b"\xcb\x00")
+
+    assert_v2_only_sources([source], ("forbidden-token",), {"forbidden.py"})
+
+
 def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
     root = Path(__file__).resolve().parents[1]
     package = (root / "pyproject.toml").read_text(encoding="utf-8")
+    metadata = tomllib.loads(package)["project"]
     assert 'name = "environment-maintenance"' in package
     assert "maintenance-repair" not in package
     forbidden = ("requirements.json", "repairs.json", "--repairs", "second-file", "'apply'", '"apply"')
     forbidden_basenames = {"requirements.json", "repairs.json", "repair.py"}
     paths = [root / "src", root / "examples", root / "pyproject.toml"]
-    for selected in paths:
-        files = [selected] if selected.is_file() else [p for p in selected.rglob("*") if p.is_file()]
-        for path in files:
-            assert path.name not in forbidden_basenames
-            assert "repairs" not in path.parts
-            text = path.read_text(encoding="utf-8")
-            assert not any(token in text for token in forbidden), (path, forbidden)
+    assert_v2_only_sources(paths, forbidden, forbidden_basenames)
     for path in (root / "src").rglob("*.py"):
         assert "import poise" not in path.read_text(encoding="utf-8")
 
@@ -685,12 +708,22 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
         assert not any("environment_maintenance/repairs/" in name for name in names)
         assert "environment_maintenance/repair.py" not in names
         assert not any(Path(name).name in forbidden_basenames for name in names)
-    archives = list(sdist_dir.glob("environment_maintenance-*.tar.gz"))
+        assert not any(
+            Path(name).suffix == ".pyc" or "__pycache__" in Path(name).parts
+            for name in names
+        )
+    expected_sdist = f'{metadata["name"]}-{metadata["version"]}.tar.gz'
+    archives = list(sdist_dir.glob("*.tar.gz"))
     assert len(archives) == 1
+    assert archives[0].name == expected_sdist
     with tarfile.open(archives[0], "r:gz") as archive:
         names = archive.getnames()
         assert not any(Path(name).name in forbidden_basenames for name in names)
         assert not any("/repairs/" in name for name in names)
+        assert not any(
+            Path(name).suffix == ".pyc" or "__pycache__" in Path(name).parts
+            for name in names
+        )
 
     environment = tmp_path / "installed"
     created = subprocess.run(
