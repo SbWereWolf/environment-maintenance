@@ -1,0 +1,34 @@
+{
+  "schema": "environment-maintenance/catalog/v2",
+  "parameters": {},
+  "inherit_env": ["PATH"],
+  "requirements": [
+    {
+      "id": "example",
+      "check": {
+        "argv": ["python3", "probe.py", "check"],
+        "cwd": ".",
+        "env": {},
+        "output": {"schema": "environment-maintenance/action-result/v2"},
+        "max_output_bytes": 4096,
+        "execution_bound_seconds": 5
+      },
+      "install": {
+        "argv": ["python3", "probe.py", "install"],
+        "cwd": ".",
+        "env": {},
+        "output": {"schema": "environment-maintenance/action-result/v2"},
+        "max_output_bytes": 4096,
+        "execution_bound_seconds": 5
+      },
+      "repair": {
+        "argv": ["python3", "probe.py", "repair"],
+        "cwd": ".",
+        "env": {},
+        "output": {"schema": "environment-maintenance/action-result/v2"},
+        "max_output_bytes": 4096,
+        "execution_bound_seconds": 5
+      }
+    }
+  ]
+}

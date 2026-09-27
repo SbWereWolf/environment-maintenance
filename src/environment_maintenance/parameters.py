@@ -1,66 +1,93 @@
-"""Typed, one-pass parameter expansion; never evaluate shell syntax."""
+"""Typed values, precedence, and one-pass expansion."""
+
 import json
 import re
-from .catalogue import ContractError
-TOKEN=re.compile(r'\$\{([A-Za-z_][A-Za-z0-9_.-]*)\}')
-TYPES={'string':str,'integer':int,'boolean':bool,'number':(int,float)}
+from typing import Any
+
+from .catalogue import ContractError, _valid_parameter_value, validate_parameters
 
 
-def resolve(spec, values=None, environ=None, overrides=None):
-    values=values or {}; environ=environ or {}; overrides=overrides or []
-    if set(values)-set(spec): raise ContractError('Unknown values: '+','.join(sorted(set(values)-set(spec))))
-    effective={}; provenance={}
-    for k,s in spec.items():
-        if not isinstance(k,str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.-]*',k) or not isinstance(s,dict):
-            raise ContractError('Invalid parameter declaration')
-        if set(s)-{'type','default','env','secret','description'} or not isinstance(s.get('type'),str) or s['type'] not in TYPES:
-            raise ContractError(f'{k}: explicit known type required')
-        if 'env' in s and not isinstance(s['env'],str):raise ContractError(f'{k}: env must be string')
-        if 'secret' in s and type(s['secret']) is not bool:raise ContractError(f'{k}: secret must be boolean')
-        if 'default' in s: effective[k]=s['default'];provenance[k]='default'
-        if k in values: effective[k]=values[k];provenance[k]='values'
-        if s.get('env') in environ:
-            effective[k]=_parse(environ[s['env']],s['type'],k);provenance[k]='environment'
-    for pair in overrides:
-        if '=' not in pair:raise ContractError('Override must be name=value')
-        k,v=pair.split('=',1)
-        if k not in spec:raise ContractError(f'Unknown override: {k}')
-        effective[k]=_parse(v,spec[k]['type'],k);provenance[k]='cli'
-    for k,s in spec.items():
-        if k not in effective:raise ContractError(f'Missing parameter: {k}')
-        t=TYPES[s['type']];v=effective[k]
-        if not isinstance(v,t) or (isinstance(v,bool) and s['type']!='boolean'):
-            raise ContractError(f'{k}: expected {s["type"]}')
-        if isinstance(v,str) and '\0' in v: raise ContractError(f'{k}: NUL is forbidden')
-        if isinstance(v,float):
-            import math
-            if not math.isfinite(v):raise ContractError(f'{k}: finite number required')
-    return effective,provenance
+TOKEN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_.-]*)\}")
 
 
-def _parse(value,kind,name):
-    if kind=='string':return value
-    try:return json.loads(value)
-    except (ValueError,TypeError) as e:raise ContractError(f'{name}: invalid typed value') from e
-
-
-def expand(value,params):
-    if isinstance(value,str):
-        def replace(m):
-            key=m.group(1)
-            if key not in params:raise ContractError(f'Unknown placeholder: {key}')
-            v=params[key]
-            return json.dumps(v) if isinstance(v,(bool,int,float)) else v
-        return TOKEN.sub(replace,value)
-    if isinstance(value,list):return [expand(v,params) for v in value]
-    if isinstance(value,dict):return {k:expand(v,params) for k,v in value.items()}
+def _typed_input(raw: str, kind: str, name: str, *, from_environment: bool) -> Any:
+    if kind == "string":
+        value = raw if from_environment else _string_override(raw)
+    else:
+        try:
+            value = json.loads(raw, parse_constant=lambda constant: None)
+        except (TypeError, ValueError) as exc:
+            raise ContractError(f"{name}: invalid typed value") from exc
+    if not _valid_parameter_value(kind, value):
+        raise ContractError(f"{name}: invalid typed value")
     return value
 
 
-def redact(value, secrets):
-    if isinstance(value,str):
-        for s in sorted((str(s) for s in secrets if str(s)),key=len,reverse=True):value=value.replace(s,'[REDACTED]')
-        return value
-    if isinstance(value,list):return [redact(v,secrets) for v in value]
-    if isinstance(value,dict):return {k:redact(v,secrets) for k,v in value.items()}
+def _string_override(raw: str) -> str:
+    if raw.startswith('"'):
+        try:
+            parsed = json.loads(raw)
+        except ValueError as exc:
+            raise ContractError("Invalid string override") from exc
+        if not isinstance(parsed, str):
+            raise ContractError("String override must contain text")
+        return parsed
+    return raw
+
+
+def resolve(spec, values=None, environ=None, overrides=None):
+    validate_parameters(spec)
+    values = {} if values is None else values
+    environ = {} if environ is None else environ
+    overrides = [] if overrides is None else overrides
+    if not isinstance(values, dict):
+        raise ContractError("values must be an object")
+    if set(values) - set(spec):
+        raise ContractError("Unknown values: " + ",".join(sorted(set(values) - set(spec))))
+    effective: dict[str, Any] = {}
+    origins: dict[str, str] = {}
+    for name, declaration in spec.items():
+        kind = declaration["type"]
+        if "default" in declaration:
+            effective[name] = declaration["default"]
+            origins[name] = "default"
+        if name in values:
+            effective[name] = values[name]
+            origins[name] = "values"
+        if declaration.get("env") in environ:
+            effective[name] = _typed_input(environ[declaration["env"]], kind, name, from_environment=True)
+            origins[name] = "environment"
+    seen: set[str] = set()
+    for pair in overrides:
+        if not isinstance(pair, str) or "=" not in pair:
+            raise ContractError("Override must be name=value")
+        name, raw = pair.split("=", 1)
+        if name not in spec or name in seen:
+            raise ContractError(f"Unknown or duplicate override: {name}")
+        seen.add(name)
+        effective[name] = _typed_input(raw, spec[name]["type"], name, from_environment=False)
+        origins[name] = "cli"
+    for name, declaration in spec.items():
+        if name not in effective:
+            raise ContractError(f"Missing parameter: {name}")
+        if not _valid_parameter_value(declaration["type"], effective[name]):
+            raise ContractError(f"{name}: expected {declaration['type']}")
+    return effective, origins
+
+
+def expand(value, params):
+    if isinstance(value, str):
+        def substitute(match):
+            name = match.group(1)
+            if name not in params:
+                raise ContractError(f"Unknown placeholder: {name}")
+            item = params[name]
+            if isinstance(item, str):
+                return item
+            return json.dumps(item, separators=(",", ":"), allow_nan=False)
+        return TOKEN.sub(substitute, value)
+    if isinstance(value, list):
+        return [expand(item, params) for item in value]
+    if isinstance(value, dict):
+        return {key: expand(item, params) for key, item in value.items()}
     return value

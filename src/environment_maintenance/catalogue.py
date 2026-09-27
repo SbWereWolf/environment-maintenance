@@ -1,80 +1,158 @@
-"""Validated declarative requirements. Product prerequisites never live in this module."""
+"""Strict input contract for one selected catalog/v2 directory."""
+
 from dataclasses import dataclass
 import json
+import math
 from pathlib import Path
+import re
 from typing import Any
 
+
+CATALOG_SCHEMA = "environment-maintenance/catalog/v2"
+NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*\Z")
+ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
 class ContractError(ValueError):
-    """The complete input must be rejected before executing any command."""
+    """Invalid input is rejected before any action starts."""
+
 
 @dataclass(frozen=True)
 class Catalogue:
-    path: Path
+    root: Path
+    manifest_path: Path
     data: dict[str, Any]
 
 
-def read_json(path: Path) -> dict:
-    def unique_pairs(pairs):
-        out={}
-        for key,value in pairs:
-            if key in out: raise ContractError(f'Duplicate JSON key: {key}')
-            out[key]=value
-        return out
+def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ContractError(f"Duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def read_json(path: Path) -> dict[str, Any]:
     try:
-        value=json.loads(path.read_text(encoding='utf-8'),object_pairs_hook=unique_pairs)
-    except (OSError, ValueError) as exc:
-        raise ContractError(f'Cannot read {path}: {exc}') from exc
-    if not isinstance(value,dict): raise ContractError(f'Expected object: {path}')
+        raw = path.read_text(encoding="utf-8")
+        value = json.loads(raw, object_pairs_hook=_unique_pairs)
+    except ContractError:
+        raise
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise ContractError(f"Cannot read {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ContractError(f"Expected JSON object: {path}")
     return value
 
 
-def validate_action(action: Any, requirement_id: str) -> None:
-    if not isinstance(action,dict): raise ContractError(f'{requirement_id}: action must be object')
-    if 'repair' in action:
-        if set(action)!={'repair'} or action['repair']!=requirement_id:
-            raise ContractError(f'{requirement_id}: repair route must match requirement id')
-        return
-    if set(action)-{'argv','timeout','env','cwd','max_output_bytes'}:
-        raise ContractError(f'{requirement_id}: unsupported command fields')
-    argv=action.get('argv'); timeout=action.get('timeout')
-    if not isinstance(argv,list) or not argv or not all(isinstance(x,str) and '\0' not in x for x in argv) or not argv[0]:
-        raise ContractError(f'{requirement_id}: nonempty string argv is required')
-    if type(timeout) not in (int,float) or not 0 < timeout <= 3600:
-        raise ContractError(f'{requirement_id}: timeout must be 0..3600 seconds')
-    env=action.get('env',{})
-    if not isinstance(env,dict) or not all(isinstance(k,str) and k and '=' not in k and '\0' not in k and isinstance(v,str) and '\0' not in v for k,v in env.items()):
-        raise ContractError(f'{requirement_id}: invalid env')
-    if 'cwd' in action and (not isinstance(action['cwd'],str) or '\0' in action['cwd']):
-        raise ContractError(f'{requirement_id}: invalid cwd')
-    if 'max_output_bytes' in action and (type(action['max_output_bytes']) is not int or not 1<=action['max_output_bytes']<=16777216):
-        raise ContractError(f'{requirement_id}: invalid output limit')
+def _fields(value: dict, required: set[str], label: str) -> None:
+    if set(value) != required:
+        missing = sorted(required - set(value))
+        extra = sorted(set(value) - required)
+        raise ContractError(f"{label} fields: missing={missing}, unknown={extra}")
 
 
-def load_catalogue(path: str | Path) -> Catalogue:
-    path=Path(path).resolve(); raw=read_json(path)
-    if raw.get('schema')!='environment-maintenance/requirements/v1':
-        raise ContractError('Unsupported requirements schema')
-    if set(raw)-{'schema','parameters','requirements','inherit_env'}:
-        raise ContractError('Unsupported catalogue fields')
-    if not isinstance(raw.get('parameters'),dict) or not isinstance(raw.get('requirements'),list):
-        raise ContractError('parameters object and requirements array are required')
-    seen=set()
-    for r in raw['requirements']:
-        if not isinstance(r,dict) or not {'id','kind','check','apply','recommendation'}<=r.keys():
-            raise ContractError('Requirement needs id, kind, check, apply, recommendation')
-        if set(r)-{'id','kind','check','apply','recommendation','description'}:
-            raise ContractError('Unsupported requirement fields')
-        name=r['id']
-        if not isinstance(name,str) or not name or name in seen: raise ContractError('Invalid/duplicate requirement id')
-        seen.add(name)
-        if r['kind'] not in ('infra','deps'): raise ContractError(f'{name}: kind must be infra or deps')
-        validate_action(r['check'],name);validate_action(r['apply'],name)
-        if not isinstance(r['recommendation'],str): validate_action(r['recommendation'],name)
-        elif not r['recommendation'].strip(): raise ContractError(f'{name}: empty recommendation')
-        # Nontrivial recommendations must come from the SAME domain repair module.
-        if isinstance(r['recommendation'],dict) and set(r['recommendation'])!={'repair'}:
-            raise ContractError(f'{name}: recommendation must be text or its own repair tool')
-    inherited=raw.get('inherit_env',[])
-    if not isinstance(inherited,list) or not all(isinstance(x,str) and x and '=' not in x and '\0' not in x for x in inherited):
-        raise ContractError('inherit_env must be an explicit list of names')
-    return Catalogue(path,raw)
+def _valid_env(name: Any) -> bool:
+    return isinstance(name, str) and bool(ENV_NAME.fullmatch(name))
+
+
+def _valid_parameter_value(kind: str, value: Any) -> bool:
+    if kind == "string":
+        return isinstance(value, str) and "\0" not in value
+    if kind == "integer":
+        return type(value) is int
+    if kind == "boolean":
+        return type(value) is bool
+    return type(value) is int or (type(value) is float and math.isfinite(value))
+
+
+def validate_parameters(spec: Any) -> None:
+    if not isinstance(spec, dict):
+        raise ContractError("parameters must be an object")
+    for name, declaration in spec.items():
+        if not isinstance(name, str) or not NAME.fullmatch(name):
+            raise ContractError(f"Invalid parameter name: {name}")
+        if not isinstance(declaration, dict):
+            raise ContractError(f"{name}: parameter declaration must be an object")
+        if "type" not in declaration or set(declaration) - {"type", "default", "env", "secret"}:
+            raise ContractError(f"{name}: parameter fields")
+        kind = declaration["type"]
+        if kind not in ("string", "integer", "number", "boolean"):
+            raise ContractError(f"{name}: unknown parameter type")
+        if "default" in declaration and not _valid_parameter_value(kind, declaration["default"]):
+            raise ContractError(f"{name}: invalid default")
+        if "env" in declaration and not _valid_env(declaration["env"]):
+            raise ContractError(f"{name}: invalid env")
+        if "secret" in declaration and type(declaration["secret"]) is not bool:
+            raise ContractError(f"{name}: invalid secret")
+
+
+ACTION_FIELDS = {"argv", "cwd", "env", "output", "max_output_bytes", "execution_bound_seconds"}
+
+
+def validate_action(action: Any, label: str) -> None:
+    if not isinstance(action, dict):
+        raise ContractError(f"{label}: action must be object")
+    _fields(action, ACTION_FIELDS, "action")
+    argv = action["argv"]
+    if (
+        not isinstance(argv, list)
+        or not argv
+        or any(not isinstance(part, str) or "\0" in part for part in argv)
+        or not argv[0]
+    ):
+        raise ContractError(f"{label}: invalid argv")
+    cwd = action["cwd"]
+    if not isinstance(cwd, str) or not cwd or "\0" in cwd:
+        raise ContractError(f"{label}: invalid cwd")
+    env = action["env"]
+    if not isinstance(env, dict) or any(
+        not _valid_env(key) or not isinstance(value, str) or "\0" in value
+        for key, value in env.items()
+    ):
+        raise ContractError(f"{label}: invalid env")
+    output = action["output"]
+    if not isinstance(output, dict) or set(output) != {"schema"}:
+        raise ContractError(f"{label}: invalid output")
+    schema = output["schema"]
+    if not isinstance(schema, str) or not schema or "\0" in schema:
+        raise ContractError(f"{label}: invalid output schema")
+    limit = action["max_output_bytes"]
+    if type(limit) is not int or not 1 <= limit <= 16_777_216:
+        raise ContractError(f"{label}: invalid max_output_bytes")
+    bound = action["execution_bound_seconds"]
+    if type(bound) not in (int, float) or not math.isfinite(bound) or not 0 < bound <= 3600:
+        raise ContractError(f"{label}: invalid execution_bound_seconds")
+
+
+def load_catalog(path: str | Path) -> Catalogue:
+    root = Path(path).resolve()
+    if not root.is_dir():
+        raise ContractError(f"Selected catalog directory does not exist: {root}")
+    manifest = root / "catalog.json"
+    raw = read_json(manifest)
+    _fields(raw, {"schema", "parameters", "inherit_env", "requirements"}, "catalog")
+    if raw["schema"] != CATALOG_SCHEMA:
+        raise ContractError("Unsupported catalog schema")
+    validate_parameters(raw["parameters"])
+    inherited = raw["inherit_env"]
+    if not isinstance(inherited, list) or any(not _valid_env(name) for name in inherited):
+        raise ContractError("invalid inherit_env")
+    if len(set(inherited)) != len(inherited):
+        raise ContractError("duplicate inherit_env")
+    items = raw["requirements"]
+    if not isinstance(items, list):
+        raise ContractError("requirements must be an array")
+    seen: set[str] = set()
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ContractError(f"requirement {index} must be object")
+        _fields(item, {"id", "check", "install", "repair"}, "requirement")
+        identifier = item["id"]
+        if not isinstance(identifier, str) or not NAME.fullmatch(identifier) or identifier in seen:
+            raise ContractError(f"Invalid or duplicate requirement id: {identifier}")
+        seen.add(identifier)
+        for role in ("check", "install", "repair"):
+            validate_action(item[role], role)
+    return Catalogue(root, manifest.resolve(), raw)
