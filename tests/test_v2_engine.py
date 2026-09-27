@@ -151,10 +151,11 @@ def test_failed_mutation_is_still_followed_by_check(tmp_path):
     assert log.read_text() == "check\ncheck\n"
 
 
-@pytest.mark.parametrize("role", ["check", "install", "repair"])
+@pytest.mark.parametrize(("initial", "role"), [("missing", "install"), ("invalid", "repair")])
 @pytest.mark.parametrize("failure", ["nonzero", "nonzero-success", "timeout", "overflow"])
 def test_every_mutation_transport_failure_is_followed_by_identical_check(
     tmp_path,
+    initial,
     role,
     failure,
 ):
@@ -181,7 +182,7 @@ def test_every_mutation_transport_failure_is_followed_by_identical_check(
     assert state.read_text(encoding="utf-8") == initial
 
 
-@pytest.mark.parametrize(("initial", "role"), [("missing", "install"), ("invalid", "repair")])
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
 @pytest.mark.parametrize(
     ("parameter_type", "value"),
     [("string", "text"), ("integer", 7), ("number", 1.5), ("boolean", True)],
@@ -189,7 +190,6 @@ def test_every_mutation_transport_failure_is_followed_by_identical_check(
 @pytest.mark.parametrize("origin", ["default", "values", "environment", "cli"])
 def test_every_action_expands_every_type_and_origin_with_exact_environment(
     tmp_path,
-    initial,
     role,
     parameter_type,
     value,
