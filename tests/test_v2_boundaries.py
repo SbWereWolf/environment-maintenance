@@ -28,6 +28,121 @@ def invoke_cli(command, *arguments, env=None):
     )
 
 
+def assert_complete_failure_record(result):
+    assert result["status"] == "protocol_failure"
+    assert isinstance(result["invocation"], dict)
+    assert {"argv", "cwd", "env"} <= result["invocation"].keys()
+    assert result["exit_code"] is None or isinstance(result["exit_code"], int)
+    assert isinstance(result["stdout"], str)
+    assert isinstance(result["stderr"], str)
+    assert isinstance(result["capture_complete"], bool)
+    assert isinstance(result["timed_out"], bool)
+    assert isinstance(result["error"], str) and result["error"]
+
+
+def assert_cli_rejects_invalid_value_inputs(command, base, env):
+    from v2_helpers import stateful_requirement
+
+    base.mkdir()
+    item, state, log = stateful_requirement(base, "missing")
+    root = catalog(
+        base,
+        [item],
+        parameters={"count": {"type": "integer"}},
+    )
+    values_root = base / "values"
+    values_root.mkdir()
+    invalid_utf8 = values_root / "invalid-utf8.json"
+    invalid_utf8.write_bytes(b"\xff\xfe")
+    directory = values_root / "directory.json"
+    directory.mkdir()
+    cases = {
+        "absent.json": None,
+        "invalid-utf8.json": None,
+        "directory.json": None,
+        "malformed.json": "not-json",
+        "duplicate.json": '{"count":1,"count":1}',
+        "null.json": "null",
+        "list.json": "[]",
+        "string.json": '"value"',
+        "number.json": "1",
+        "boolean.json": "true",
+        "unknown.json": '{"unknown":1}',
+        "wrong-type.json": '{"count":"wrong"}',
+    }
+    missing_value = invoke_cli(command, "check", "--catalog-dir", root, env=env)
+    assert missing_value.returncode == 2
+    assert missing_value.stdout == "" and missing_value.stderr != ""
+    assert state.read_text(encoding="utf-8") == "missing"
+    assert not log.exists()
+    for name, content in cases.items():
+        path = values_root / name
+        if content is not None:
+            path.write_text(content, encoding="utf-8")
+        failed = invoke_cli(command, "check", "--catalog-dir", root, "--values", path, env=env)
+        assert failed.returncode == 2, name
+        assert failed.stdout == "" and failed.stderr != "", name
+        assert state.read_text(encoding="utf-8") == "missing"
+        assert not log.exists()
+    for arguments in [
+        ("--set", "broken"),
+        ("--set", "unknown=1"),
+        ("--set", 'count="wrong"'),
+        ("--set", "count=NaN"),
+        ("--set", "count=1", "--set", "count=2"),
+    ]:
+        failed = invoke_cli(command, "check", "--catalog-dir", root, *arguments, env=env)
+        assert failed.returncode == 2, arguments
+        assert failed.stdout == "" and failed.stderr != "", arguments
+        assert state.read_text(encoding="utf-8") == "missing"
+        assert not log.exists()
+
+
+def assert_cli_value_precedence(command, base, env):
+    base.mkdir()
+    observed = base / "observed.json"
+    selected = fixture_action(
+        "capture_execution.py",
+        observed,
+        "check",
+        "${from_default}",
+        "${from_values}",
+        "${from_environment}",
+        "${from_cli}",
+    )
+    root = catalog(
+        base,
+        [requirement(check=selected)],
+        parameters={
+            "from_default": {"type": "string", "default": "default"},
+            "from_values": {"type": "integer"},
+            "from_environment": {"type": "number", "env": "PARAMETER_NUMBER"},
+            "from_cli": {"type": "boolean", "default": False},
+        },
+    )
+    values = base / "values.json"
+    values.write_text('{"from_values":2}', encoding="utf-8")
+    completed = invoke_cli(
+        command,
+        "check",
+        "--catalog-dir",
+        root,
+        "--values",
+        values,
+        "--set",
+        "from_cli=true",
+        env={**env, "PARAMETER_NUMBER": "1.5"},
+    )
+    assert completed.returncode == 0 and completed.stderr == ""
+    assert json.loads(completed.stdout)["status"] == "ready"
+    assert json.loads(observed.read_text(encoding="utf-8"))["argv"] == [
+        "default",
+        "2",
+        "1.5",
+        "true",
+    ]
+
+
 def test_action_environment_uses_only_allowlist_plus_declared_values(tmp_path):
     observed = tmp_path / "environment.json"
     selected = fixture_action(
@@ -95,13 +210,18 @@ def test_protocol_failure_never_becomes_a_domain_state(tmp_path, script):
     "variant",
     [
         "empty",
+        "malformed",
         "missing-schema",
         "missing-requirement_id",
         "missing-action",
         "missing-state",
         "invalid-utf8",
         "multiple",
+        "top-level-null",
         "top-level-list",
+        "top-level-string",
+        "top-level-number",
+        "top-level-boolean",
         "duplicate-key",
         "unknown-field",
         "wrong-schema",
@@ -110,6 +230,8 @@ def test_protocol_failure_never_becomes_a_domain_state(tmp_path, script):
         "wrong-id-type",
         "wrong-action",
         "wrong-action-type",
+        "forbidden-recognized-field",
+        "forbidden-advice-field",
         "wrong-state-type",
         "unsupported-state",
         "unavailable-empty-cause",
@@ -120,6 +242,7 @@ def test_protocol_failure_never_becomes_a_domain_state(tmp_path, script):
         "unavailable-empty-recommendation",
         "unavailable-blank-recommendation",
         "unavailable-wrong-recommendation-item",
+        "unavailable-forbidden-outcome",
     ],
 )
 def test_complete_check_protocol_rejects_every_invalid_equivalence_class(tmp_path, variant):
@@ -140,13 +263,18 @@ def test_complete_check_protocol_rejects_every_invalid_equivalence_class(tmp_pat
     "variant",
     [
         "empty",
+        "malformed",
         "missing-schema",
         "missing-requirement_id",
         "missing-action",
         "missing-outcome",
         "invalid-utf8",
         "multiple",
+        "top-level-null",
         "top-level-list",
+        "top-level-string",
+        "top-level-number",
+        "top-level-boolean",
         "duplicate-key",
         "unknown-field",
         "wrong-schema",
@@ -155,6 +283,8 @@ def test_complete_check_protocol_rejects_every_invalid_equivalence_class(tmp_pat
         "wrong-id-type",
         "wrong-action",
         "wrong-action-type",
+        "forbidden-recognized-field",
+        "forbidden-advice-field",
         "wrong-outcome-type",
         "unsupported-outcome",
     ],
@@ -218,7 +348,8 @@ def test_timeout_enforces_declared_bound_and_kills_delayed_effect(
     started = time.monotonic()
     result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
     elapsed = time.monotonic() - started
-    assert result["status"] == "protocol_failure" and result["timed_out"] is True
+    assert_complete_failure_record(result)
+    assert result["timed_out"] is True
     assert minimum_elapsed <= elapsed < maximum_elapsed
     deadline = started + delayed_effect_seconds + 0.2
     while time.monotonic() < deadline:
@@ -230,7 +361,8 @@ def test_timeout_enforces_declared_bound_and_kills_delayed_effect(
 def test_output_limit_applies_to_stdout_and_stderr(tmp_path, limit):
     selected = fixture_action("output_flood.py", limit=limit)
     result = run_action(selected, "sample", "check", cwd=tmp_path, environ={})
-    assert result["status"] == "protocol_failure" and result["capture_complete"] is False
+    assert_complete_failure_record(result)
+    assert result["capture_complete"] is False
     assert result["stdout"] == "x" * limit
     assert result["stderr"] == "y" * limit
 
@@ -240,6 +372,7 @@ def test_output_limit_applies_to_stdout_and_stderr(tmp_path, limit):
 def test_output_limit_has_exact_byte_boundary_for_every_action(tmp_path, role, limit, size, complete):
     selected = fixture_action("output_exact.py", size, limit=limit)
     result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert_complete_failure_record(result)
     assert result["capture_complete"] is complete
     assert len(result["stdout"].encode("utf-8")) == min(size, limit)
 
@@ -251,7 +384,8 @@ def test_continuous_output_is_terminated_at_the_declared_limit(tmp_path, role):
     started = time.monotonic()
     result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
     assert time.monotonic() - started < 1.0
-    assert result["status"] == "protocol_failure" and result["capture_complete"] is False
+    assert_complete_failure_record(result)
+    assert result["capture_complete"] is False
     assert len(result["stdout"].encode("utf-8")) == 1024
     assert len(result["stderr"].encode("utf-8")) == 1024
     first = marker.stat().st_mtime_ns
@@ -259,7 +393,8 @@ def test_continuous_output_is_terminated_at_the_declared_limit(tmp_path, role):
     assert marker.stat().st_mtime_ns == first
 
 
-def test_timeout_kills_the_complete_process_group(tmp_path):
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_timeout_kills_the_complete_process_group(tmp_path, role):
     marker = tmp_path / "descendant-effect"
     selected = fixture_action(
         "spawn_delayed_descendant.py",
@@ -268,7 +403,8 @@ def test_timeout_kills_the_complete_process_group(tmp_path):
         0.35,
         bound=0.06,
     )
-    result = run_action(selected, "sample", "check", cwd=tmp_path, environ={})
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert_complete_failure_record(result)
     assert result["timed_out"] is True
     deadline = time.monotonic() + 0.55
     while time.monotonic() < deadline:
@@ -287,10 +423,8 @@ def test_timeout_kills_the_complete_process_group(tmp_path):
 @pytest.mark.parametrize("role", ["check", "install", "repair"])
 def test_launch_and_decode_failures_are_structured_protocol_failures(tmp_path, selected, role):
     result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
-    assert result["status"] == "protocol_failure"
-    assert result["capture_complete"] in {True, False}
+    assert_complete_failure_record(result)
     assert result["timed_out"] is False
-    assert isinstance(result["error"], str) and result["error"]
 
 
 @pytest.mark.parametrize("role", ["check", "install", "repair"])
@@ -300,9 +434,8 @@ def test_non_executable_argv_is_a_structured_protocol_failure(tmp_path, role):
     executable.chmod(0o600)
     selected = {**action("pass"), "argv": [str(executable)]}
     result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
-    assert result["status"] == "protocol_failure"
+    assert_complete_failure_record(result)
     assert result["timed_out"] is False
-    assert isinstance(result["error"], str) and result["error"]
 
 
 @pytest.mark.parametrize("role", ["check", "install", "repair"])
@@ -311,9 +444,28 @@ def test_file_cwd_is_a_structured_protocol_failure(tmp_path, role):
     cwd_file.write_text("not a directory", encoding="utf-8")
     selected = {**action("pass"), "cwd": str(cwd_file)}
     result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
-    assert result["status"] == "protocol_failure"
+    assert_complete_failure_record(result)
     assert result["timed_out"] is False
-    assert isinstance(result["error"], str) and result["error"]
+
+
+@pytest.mark.parametrize(
+    ("limit", "complete", "stdout"),
+    [(3, False, "é"), (4, True, "éé"), (5, True, "éé")],
+)
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_output_limit_counts_utf8_bytes_without_partial_code_points(
+    tmp_path,
+    role,
+    limit,
+    complete,
+    stdout,
+):
+    selected = fixture_action("utf8_output.py", 2, limit=limit)
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert_complete_failure_record(result)
+    assert result["capture_complete"] is complete
+    assert result["stdout"] == stdout
+    assert len(result["stdout"].encode("utf-8")) <= limit
 
 
 @pytest.mark.parametrize("role", ["check", "install", "repair"])
@@ -431,15 +583,8 @@ def test_source_cli_covers_operations_dry_run_parameters_and_failures(tmp_path):
         failed = invoke_cli(command, *arguments, env=cli_env)
         assert failed.returncode == 2
         assert failed.stdout == "" and failed.stderr != ""
-    invalid_values = parameter_case / "invalid-values.json"
-    invalid_values.write_text("not-json", encoding="utf-8")
-    for arguments in [
-        ("check", "--catalog-dir", parameter_catalog, "--values", invalid_values),
-        ("check", "--catalog-dir", parameter_catalog, "--set", "count=wrong"),
-    ]:
-        failed = invoke_cli(command, *arguments, env=cli_env)
-        assert failed.returncode == 2
-        assert failed.stdout == "" and failed.stderr != ""
+    assert_cli_rejects_invalid_value_inputs(command, cases / "invalid-values", cli_env)
+    assert_cli_value_precedence(command, cases / "value-precedence", cli_env)
 
 
 @pytest.mark.parametrize(
@@ -636,3 +781,13 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
     )
     assert checked.returncode == 0 and checked.stderr == ""
     assert json.loads(observed.read_text(encoding="utf-8"))["argv"] == ["2"]
+    assert_cli_rejects_invalid_value_inputs(
+        installed_command,
+        tmp_path / "installed-invalid-values",
+        {},
+    )
+    assert_cli_value_precedence(
+        installed_command,
+        tmp_path / "installed-value-precedence",
+        {},
+    )

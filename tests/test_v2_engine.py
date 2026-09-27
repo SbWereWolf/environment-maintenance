@@ -11,6 +11,73 @@ def run(tmp_path, item, *, operation="run", dry_run=False):
     return execute(load_catalog(catalog(tmp_path, [item])), operation, dry_run=dry_run, environ={})
 
 
+def serialized(value):
+    return value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
+
+
+def assert_mutation_parameter_execution(tmp_path, role, parameter_type, value, origin):
+    initial = "missing" if role == "install" else "invalid"
+    item, state, log = stateful_requirement(tmp_path, initial)
+    encoded = serialized(value)
+    observed = tmp_path / "mutation-observed.json"
+    cwd = tmp_path / ("cwd-" + encoded)
+    cwd.mkdir()
+    selected = fixture_action(
+        "capture_execution.py",
+        observed,
+        role,
+        "${value}",
+        cwd="${root}/cwd-${value}",
+        env={"COLLISION": "declared", "VALUE": "${value}"},
+    )
+    item[role] = selected
+    declaration = {"type": parameter_type}
+    values = {}
+    overrides = []
+    environ = {
+        "ALLOWED": "host",
+        "COLLISION": "host",
+        "SECRET": "must-not-leak",
+    }
+    if origin == "default":
+        declaration["default"] = value
+    elif origin == "values":
+        values["value"] = value
+    elif origin == "environment":
+        declaration["env"] = "PARAM_VALUE"
+        environ["PARAM_VALUE"] = value if isinstance(value, str) else encoded
+    else:
+        overrides.append("value=" + json.dumps(value, separators=(",", ":")))
+    root = catalog(
+        tmp_path,
+        [item],
+        parameters={
+            "root": {"type": "string", "default": str(tmp_path)},
+            "value": declaration,
+        },
+        inherit_env=["ALLOWED", "COLLISION"],
+    )
+    result = execute(
+        load_catalog(root),
+        "run",
+        values=values,
+        overrides=overrides,
+        environ=environ,
+    )
+    assert result["status"] == "failed"
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "argv": [encoded],
+        "cwd": str(cwd),
+        "environment": {
+            "ALLOWED": "host",
+            "COLLISION": "declared",
+            "VALUE": encoded,
+        },
+    }
+    assert log.read_text(encoding="utf-8").splitlines() == ["check", "check"]
+    assert state.read_text(encoding="utf-8") == initial
+
+
 def test_satisfied_runs_only_check(tmp_path):
     item, state, log = stateful_requirement(tmp_path, "satisfied")
     result = run(tmp_path, item)
@@ -108,6 +175,45 @@ def test_every_mutation_transport_failure_is_followed_by_identical_check(
     assert row["initial_check"]["invocation"]["argv"] == row["final_check"]["invocation"]["argv"]
     assert log.read_text(encoding="utf-8").splitlines() == ["check", "check"]
     assert state.read_text(encoding="utf-8") == initial
+
+
+@pytest.mark.parametrize(("initial", "role"), [("missing", "install"), ("invalid", "repair")])
+@pytest.mark.parametrize(
+    ("parameter_type", "value"),
+    [("string", "text"), ("integer", 7), ("number", 1.5), ("boolean", True)],
+)
+@pytest.mark.parametrize("origin", ["default", "values", "environment", "cli"])
+def test_mutations_expand_every_type_and_origin_with_exact_environment(
+    tmp_path,
+    initial,
+    role,
+    parameter_type,
+    value,
+    origin,
+):
+    assert initial == ("missing" if role == "install" else "invalid")
+    assert_mutation_parameter_execution(tmp_path, role, parameter_type, value, origin)
+
+
+@pytest.mark.parametrize(
+    ("parameter_type", "value"),
+    [
+        ("integer", -(2**63)),
+        ("integer", 0),
+        ("integer", 2**63 - 1),
+        ("number", -1e308),
+        ("number", 0.0),
+        ("number", 1e308),
+    ],
+)
+@pytest.mark.parametrize("origin", ["default", "values", "environment", "cli"])
+def test_finite_numeric_boundaries_from_every_source_are_serialized_at_execution(
+    tmp_path,
+    parameter_type,
+    value,
+    origin,
+):
+    assert_mutation_parameter_execution(tmp_path, "install", parameter_type, value, origin)
 
 
 def test_multiple_requirements_run_in_catalog_order(tmp_path):

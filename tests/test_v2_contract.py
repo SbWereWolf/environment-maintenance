@@ -60,7 +60,7 @@ def test_catalog_file_must_exist_and_be_valid_unique_key_json(tmp_path):
         load_catalog(root)
 
 
-@pytest.mark.parametrize("raw", ["null", "[]", '"catalog"'])
+@pytest.mark.parametrize("raw", ["null", "[]", '"catalog"', "1", "true"])
 def test_catalog_json_top_level_must_be_an_object(tmp_path, raw):
     root = catalog(tmp_path)
     manifest(root).write_text(raw, encoding="utf-8")
