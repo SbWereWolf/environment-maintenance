@@ -1,5 +1,6 @@
 import json
 from email.parser import Parser
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -207,6 +208,56 @@ def test_every_action_uses_the_same_exact_environment_boundary(tmp_path, role):
         "COLLISION": "declared",
         "DECLARED": "catalog",
     }
+
+
+def test_action_cwd_symlink_loop_is_protocol_failure_without_effect(tmp_path):
+    loop = tmp_path / "loop"
+    sentinel = tmp_path / "executed"
+    os.symlink("loop", loop)
+    selected = action(
+        "import pathlib;pathlib.Path('executed').touch()",
+        cwd=loop,
+    )
+
+    result = run_action(selected, "sample", "check", cwd=tmp_path, environ={})
+
+    assert_complete_failure_record(result)
+    assert result["exit_code"] is None
+    assert result["invocation"]["cwd"] == str(loop)
+    assert not sentinel.exists()
+
+
+def test_cli_never_serializes_known_secret_values(tmp_path):
+    secret = "SYNTHETIC_CLI_SECRET"
+    observed = tmp_path / "cli-secret.json"
+    selected = fixture_action(
+        "secret_capture.py",
+        observed,
+        "check",
+        "${secret}",
+        env={"TOKEN": "${secret}"},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={
+            "secret": {"type": "string", "default": secret, "secret": True},
+        },
+    )
+    source = Path(__file__).resolve().parents[1] / "src"
+
+    completed = invoke_cli(
+        [sys.executable, "-S", "-B", "-m", "environment_maintenance"],
+        "check",
+        "--catalog-dir",
+        root,
+        env={"PYTHONPATH": str(source)},
+    )
+
+    assert completed.returncode == 0 and completed.stderr == ""
+    assert secret not in completed.stdout
+    assert json.loads(completed.stdout)["parameters"]["secret"] == "[REDACTED]"
+    assert json.loads(observed.read_text(encoding="utf-8"))["token"] == secret
 
 
 @pytest.mark.parametrize(

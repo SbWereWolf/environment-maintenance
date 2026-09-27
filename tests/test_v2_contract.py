@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 
@@ -27,6 +28,14 @@ def test_selected_input_is_a_catalog_v2_directory(tmp_path):
         load_catalog(root / "catalog.json")
     with pytest.raises(ContractError, match="directory"):
         load_catalog(tmp_path / "absent")
+
+
+def test_selected_catalog_symlink_loop_is_contract_error(tmp_path):
+    loop = tmp_path / "loop"
+    os.symlink("loop", loop)
+
+    with pytest.raises(ContractError, match="catalog directory"):
+        load_catalog(loop)
 
 
 def test_catalog_requires_exact_v2_topology(tmp_path):

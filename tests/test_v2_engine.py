@@ -83,6 +83,65 @@ def assert_parameter_execution(tmp_path, role, parameter_type, value, origin):
         assert state.read_text(encoding="utf-8") == initial
 
 
+def assert_secret_result_redaction(tmp_path, role, origin):
+    secret = f"SYNTHETIC_SECRET_{role}_{origin}"
+    observed = tmp_path / "secret-observed.json"
+    selected = fixture_action(
+        "secret_capture.py",
+        observed,
+        role,
+        "${secret}",
+        env={"TOKEN": "${secret}"},
+    )
+    if role == "check":
+        item = requirement(check=selected)
+    else:
+        initial = "missing" if role == "install" else "invalid"
+        item, _, _ = stateful_requirement(tmp_path, initial)
+        item[role] = selected
+    declaration = {"type": "string", "secret": True}
+    values = {}
+    overrides = []
+    environ = {}
+    if origin == "default":
+        declaration["default"] = secret
+    elif origin == "values":
+        values["secret"] = secret
+    elif origin == "environment":
+        declaration["env"] = "PARAM_SECRET"
+        environ["PARAM_SECRET"] = secret
+    else:
+        overrides.append(f'secret="{secret}"')
+    root = catalog(
+        tmp_path,
+        [item],
+        parameters={"secret": declaration},
+    )
+
+    result = execute(
+        load_catalog(root),
+        "run",
+        values=values,
+        overrides=overrides,
+        environ=environ,
+    )
+
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "argv": [secret],
+        "token": secret,
+    }
+    public_json = json.dumps(result, sort_keys=True)
+    assert secret not in public_json
+    assert result["parameters"]["secret"] == "[REDACTED]"
+    assert "safe-diagnostic:[REDACTED]" in public_json
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+@pytest.mark.parametrize("origin", ["default", "values", "environment", "cli"])
+def test_secret_values_are_redacted_from_complete_public_result(tmp_path, role, origin):
+    assert_secret_result_redaction(tmp_path, role, origin)
+
+
 def test_satisfied_runs_only_check(tmp_path):
     item, state, log = stateful_requirement(tmp_path, "satisfied")
     result = run(tmp_path, item)
