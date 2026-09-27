@@ -274,6 +274,68 @@ def test_literal_secret_action_values_are_redacted_without_changing_execution(tm
     assert action_result["invocation"]["cwd"].endswith("/[REDACTED]")
 
 
+def test_embedded_literal_secret_values_are_redacted_from_public_invocation(tmp_path):
+    secret = "SYNTHETIC_EMBEDDED_SECRET_92841"
+    observed = tmp_path / "embedded-literal.json"
+    selected = fixture_action(
+        "secret_capture.py",
+        observed,
+        "check",
+        "--token=" + secret,
+        cwd="profile-" + secret,
+        env={"TOKEN": "prefix-" + secret},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+    action_cwd = root / ("profile-" + secret)
+    action_cwd.mkdir()
+
+    result = execute(load_catalog(root), "check", environ={})
+    invocation = result["requirements"][0]["initial_check"]["invocation"]
+
+    assert result["status"] == "ready"
+    assert secret not in json.dumps(result, sort_keys=True)
+    assert invocation["argv"][-1] == "--token=[REDACTED]"
+    assert invocation["env"]["TOKEN"] == "prefix-[REDACTED]"
+    assert invocation["cwd"].endswith("/profile-[REDACTED]")
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "argv": ["--token=" + secret],
+        "cwd": str(action_cwd),
+        "token": "prefix-" + secret,
+    }
+
+
+def test_equal_secret_values_keep_each_parameter_flow_identity(tmp_path):
+    secret = "SYNTHETIC_EQUAL_SECRET_92841"
+    observed = tmp_path / "equal-secret-values.json"
+    selected = fixture_action(
+        "secret_capture.py",
+        observed,
+        "check",
+        "--token=${second}",
+        env={"TOKEN": "prefix-${second}"},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={
+            "first": {"type": "string", "default": secret, "secret": True},
+            "second": {"type": "string", "default": secret, "secret": True},
+        },
+    )
+
+    result = execute(load_catalog(root), "check", environ={})
+    action_result = result["requirements"][0]["initial_check"]
+
+    assert result["status"] == "ready"
+    assert secret not in json.dumps(result, sort_keys=True)
+    assert action_result["invocation"]["argv"][-1] == "--token=[REDACTED]"
+    assert action_result["stderr"] == "safe-diagnostic:--token=[REDACTED]\n"
+
+
 def test_resolved_symlink_target_does_not_expose_secret_path_component(tmp_path):
     secret = "SYNTHETIC_SYMLINK_SECRET"
     root = catalog(
@@ -335,6 +397,52 @@ def test_incomplete_secret_output_never_publishes_captured_prefix(
     assert secret[:9] not in json.dumps(result, sort_keys=True)
 
 
+@pytest.mark.parametrize(
+    ("stream", "mode", "limit", "complete", "timed_out"),
+    [
+        ("stdout", "complete", 4096, True, False),
+        ("stderr", "complete", 4096, True, False),
+        ("stdout", "truncated", 9, False, False),
+        ("stderr", "truncated", 9, False, False),
+        ("stdout", "timeout", 4096, True, True),
+    ],
+)
+def test_inherited_environment_secret_flow_redacts_complete_and_partial_output(
+    tmp_path,
+    stream,
+    mode,
+    limit,
+    complete,
+    timed_out,
+):
+    secret = "SYNTHETIC_INHERITED_SECRET_92841"
+    selected = fixture_action(
+        "inherited_secret_output.py",
+        stream,
+        mode,
+        limit=limit,
+        bound=0.03 if mode == "timeout" else 3,
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={
+            "secret": {"type": "string", "env": "TOKEN", "secret": True},
+        },
+        inherit_env=["TOKEN"],
+    )
+
+    result = execute(load_catalog(root), "check", environ={"TOKEN": secret})
+    action_result = result["requirements"][0]["initial_check"]
+
+    assert result["status"] == "failed"
+    assert action_result["status"] == "protocol_failure"
+    assert action_result["capture_complete"] is complete
+    assert action_result["timed_out"] is timed_out
+    assert action_result[stream] == "[REDACTED]"
+    assert secret[:9] not in json.dumps(result, sort_keys=True)
+
+
 def test_unused_short_secret_preserves_unavailable_guidance(tmp_path):
     root = catalog(
         tmp_path,
@@ -346,6 +454,24 @@ def test_unused_short_secret_preserves_unavailable_guidance(tmp_path):
     row = result["requirements"][0]
 
     assert result["status"] == "unavailable"
+    assert row["cause"] == "offline repository"
+    assert row["recommendations"] == ["Connect the package mirror."]
+
+
+def test_unrelated_literal_short_secret_preserves_unavailable_guidance(tmp_path):
+    selected = result_action("check-unavailable.json")
+    selected["argv"].append("a")
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={"secret": {"type": "string", "default": "a", "secret": True}},
+    )
+
+    result = execute(load_catalog(root), "check", environ={})
+    row = result["requirements"][0]
+
+    assert result["status"] == "unavailable"
+    assert row["initial_check"]["invocation"]["argv"][-1] == "[REDACTED]"
     assert row["cause"] == "offline repository"
     assert row["recommendations"] == ["Connect the package mirror."]
 

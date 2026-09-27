@@ -281,16 +281,16 @@ def test_cli_redacts_literal_secret_values_and_resolved_cwd(tmp_path):
         "secret_capture.py",
         observed,
         "check",
-        secret,
+        "--token=" + secret,
         cwd="link",
-        env={"TOKEN": secret},
+        env={"TOKEN": "prefix-" + secret},
     )
     root = catalog(
         tmp_path,
         [requirement(check=selected)],
         parameters={"secret": {"type": "string", "default": secret, "secret": True}},
     )
-    target = root / secret
+    target = root / ("profile-" + secret)
     target.mkdir()
     (root / "link").symlink_to(target, target_is_directory=True)
     source = Path(__file__).resolve().parents[1] / "src"
@@ -307,13 +307,13 @@ def test_cli_redacts_literal_secret_values_and_resolved_cwd(tmp_path):
     assert secret not in completed.stdout
     payload = json.loads(completed.stdout)
     invocation = payload["requirements"][0]["initial_check"]["invocation"]
-    assert invocation["argv"][-1] == "[REDACTED]"
-    assert invocation["env"]["TOKEN"] == "[REDACTED]"
-    assert invocation["cwd"].endswith("/[REDACTED]")
+    assert invocation["argv"][-1] == "--token=[REDACTED]"
+    assert invocation["env"]["TOKEN"] == "prefix-[REDACTED]"
+    assert invocation["cwd"].endswith("/profile-[REDACTED]")
     assert json.loads(observed.read_text(encoding="utf-8")) == {
-        "argv": [secret],
+        "argv": ["--token=" + secret],
         "cwd": str(target),
-        "token": secret,
+        "token": "prefix-" + secret,
     }
 
 
