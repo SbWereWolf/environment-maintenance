@@ -149,6 +149,55 @@ def test_secret_values_are_redacted_from_complete_public_result(tmp_path, role, 
     assert_secret_result_redaction(tmp_path, role, origin)
 
 
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_secret_stdout_is_redacted_from_direct_execute_result(tmp_path, role):
+    secret = f"SYNTHETIC_STDOUT_SECRET_{role}"
+    secret_cwd = tmp_path / secret
+    secret_cwd.mkdir()
+    observed = tmp_path / f"{role}-secret-stdout.json"
+    selected = fixture_action(
+        "secret_stdout.py",
+        observed,
+        "${secret}",
+        cwd="${root}/${secret}",
+        env={"TOKEN": "${secret}"},
+    )
+    if role == "check":
+        item = requirement(check=selected)
+    else:
+        initial = "missing" if role == "install" else "invalid"
+        item, _, _ = stateful_requirement(tmp_path, initial)
+        item[role] = selected
+    root = catalog(
+        tmp_path,
+        [item],
+        parameters={
+            "root": {"type": "string", "default": str(tmp_path)},
+            "secret": {"type": "string", "default": secret, "secret": True},
+        },
+    )
+
+    result = execute(load_catalog(root), "run", environ={})
+    row = result["requirements"][0]
+    action_result = row["initial_check"] if role == "check" else row["mutation"]
+
+    assert result["status"] == "failed"
+    assert action_result["status"] == "protocol_failure"
+    assert action_result["stdout"] == "[REDACTED]\n"
+    assert action_result["stderr"] == "safe-diagnostic:[REDACTED]\n"
+    assert action_result["invocation"]["argv"][-1] == "[REDACTED]"
+    assert action_result["invocation"]["env"]["TOKEN"] == "[REDACTED]"
+    assert action_result["invocation"]["cwd"].endswith("/[REDACTED]")
+    assert secret not in json.dumps(result, sort_keys=True)
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "argument": secret,
+        "cwd": str(secret_cwd),
+        "token": secret,
+    }
+    if role != "check":
+        assert row["final_check"]["status"] == "passed"
+
+
 def test_short_secret_does_not_corrupt_unrelated_protocol_fields(tmp_path):
     secret = "check"
     secret_cwd = tmp_path / secret
