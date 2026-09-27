@@ -38,36 +38,76 @@ def _redact_opaque(value, secrets):
     return value
 
 
-def _public_cwd(action, root):
-    directory = Path(action["cwd"])
-    if not directory.is_absolute():
-        directory = Path(root) / directory
-    try:
-        return str(directory.resolve())
-    except (OSError, RuntimeError):
-        return str(directory)
+def _contains(value, selected):
+    if isinstance(value, str):
+        return selected in value
+    if isinstance(value, list):
+        return any(_contains(item, selected) for item in value)
+    if isinstance(value, dict):
+        return any(_contains(item, selected) for item in value.values())
+    return False
 
 
-def _public_action_result(result, action, root, inherited, secrets):
+def _literal_action_value(action, secret):
+    return (
+        secret in action["argv"]
+        or secret in action["env"].values()
+        or secret in Path(action["cwd"]).parts
+    )
+
+
+def _action_secrets(template, action, secret_values):
+    return [
+        secret
+        for name, secret in secret_values
+        if _contains(template, "${" + name + "}") or _literal_action_value(action, secret)
+    ]
+
+
+def _public_value(value, secrets, action_secrets):
+    if value in secrets:
+        return REDACTED
+    return _redact_text(value, action_secrets)
+
+
+def _public_path(value, secrets, action_secrets):
+    path = Path(value)
+    parts = [
+        REDACTED if part in secrets else _redact_text(part, action_secrets)
+        for part in path.parts
+    ]
+    if path.is_absolute():
+        return str(Path(parts[0], *parts[1:]))
+    return str(Path(*parts))
+
+
+def _public_action_result(result, secrets, action_secrets):
     public = deepcopy(result)
-    environment = {
-        name: _redact_text(value, secrets)
-        for name, value in inherited.items()
-    }
-    environment.update(action["env"])
+    invocation = public["invocation"]
     public["invocation"] = {
-        "argv": list(action["argv"]),
-        "cwd": _public_cwd(action, root),
-        "env": environment,
+        "argv": [
+            _public_value(value, secrets, action_secrets)
+            for value in invocation["argv"]
+        ],
+        "cwd": _public_path(invocation["cwd"], secrets, action_secrets),
+        "env": {
+            name: _public_value(value, secrets, action_secrets)
+            for name, value in invocation["env"].items()
+        },
     }
-    for field in ("stdout", "stderr", "error"):
-        public[field] = _redact_text(public[field], secrets)
+    incomplete = public["timed_out"] or not public["capture_complete"]
+    for field in ("stdout", "stderr"):
+        if incomplete and action_secrets and public[field]:
+            public[field] = REDACTED
+        else:
+            public[field] = _redact_text(public[field], action_secrets)
+    public["error"] = _redact_text(public["error"], action_secrets)
     if "response" in public:
         response = public["response"]
-        response["schema"] = action["output"]["schema"]
+        response["schema"] = _public_value(response["schema"], secrets, action_secrets)
         for field in ("cause", "recommendations"):
             if field in response:
-                response[field] = _redact_opaque(response[field], secrets)
+                response[field] = _redact_opaque(response[field], action_secrets)
     return public
 
 
@@ -88,33 +128,28 @@ def execute(catalogue, operation, *, values=None, overrides=None, environ=None, 
     host = dict(os.environ if environ is None else environ)
     parameters, origins = resolve(catalogue.data["parameters"], values, host, overrides)
     inherited = {name: host[name] for name in catalogue.data["inherit_env"] if name in host}
-    items = expand(catalogue.data["requirements"], parameters)
-    public_parameters = {
-        name: REDACTED if declaration.get("secret") else parameters[name]
-        for name, declaration in catalogue.data["parameters"].items()
-    }
-    public_items = expand(catalogue.data["requirements"], public_parameters)
-    secrets = []
+    templates = catalogue.data["requirements"]
+    items = expand(templates, parameters)
+    secret_values = []
     for name, declaration in catalogue.data["parameters"].items():
         if declaration.get("secret"):
             text = _parameter_text(parameters[name])
-            if text and text not in secrets:
-                secrets.append(text)
-    secrets.sort(key=len, reverse=True)
+            if text and all(text != existing for _, existing in secret_values):
+                secret_values.append((name, text))
+    secret_values.sort(key=lambda item: len(item[1]), reverse=True)
+    secrets = [text for _, text in secret_values]
     for item in items:
         for role in ("check", "install", "repair"):
             validate_action(item[role], role)
     rows = []
-    for item, public_item in zip(items, public_items, strict=True):
+    for template, item in zip(templates, items, strict=True):
         identifier = item["id"]
         check_action = item["check"]
         initial = run_action(check_action, identifier, "check", cwd=catalogue.root, environ=inherited)
         initial = _public_action_result(
             initial,
-            public_item["check"],
-            catalogue.root,
-            inherited,
             secrets,
+            _action_secrets(template["check"], check_action, secret_values),
         )
         row = {"id": identifier, "initial_check": initial}
         if initial["status"] != "passed":
@@ -142,17 +177,13 @@ def execute(catalogue, operation, *, values=None, overrides=None, environ=None, 
                 final = run_action(check_action, identifier, "check", cwd=catalogue.root, environ=inherited)
                 mutation = _public_action_result(
                     mutation,
-                    public_item[mutation_role],
-                    catalogue.root,
-                    inherited,
                     secrets,
+                    _action_secrets(template[mutation_role], item[mutation_role], secret_values),
                 )
                 final = _public_action_result(
                     final,
-                    public_item["check"],
-                    catalogue.root,
-                    inherited,
                     secrets,
+                    _action_secrets(template["check"], check_action, secret_values),
                 )
                 row.update(mutation=mutation, final_check=final)
                 if final["status"] == "passed":
