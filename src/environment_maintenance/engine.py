@@ -150,10 +150,14 @@ def execute(catalogue, operation, *, values=None, overrides=None, environ=None, 
         if text not in secrets:
             secrets.append(text)
     inherited_secrets = []
-    for name, secret in secret_values:
+    for name, _ in secret_values:
         source = catalogue.data["parameters"][name].get("env")
-        if origins[name] == "environment" and source in inherited and secret not in inherited_secrets:
-            inherited_secrets.append(secret)
+        if source in inherited:
+            inherited_secret = inherited[source]
+            if inherited_secret not in inherited_secrets:
+                inherited_secrets.append(inherited_secret)
+            if inherited_secret not in secrets:
+                secrets.append(inherited_secret)
     for item in items:
         for role in ("check", "install", "repair"):
             validate_action(item[role], role)
