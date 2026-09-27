@@ -14,7 +14,7 @@ from environment_maintenance.process import run_action
 from v2_helpers import FIXTURES, action, catalog, fixture_action, requirement, result_action
 
 
-BUILD_PYTHON = Path("/usr/bin/python3")
+BUILD_PYTHON = Path(sys.executable)
 
 
 def test_action_environment_uses_only_allowlist_plus_declared_values(tmp_path):
@@ -72,8 +72,19 @@ def test_declared_output_schema_controls_protocol_validation(tmp_path):
     assert run_action(mismatch, "sample", "check", cwd=tmp_path, environ={})["status"] == "protocol_failure"
 
 
-@pytest.mark.parametrize("bound", [0.08, 0.25])
-def test_timeout_enforces_declared_bound_and_kills_delayed_effect(tmp_path, bound):
+@pytest.mark.parametrize(
+    ("bound", "minimum_elapsed", "maximum_elapsed"),
+    [
+        (0.06, 0.03, 0.14),
+        (0.35, 0.25, 0.60),
+    ],
+)
+def test_timeout_enforces_declared_bound_and_kills_delayed_effect(
+    tmp_path,
+    bound,
+    minimum_elapsed,
+    maximum_elapsed,
+):
     marker = tmp_path / "late-effect"
     delayed_effect_seconds = 0.6
     selected = fixture_action("delayed_effect.py", marker, delayed_effect_seconds, bound=bound)
@@ -81,7 +92,7 @@ def test_timeout_enforces_declared_bound_and_kills_delayed_effect(tmp_path, boun
     result = run_action(selected, "sample", "check", cwd=tmp_path, environ={})
     elapsed = time.monotonic() - started
     assert result["status"] == "protocol_failure" and result["timed_out"] is True
-    assert bound * 0.5 <= elapsed < bound + 0.2
+    assert minimum_elapsed <= elapsed < maximum_elapsed
     deadline = started + delayed_effect_seconds + 0.2
     while time.monotonic() < deadline:
         assert not marker.exists()
