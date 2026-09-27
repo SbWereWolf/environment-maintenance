@@ -108,7 +108,6 @@ def run_action(action, requirement_id, role, *, cwd, environ):
     directory = Path(action["cwd"])
     if not directory.is_absolute():
         directory = base / directory
-    directory = directory.resolve()
     environment = dict(environ)
     environment.update(action["env"])
     invocation = {"argv": list(action["argv"]), "cwd": str(directory), "env": environment}
@@ -122,6 +121,12 @@ def run_action(action, requirement_id, role, *, cwd, environ):
         "timed_out": False,
         "error": "Action did not produce a valid result",
     }
+    try:
+        directory = directory.resolve()
+    except (OSError, RuntimeError) as exc:
+        response["error"] = f"Cannot resolve action cwd: {exc}"
+        return response
+    invocation["cwd"] = str(directory)
     try:
         process = subprocess.Popen(
             action["argv"],

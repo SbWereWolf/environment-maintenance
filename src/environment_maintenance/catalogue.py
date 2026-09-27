@@ -127,7 +127,10 @@ def validate_action(action: Any, label: str) -> None:
 
 
 def load_catalog(path: str | Path) -> Catalogue:
-    root = Path(path).resolve()
+    try:
+        root = Path(path).resolve()
+    except (OSError, RuntimeError) as exc:
+        raise ContractError(f"Cannot resolve selected catalog directory: {path}: {exc}") from exc
     if not root.is_dir():
         raise ContractError(f"Selected catalog directory does not exist: {root}")
     manifest = root / "catalog.json"
