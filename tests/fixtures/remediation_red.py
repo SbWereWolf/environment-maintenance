@@ -14,10 +14,7 @@ SECRET = "SYNTHETIC_REMEDIATION_SECRET"
 
 
 def action(cwd="."):
-    script = (
-        "import json;print(json.dumps({'schema':'environment-maintenance/action-result/v2',"
-        "'requirement_id':'sample','action':'check','state':'satisfied'}))"
-    )
+    script = "import sys;print(sys.argv[1])"
     return {
         "argv": [sys.executable, "-S", "-c", script, SECRET],
         "cwd": str(cwd),
@@ -40,7 +37,9 @@ def escapes_runtime_error(operation):
 
 with TemporaryDirectory() as directory:
     root = Path(directory)
-    selected = action()
+    secret_cwd = root / SECRET
+    secret_cwd.mkdir()
+    selected = action(secret_cwd)
     catalog = Catalogue(
         root,
         root / "catalog.json",

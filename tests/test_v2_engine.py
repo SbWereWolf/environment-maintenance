@@ -86,11 +86,14 @@ def assert_parameter_execution(tmp_path, role, parameter_type, value, origin):
 def assert_secret_result_redaction(tmp_path, role, origin):
     secret = f"SYNTHETIC_SECRET_{role}_{origin}"
     observed = tmp_path / "secret-observed.json"
+    secret_cwd = tmp_path / secret
+    secret_cwd.mkdir()
     selected = fixture_action(
         "secret_capture.py",
         observed,
         role,
         "${secret}",
+        cwd="${root}/${secret}",
         env={"TOKEN": "${secret}"},
     )
     if role == "check":
@@ -115,7 +118,10 @@ def assert_secret_result_redaction(tmp_path, role, origin):
     root = catalog(
         tmp_path,
         [item],
-        parameters={"secret": declaration},
+        parameters={
+            "root": {"type": "string", "default": str(tmp_path)},
+            "secret": declaration,
+        },
     )
 
     result = execute(
@@ -128,6 +134,7 @@ def assert_secret_result_redaction(tmp_path, role, origin):
 
     assert json.loads(observed.read_text(encoding="utf-8")) == {
         "argv": [secret],
+        "cwd": str(secret_cwd),
         "token": secret,
     }
     public_json = json.dumps(result, sort_keys=True)
@@ -140,6 +147,41 @@ def assert_secret_result_redaction(tmp_path, role, origin):
 @pytest.mark.parametrize("origin", ["default", "values", "environment", "cli"])
 def test_secret_values_are_redacted_from_complete_public_result(tmp_path, role, origin):
     assert_secret_result_redaction(tmp_path, role, origin)
+
+
+def test_short_secret_does_not_corrupt_unrelated_protocol_fields(tmp_path):
+    secret = "check"
+    secret_cwd = tmp_path / secret
+    secret_cwd.mkdir()
+    observed = tmp_path / "short-secret.json"
+    selected = fixture_action(
+        "secret_capture.py",
+        observed,
+        "check",
+        "${secret}",
+        cwd="${root}/${secret}",
+        env={"TOKEN": "${secret}"},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={
+            "root": {"type": "string", "default": str(tmp_path)},
+            "secret": {"type": "string", "default": secret, "secret": True},
+        },
+    )
+
+    result = execute(load_catalog(root), "check", environ={})
+    action_result = result["requirements"][0]["initial_check"]
+
+    assert result["status"] == "ready"
+    assert action_result["status"] == "passed"
+    assert action_result["response"]["action"] == "check"
+    assert action_result["response"]["state"] == "satisfied"
+    assert action_result["invocation"]["argv"][-1] == "[REDACTED]"
+    assert action_result["invocation"]["env"]["TOKEN"] == "[REDACTED]"
+    assert action_result["invocation"]["cwd"].endswith("/[REDACTED]")
+    assert action_result["stderr"] == "safe-diagnostic:[REDACTED]\n"
 
 
 def test_satisfied_runs_only_check(tmp_path):

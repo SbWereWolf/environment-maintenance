@@ -230,17 +230,20 @@ def test_action_cwd_symlink_loop_is_protocol_failure_without_effect(tmp_path):
 def test_cli_never_serializes_known_secret_values(tmp_path):
     secret = "SYNTHETIC_CLI_SECRET"
     observed = tmp_path / "cli-secret.json"
+    secret_cwd = tmp_path / secret
+    secret_cwd.mkdir()
     selected = fixture_action(
-        "secret_capture.py",
+        "secret_stdout.py",
         observed,
-        "check",
         "${secret}",
+        cwd="${root}/${secret}",
         env={"TOKEN": "${secret}"},
     )
     root = catalog(
         tmp_path,
         [requirement(check=selected)],
         parameters={
+            "root": {"type": "string", "default": str(tmp_path)},
             "secret": {"type": "string", "default": secret, "secret": True},
         },
     )
@@ -254,10 +257,21 @@ def test_cli_never_serializes_known_secret_values(tmp_path):
         env={"PYTHONPATH": str(source)},
     )
 
-    assert completed.returncode == 0 and completed.stderr == ""
+    assert completed.returncode == 4 and completed.stderr == ""
     assert secret not in completed.stdout
-    assert json.loads(completed.stdout)["parameters"]["secret"] == "[REDACTED]"
-    assert json.loads(observed.read_text(encoding="utf-8"))["token"] == secret
+    payload = json.loads(completed.stdout)
+    action_result = payload["requirements"][0]["initial_check"]
+    assert payload["parameters"]["secret"] == "[REDACTED]"
+    assert payload["status"] == "failed"
+    assert action_result["status"] == "protocol_failure"
+    assert action_result["stdout"] == "[REDACTED]\n"
+    assert action_result["stderr"] == "safe-diagnostic:[REDACTED]\n"
+    assert action_result["invocation"]["cwd"].endswith("/[REDACTED]")
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "argument": secret,
+        "cwd": str(secret_cwd),
+        "token": secret,
+    }
 
 
 @pytest.mark.parametrize(
