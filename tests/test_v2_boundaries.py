@@ -1,4 +1,5 @@
 import json
+from email.parser import Parser
 from pathlib import Path
 import shutil
 import subprocess
@@ -712,10 +713,10 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
             Path(name).suffix == ".pyc" or "__pycache__" in Path(name).parts
             for name in names
         )
-    expected_sdist = f'{metadata["name"]}-{metadata["version"]}.tar.gz'
     archives = list(sdist_dir.glob("*.tar.gz"))
     assert len(archives) == 1
-    assert archives[0].name == expected_sdist
+    backend_result = json.loads(sdist.stdout.splitlines()[-1])
+    assert backend_result == {"sdist": archives[0].name}
     with tarfile.open(archives[0], "r:gz") as archive:
         names = archive.getnames()
         assert not any(Path(name).name in forbidden_basenames for name in names)
@@ -724,6 +725,14 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
             Path(name).suffix == ".pyc" or "__pycache__" in Path(name).parts
             for name in names
         )
+        package_metadata = [name for name in names if name.endswith("/PKG-INFO")]
+        assert package_metadata
+        for name in package_metadata:
+            extracted = archive.extractfile(name)
+            assert extracted is not None
+            headers = Parser().parsestr(extracted.read().decode("utf-8"))
+            assert headers["Name"] == metadata["name"]
+            assert headers["Version"] == metadata["version"]
 
     environment = tmp_path / "installed"
     created = subprocess.run(
