@@ -103,6 +103,10 @@ elif variant.startswith("unavailable-"):
         base["recommendations"] = [1]
     elif field == "forbidden-outcome":
         base["outcome"] = "completed"
+    elif field == "missing-cause":
+        base.pop("cause")
+    elif field == "missing-recommendations":
+        base.pop("recommendations")
     print(json.dumps(base))
 else:
     raise SystemExit("unknown variant")

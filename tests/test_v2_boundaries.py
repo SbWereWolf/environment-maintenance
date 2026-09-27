@@ -105,42 +105,43 @@ def assert_cli_value_precedence(command, base, env):
         "capture_execution.py",
         observed,
         "check",
-        "${from_default}",
-        "${from_values}",
-        "${from_environment}",
-        "${from_cli}",
+        "${priority}",
     )
     root = catalog(
         base,
         [requirement(check=selected)],
         parameters={
-            "from_default": {"type": "string", "default": "default"},
-            "from_values": {"type": "integer"},
-            "from_environment": {"type": "number", "env": "PARAMETER_NUMBER"},
-            "from_cli": {"type": "boolean", "default": False},
+            "priority": {
+                "type": "string",
+                "default": "default",
+                "env": "PARAMETER_PRIORITY",
+            },
         },
     )
     values = base / "values.json"
-    values.write_text('{"from_values":2}', encoding="utf-8")
-    completed = invoke_cli(
-        command,
-        "check",
-        "--catalog-dir",
-        root,
-        "--values",
-        values,
-        "--set",
-        "from_cli=true",
-        env={**env, "PARAMETER_NUMBER": "1.5"},
-    )
-    assert completed.returncode == 0 and completed.stderr == ""
-    assert json.loads(completed.stdout)["status"] == "ready"
-    assert json.loads(observed.read_text(encoding="utf-8"))["argv"] == [
-        "default",
-        "2",
-        "1.5",
-        "true",
+    values.write_text('{"priority":"values"}', encoding="utf-8")
+    cases = [
+        ([], env, "default"),
+        (["--values", values], env, "values"),
+        (["--values", values], {**env, "PARAMETER_PRIORITY": "environment"}, "environment"),
+        (
+            ["--values", values, "--set", 'priority="cli"'],
+            {**env, "PARAMETER_PRIORITY": "environment"},
+            "cli",
+        ),
     ]
+    for arguments, selected_env, expected in cases:
+        completed = invoke_cli(
+            command,
+            "check",
+            "--catalog-dir",
+            root,
+            *arguments,
+            env=selected_env,
+        )
+        assert completed.returncode == 0 and completed.stderr == ""
+        assert json.loads(completed.stdout)["status"] == "ready"
+        assert json.loads(observed.read_text(encoding="utf-8"))["argv"] == [expected]
 
 
 def test_action_environment_uses_only_allowlist_plus_declared_values(tmp_path):
@@ -243,6 +244,8 @@ def test_protocol_failure_never_becomes_a_domain_state(tmp_path, script):
         "unavailable-blank-recommendation",
         "unavailable-wrong-recommendation-item",
         "unavailable-forbidden-outcome",
+        "unavailable-missing-cause",
+        "unavailable-missing-recommendations",
     ],
 )
 def test_complete_check_protocol_rejects_every_invalid_equivalence_class(tmp_path, variant):

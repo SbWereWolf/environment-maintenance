@@ -15,9 +15,7 @@ def serialized(value):
     return value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
 
 
-def assert_mutation_parameter_execution(tmp_path, role, parameter_type, value, origin):
-    initial = "missing" if role == "install" else "invalid"
-    item, state, log = stateful_requirement(tmp_path, initial)
+def assert_parameter_execution(tmp_path, role, parameter_type, value, origin):
     encoded = serialized(value)
     observed = tmp_path / "mutation-observed.json"
     cwd = tmp_path / ("cwd-" + encoded)
@@ -30,7 +28,13 @@ def assert_mutation_parameter_execution(tmp_path, role, parameter_type, value, o
         cwd="${root}/cwd-${value}",
         env={"COLLISION": "declared", "VALUE": "${value}"},
     )
-    item[role] = selected
+    if role == "check":
+        item = requirement(check=selected)
+        state = log = None
+    else:
+        initial = "missing" if role == "install" else "invalid"
+        item, state, log = stateful_requirement(tmp_path, initial)
+        item[role] = selected
     declaration = {"type": parameter_type}
     values = {}
     overrides = []
@@ -64,7 +68,7 @@ def assert_mutation_parameter_execution(tmp_path, role, parameter_type, value, o
         overrides=overrides,
         environ=environ,
     )
-    assert result["status"] == "failed"
+    assert result["status"] == ("ready" if role == "check" else "failed")
     assert json.loads(observed.read_text(encoding="utf-8")) == {
         "argv": [encoded],
         "cwd": str(cwd),
@@ -74,8 +78,9 @@ def assert_mutation_parameter_execution(tmp_path, role, parameter_type, value, o
             "VALUE": encoded,
         },
     }
-    assert log.read_text(encoding="utf-8").splitlines() == ["check", "check"]
-    assert state.read_text(encoding="utf-8") == initial
+    if role != "check":
+        assert log.read_text(encoding="utf-8").splitlines() == ["check", "check"]
+        assert state.read_text(encoding="utf-8") == initial
 
 
 def test_satisfied_runs_only_check(tmp_path):
@@ -146,11 +151,10 @@ def test_failed_mutation_is_still_followed_by_check(tmp_path):
     assert log.read_text() == "check\ncheck\n"
 
 
-@pytest.mark.parametrize(("initial", "role"), [("missing", "install"), ("invalid", "repair")])
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
 @pytest.mark.parametrize("failure", ["nonzero", "nonzero-success", "timeout", "overflow"])
 def test_every_mutation_transport_failure_is_followed_by_identical_check(
     tmp_path,
-    initial,
     role,
     failure,
 ):
@@ -183,7 +187,7 @@ def test_every_mutation_transport_failure_is_followed_by_identical_check(
     [("string", "text"), ("integer", 7), ("number", 1.5), ("boolean", True)],
 )
 @pytest.mark.parametrize("origin", ["default", "values", "environment", "cli"])
-def test_mutations_expand_every_type_and_origin_with_exact_environment(
+def test_every_action_expands_every_type_and_origin_with_exact_environment(
     tmp_path,
     initial,
     role,
@@ -191,8 +195,7 @@ def test_mutations_expand_every_type_and_origin_with_exact_environment(
     value,
     origin,
 ):
-    assert initial == ("missing" if role == "install" else "invalid")
-    assert_mutation_parameter_execution(tmp_path, role, parameter_type, value, origin)
+    assert_parameter_execution(tmp_path, role, parameter_type, value, origin)
 
 
 @pytest.mark.parametrize(
@@ -213,7 +216,7 @@ def test_finite_numeric_boundaries_from_every_source_are_serialized_at_execution
     value,
     origin,
 ):
-    assert_mutation_parameter_execution(tmp_path, "install", parameter_type, value, origin)
+    assert_parameter_execution(tmp_path, "install", parameter_type, value, origin)
 
 
 def test_multiple_requirements_run_in_catalog_order(tmp_path):
