@@ -233,6 +233,123 @@ def test_short_secret_does_not_corrupt_unrelated_protocol_fields(tmp_path):
     assert action_result["stderr"] == "safe-diagnostic:[REDACTED]\n"
 
 
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_literal_secret_action_values_are_redacted_without_changing_execution(tmp_path, role):
+    secret = f"SYNTHETIC_LITERAL_SECRET_{role}"
+    observed = tmp_path / f"literal-{role}.json"
+    selected = fixture_action(
+        "secret_capture.py",
+        observed,
+        role,
+        secret,
+        cwd=secret,
+        env={"TOKEN": secret},
+    )
+    if role == "check":
+        item = requirement(check=selected)
+    else:
+        initial = "missing" if role == "install" else "invalid"
+        item, _, _ = stateful_requirement(tmp_path, initial)
+        item[role] = selected
+    root = catalog(
+        tmp_path,
+        [item],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+    action_cwd = root / secret
+    action_cwd.mkdir()
+
+    result = execute(load_catalog(root), "run", environ={})
+    row = result["requirements"][0]
+    action_result = row["initial_check"] if role == "check" else row["mutation"]
+
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "argv": [secret],
+        "cwd": str(action_cwd),
+        "token": secret,
+    }
+    assert secret not in json.dumps(result, sort_keys=True)
+    assert action_result["invocation"]["argv"][-1] == "[REDACTED]"
+    assert action_result["invocation"]["env"]["TOKEN"] == "[REDACTED]"
+    assert action_result["invocation"]["cwd"].endswith("/[REDACTED]")
+
+
+def test_resolved_symlink_target_does_not_expose_secret_path_component(tmp_path):
+    secret = "SYNTHETIC_SYMLINK_SECRET"
+    root = catalog(
+        tmp_path,
+        [requirement(check=result_action("check-satisfied.json", cwd="link"))],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+    target = root / secret
+    target.mkdir()
+    (root / "link").symlink_to(target, target_is_directory=True)
+
+    result = execute(load_catalog(root), "check", environ={})
+
+    assert result["status"] == "ready"
+    assert secret not in json.dumps(result, sort_keys=True)
+    assert result["requirements"][0]["initial_check"]["invocation"]["cwd"].endswith(
+        "/[REDACTED]"
+    )
+
+
+@pytest.mark.parametrize(
+    ("stream", "mode", "complete", "timed_out"),
+    [
+        ("stdout", "truncated", False, False),
+        ("stderr", "truncated", False, False),
+        ("stdout", "timeout", True, True),
+    ],
+)
+def test_incomplete_secret_output_never_publishes_captured_prefix(
+    tmp_path,
+    stream,
+    mode,
+    complete,
+    timed_out,
+):
+    secret = "SYNTHETIC_TRUNCATED_SECRET_92841"
+    selected = fixture_action(
+        "secret_partial.py",
+        "${secret}",
+        stream,
+        mode,
+        limit=9,
+        bound=0.03 if mode == "timeout" else 3,
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+
+    result = execute(load_catalog(root), "check", environ={})
+    action_result = result["requirements"][0]["initial_check"]
+
+    assert result["status"] == "failed"
+    assert action_result["status"] == "protocol_failure"
+    assert action_result["capture_complete"] is complete
+    assert action_result["timed_out"] is timed_out
+    assert action_result[stream] == "[REDACTED]"
+    assert secret[:9] not in json.dumps(result, sort_keys=True)
+
+
+def test_unused_short_secret_preserves_unavailable_guidance(tmp_path):
+    root = catalog(
+        tmp_path,
+        [requirement(check=result_action("check-unavailable.json"))],
+        parameters={"secret": {"type": "string", "default": "a", "secret": True}},
+    )
+
+    result = execute(load_catalog(root), "check", environ={})
+    row = result["requirements"][0]
+
+    assert result["status"] == "unavailable"
+    assert row["cause"] == "offline repository"
+    assert row["recommendations"] == ["Connect the package mirror."]
+
+
 def test_satisfied_runs_only_check(tmp_path):
     item, state, log = stateful_requirement(tmp_path, "satisfied")
     result = run(tmp_path, item)

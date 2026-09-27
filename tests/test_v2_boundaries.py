@@ -274,6 +274,49 @@ def test_cli_never_serializes_known_secret_values(tmp_path):
     }
 
 
+def test_cli_redacts_literal_secret_values_and_resolved_cwd(tmp_path):
+    secret = "SYNTHETIC_CLI_LITERAL_SECRET"
+    observed = tmp_path / "cli-literal-secret.json"
+    selected = fixture_action(
+        "secret_capture.py",
+        observed,
+        "check",
+        secret,
+        cwd="link",
+        env={"TOKEN": secret},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={"secret": {"type": "string", "default": secret, "secret": True}},
+    )
+    target = root / secret
+    target.mkdir()
+    (root / "link").symlink_to(target, target_is_directory=True)
+    source = Path(__file__).resolve().parents[1] / "src"
+
+    completed = invoke_cli(
+        [sys.executable, "-S", "-B", "-m", "environment_maintenance"],
+        "check",
+        "--catalog-dir",
+        root,
+        env={"PYTHONPATH": str(source)},
+    )
+
+    assert completed.returncode == 0 and completed.stderr == ""
+    assert secret not in completed.stdout
+    payload = json.loads(completed.stdout)
+    invocation = payload["requirements"][0]["initial_check"]["invocation"]
+    assert invocation["argv"][-1] == "[REDACTED]"
+    assert invocation["env"]["TOKEN"] == "[REDACTED]"
+    assert invocation["cwd"].endswith("/[REDACTED]")
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "argv": [secret],
+        "cwd": str(target),
+        "token": secret,
+    }
+
+
 @pytest.mark.parametrize(
     "script",
     [
