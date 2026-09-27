@@ -4,7 +4,7 @@ import pytest
 
 from environment_maintenance.catalogue import load_catalog
 from environment_maintenance.engine import execute
-from v2_helpers import action, catalog, fixture_action, requirement, result_action, stateful_requirement
+from v2_helpers import FIXTURES, action, catalog, fixture_action, requirement, result_action, stateful_requirement
 
 
 def run(tmp_path, item, *, operation="run", dry_run=False):
@@ -77,6 +77,37 @@ def test_failed_mutation_is_still_followed_by_check(tmp_path):
     assert result["status"] == "failed"
     assert result["requirements"][0]["mutation"]["status"] == "protocol_failure"
     assert log.read_text() == "check\ncheck\n"
+
+
+@pytest.mark.parametrize(("initial", "role"), [("missing", "install"), ("invalid", "repair")])
+@pytest.mark.parametrize("failure", ["nonzero", "nonzero-success", "timeout", "overflow"])
+def test_every_mutation_transport_failure_is_followed_by_identical_check(
+    tmp_path,
+    initial,
+    role,
+    failure,
+):
+    item, state, log = stateful_requirement(tmp_path, initial)
+    if failure == "nonzero":
+        selected = action("raise SystemExit(7)")
+    elif failure == "nonzero-success":
+        selected = fixture_action(
+            "emit_result_and_exit.py",
+            FIXTURES / "results" / f"{role}-completed.json",
+            7,
+        )
+    elif failure == "timeout":
+        selected = fixture_action("delayed_effect.py", tmp_path / "late", 1, bound=0.03)
+    else:
+        selected = fixture_action("output_flood.py", limit=16)
+    item[role] = selected
+    result = run(tmp_path, item)
+    row = result["requirements"][0]
+    assert result["status"] == "failed"
+    assert row["mutation"]["status"] == "protocol_failure"
+    assert row["initial_check"]["invocation"]["argv"] == row["final_check"]["invocation"]["argv"]
+    assert log.read_text(encoding="utf-8").splitlines() == ["check", "check"]
+    assert state.read_text(encoding="utf-8") == initial
 
 
 def test_multiple_requirements_run_in_catalog_order(tmp_path):

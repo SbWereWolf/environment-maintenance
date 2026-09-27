@@ -25,6 +25,8 @@ def test_selected_input_is_a_catalog_v2_directory(tmp_path):
     assert loaded.manifest_path == (root / "catalog.json").resolve()
     with pytest.raises(ContractError, match="directory"):
         load_catalog(root / "catalog.json")
+    with pytest.raises(ContractError, match="directory"):
+        load_catalog(tmp_path / "absent")
 
 
 def test_catalog_requires_exact_v2_topology(tmp_path):
@@ -55,6 +57,26 @@ def test_catalog_file_must_exist_and_be_valid_unique_key_json(tmp_path):
         load_catalog(root)
     manifest(root).write_text('{"schema":"one","schema":"two"}', encoding="utf-8")
     with pytest.raises(ContractError, match="Duplicate JSON key"):
+        load_catalog(root)
+
+
+@pytest.mark.parametrize("raw", ["null", "[]", '"catalog"'])
+def test_catalog_json_top_level_must_be_an_object(tmp_path, raw):
+    root = catalog(tmp_path)
+    manifest(root).write_text(raw, encoding="utf-8")
+    with pytest.raises(ContractError, match="object"):
+        load_catalog(root)
+
+
+def test_catalog_manifest_must_be_a_readable_utf8_file(tmp_path):
+    root = tmp_path / "catalog-directory"
+    root.mkdir()
+    manifest(root).mkdir()
+    with pytest.raises(ContractError, match="Cannot read"):
+        load_catalog(root)
+    manifest(root).rmdir()
+    manifest(root).write_bytes(b"\xff\xfe")
+    with pytest.raises(ContractError, match="Cannot read"):
         load_catalog(root)
 
 
@@ -145,17 +167,28 @@ def test_each_requirement_declares_all_actions(tmp_path, missing):
         load_catalog(catalog(tmp_path, [item]))
 
 
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+@pytest.mark.parametrize("value", [None, [], "command"])
+def test_each_action_must_be_an_object(tmp_path, role, value):
+    item = requirement()
+    item[role] = value
+    with pytest.raises(ContractError, match=role):
+        load_catalog(catalog(tmp_path, [item]))
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
 @pytest.mark.parametrize(
     "missing",
     ["argv", "cwd", "env", "output", "max_output_bytes", "execution_bound_seconds"],
 )
-def test_each_action_declares_every_execution_boundary(tmp_path, missing):
+def test_each_action_declares_every_execution_boundary(tmp_path, role, missing):
     item = requirement()
-    del item["check"][missing]
+    del item[role][missing]
     with pytest.raises(ContractError, match=missing):
         load_catalog(catalog(tmp_path, [item]))
 
 
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
 @pytest.mark.parametrize(
     ("field", "value"),
     [
@@ -195,23 +228,25 @@ def test_each_action_declares_every_execution_boundary(tmp_path, missing):
         ("execution_bound_seconds", 3601),
     ],
 )
-def test_action_field_types_and_bounds_are_rejected(tmp_path, field, value):
+def test_action_field_types_and_bounds_are_rejected(tmp_path, role, field, value):
     item = requirement()
-    item["check"][field] = value
+    item[role][field] = value
     with pytest.raises(ContractError, match=field):
         load_catalog(catalog(tmp_path, [item]))
 
 
-def test_action_rejects_unknown_nested_field(tmp_path):
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_action_rejects_unknown_nested_field(tmp_path, role):
     item = requirement()
-    item["check"]["extra"] = True
+    item[role]["extra"] = True
     with pytest.raises(ContractError, match="action fields"):
         load_catalog(catalog(tmp_path, [item]))
 
 
-def test_command_is_argv_not_shell_text(tmp_path):
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_command_is_argv_not_shell_text(tmp_path, role):
     item = requirement()
-    item["check"] = {
+    item[role] = {
         "command": "echo unsafe",
         "cwd": ".",
         "env": {},
@@ -221,6 +256,22 @@ def test_command_is_argv_not_shell_text(tmp_path):
     }
     with pytest.raises(ContractError, match="action fields"):
         load_catalog(catalog(tmp_path, [item]))
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("max_output_bytes", 1),
+        ("max_output_bytes", 16_777_216),
+        ("execution_bound_seconds", 0.001),
+        ("execution_bound_seconds", 3600),
+    ],
+)
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_action_numeric_boundaries_are_accepted(tmp_path, role, field, value):
+    item = requirement()
+    item[role][field] = value
+    assert load_catalog(catalog(tmp_path, [item])).data["requirements"][0][role][field] == value
 
 
 def test_long_canonical_commands_must_be_utf8_fixtures():
@@ -237,11 +288,17 @@ def test_typed_parameters_and_one_pass_expansion():
     spec = {
         "root": {"type": "string", "default": "default", "env": "ROOT"},
         "count": {"type": "integer"},
+        "ratio": {"type": "number", "default": 1.5},
         "enabled": {"type": "boolean", "default": True},
     }
     values, origins = resolve(spec, {"count": 1}, {"ROOT": "environment"}, ["count=2"])
-    assert values == {"root": "environment", "count": 2, "enabled": True}
-    assert origins == {"root": "environment", "count": "cli", "enabled": "default"}
+    assert values == {"root": "environment", "count": 2, "ratio": 1.5, "enabled": True}
+    assert origins == {
+        "root": "environment",
+        "count": "cli",
+        "ratio": "default",
+        "enabled": "default",
+    }
     assert expand(["${root}", "${literal}"], {"root": "${literal}", "literal": "done"}) == [
         "${literal}",
         "done",
@@ -278,7 +335,9 @@ def test_unknown_parameter_fails_before_execution(tmp_path):
         execute(loaded, "run", environ={})
 
 
-def test_complete_catalog_is_expanded_before_first_command(tmp_path):
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+@pytest.mark.parametrize("location", ["argv", "cwd", "env"])
+def test_complete_catalog_is_expanded_before_first_command(tmp_path, role, location):
     sentinel = tmp_path / "executed"
     first = requirement(
         "first",
@@ -287,7 +346,12 @@ def test_complete_catalog_is_expanded_before_first_command(tmp_path):
         ),
     )
     second = requirement("second")
-    second["repair"]["argv"].append("${missing}")
+    if location == "argv":
+        second[role]["argv"].append("${missing}")
+    elif location == "cwd":
+        second[role]["cwd"] = "${missing}"
+    else:
+        second[role]["env"]["VALUE"] = "${missing}"
     root = catalog(
         tmp_path,
         [first, second],
@@ -298,3 +362,53 @@ def test_complete_catalog_is_expanded_before_first_command(tmp_path):
 
         execute(load_catalog(root), "run", environ={})
     assert not sentinel.exists()
+
+
+def test_typed_parameters_expand_into_argv_cwd_and_env_at_execution(tmp_path):
+    from environment_maintenance.engine import execute
+    from v2_helpers import fixture_action
+
+    observed = tmp_path / "observed.json"
+    execution_root = tmp_path / "execution-root"
+    execution_root.mkdir()
+    selected = fixture_action(
+        "capture_execution.py",
+        observed,
+        "check",
+        "${text}",
+        "${integer}",
+        "${number}",
+        "${boolean}",
+        cwd="${workdir}",
+        env={"DECLARED": "${text}", "COLLISION": "declared"},
+    )
+    root = catalog(
+        tmp_path,
+        [requirement(check=selected)],
+        parameters={
+            "text": {"type": "string", "default": "default", "env": "TEXT"},
+            "integer": {"type": "integer"},
+            "number": {"type": "number", "default": 1.25},
+            "boolean": {"type": "boolean", "default": False},
+            "workdir": {"type": "string", "default": str(execution_root)},
+        },
+        inherit_env=["ALLOWED", "COLLISION"],
+    )
+    result = execute(
+        load_catalog(root),
+        "check",
+        values={"integer": 7},
+        overrides=["text=\"cli\"", "boolean=true"],
+        environ={"TEXT": "environment", "ALLOWED": "host", "COLLISION": "host"},
+    )
+    assert result["status"] == "ready"
+    payload = json.loads(observed.read_text(encoding="utf-8"))
+    assert payload == {
+        "argv": ["cli", "7", "1.25", "true"],
+        "cwd": str(execution_root),
+        "environment": {
+            "ALLOWED": "host",
+            "COLLISION": "declared",
+            "DECLARED": "cli",
+        },
+    }

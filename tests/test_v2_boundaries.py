@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tarfile
 import time
 import zipfile
 
@@ -11,14 +12,30 @@ import pytest
 from environment_maintenance.catalogue import ContractError, load_catalog
 from environment_maintenance.engine import execute
 from environment_maintenance.process import run_action
-from v2_helpers import FIXTURES, action, catalog, fixture_action, requirement, result_action
+from v2_helpers import FIXTURES, RESULT_SCHEMA, action, catalog, fixture_action, requirement, result_action
 
 
 BUILD_PYTHON = Path(sys.executable)
 
 
+def invoke_cli(command, *arguments, env=None):
+    return subprocess.run(
+        [*map(str, command), *map(str, arguments)],
+        text=True,
+        capture_output=True,
+        env=env,
+        timeout=10,
+    )
+
+
 def test_action_environment_uses_only_allowlist_plus_declared_values(tmp_path):
-    selected = fixture_action("action_env.py", env={"DECLARED": "catalog"})
+    observed = tmp_path / "environment.json"
+    selected = fixture_action(
+        "action_env.py",
+        observed,
+        "check",
+        env={"DECLARED": "catalog", "ALLOWED": "declared"},
+    )
     item = requirement(check=selected)
     loaded = load_catalog(catalog(tmp_path, [item], inherit_env=["ALLOWED"]))
     result = execute(
@@ -26,11 +43,35 @@ def test_action_environment_uses_only_allowlist_plus_declared_values(tmp_path):
         "check",
         environ={"ALLOWED": "host", "SECRET": "must-not-leak"},
     )
-    assert result["requirements"][0]["initial_check"]["response"]["seen"] == [
-        "host",
-        "catalog",
-        "absent",
-    ]
+    assert result["status"] == "ready"
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "ALLOWED": "declared",
+        "DECLARED": "catalog",
+    }
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_every_action_uses_the_same_exact_environment_boundary(tmp_path, role):
+    observed = tmp_path / f"{role}-environment.json"
+    selected = fixture_action(
+        "action_env.py",
+        observed,
+        role,
+        env={"DECLARED": "catalog", "COLLISION": "declared"},
+    )
+    result = run_action(
+        selected,
+        "sample",
+        role,
+        cwd=tmp_path,
+        environ={"ALLOWED": "host", "COLLISION": "host"},
+    )
+    assert result["status"] == "passed"
+    assert json.loads(observed.read_text(encoding="utf-8")) == {
+        "ALLOWED": "host",
+        "COLLISION": "declared",
+        "DECLARED": "catalog",
+    }
 
 
 @pytest.mark.parametrize(
@@ -50,6 +91,89 @@ def test_protocol_failure_never_becomes_a_domain_state(tmp_path, script):
     assert result["requirements"][0]["initial_check"]["status"] == "protocol_failure"
 
 
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "empty",
+        "missing-schema",
+        "missing-requirement_id",
+        "missing-action",
+        "missing-state",
+        "invalid-utf8",
+        "multiple",
+        "top-level-list",
+        "duplicate-key",
+        "unknown-field",
+        "wrong-schema",
+        "wrong-schema-type",
+        "wrong-id",
+        "wrong-id-type",
+        "wrong-action",
+        "wrong-action-type",
+        "wrong-state-type",
+        "unsupported-state",
+        "unavailable-empty-cause",
+        "unavailable-blank-cause",
+        "unavailable-wrong-cause",
+        "unavailable-empty-recommendations",
+        "unavailable-wrong-recommendations",
+        "unavailable-empty-recommendation",
+        "unavailable-blank-recommendation",
+        "unavailable-wrong-recommendation-item",
+    ],
+)
+def test_complete_check_protocol_rejects_every_invalid_equivalence_class(tmp_path, variant):
+    selected = fixture_action("emit_protocol_variant.py", "check", variant)
+    result = execute(
+        load_catalog(catalog(tmp_path, [requirement(check=selected)])),
+        "run",
+        environ={},
+    )
+    row = result["requirements"][0]
+    assert result["status"] == "failed"
+    assert row["initial_check"]["status"] == "protocol_failure"
+    assert "mutation" not in row
+
+
+@pytest.mark.parametrize("role", ["install", "repair"])
+@pytest.mark.parametrize(
+    "variant",
+    [
+        "empty",
+        "missing-schema",
+        "missing-requirement_id",
+        "missing-action",
+        "missing-outcome",
+        "invalid-utf8",
+        "multiple",
+        "top-level-list",
+        "duplicate-key",
+        "unknown-field",
+        "wrong-schema",
+        "wrong-schema-type",
+        "wrong-id",
+        "wrong-id-type",
+        "wrong-action",
+        "wrong-action-type",
+        "wrong-outcome-type",
+        "unsupported-outcome",
+    ],
+)
+def test_complete_mutation_protocol_failure_is_followed_by_same_check(tmp_path, role, variant):
+    from v2_helpers import stateful_requirement
+
+    initial = "missing" if role == "install" else "invalid"
+    item, state, log = stateful_requirement(tmp_path, initial)
+    item[role] = fixture_action("emit_protocol_variant.py", role, variant)
+    result = execute(load_catalog(catalog(tmp_path, [item])), "run", environ={})
+    row = result["requirements"][0]
+    assert result["status"] == "failed"
+    assert row["mutation"]["status"] == "protocol_failure"
+    assert row["initial_check"]["invocation"]["argv"] == row["final_check"]["invocation"]["argv"]
+    assert log.read_text(encoding="utf-8").splitlines() == ["check", "check"]
+    assert state.read_text(encoding="utf-8") == initial
+
+
 def test_nonzero_exit_with_success_payload_is_protocol_failure(tmp_path):
     script = fixture_action(
         "emit_result_and_exit.py",
@@ -64,12 +188,13 @@ def test_nonzero_exit_with_success_payload_is_protocol_failure(tmp_path):
     assert result["status"] == "failed"
 
 
-def test_declared_output_schema_controls_protocol_validation(tmp_path):
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_declared_output_schema_controls_protocol_validation(tmp_path, role):
     declared = "test.example/action-result/v7"
-    valid = result_action("check-custom-schema.json", output_schema=declared)
-    assert run_action(valid, "sample", "check", cwd=tmp_path, environ={})["status"] == "passed"
-    mismatch = result_action("check-satisfied.json", output_schema=declared)
-    assert run_action(mismatch, "sample", "check", cwd=tmp_path, environ={})["status"] == "protocol_failure"
+    valid = fixture_action("emit_valid_result.py", role, declared, output_schema=declared)
+    assert run_action(valid, "sample", role, cwd=tmp_path, environ={})["status"] == "passed"
+    mismatch = fixture_action("emit_valid_result.py", role, RESULT_SCHEMA, output_schema=declared)
+    assert run_action(mismatch, "sample", role, cwd=tmp_path, environ={})["status"] == "protocol_failure"
 
 
 @pytest.mark.parametrize(
@@ -79,17 +204,19 @@ def test_declared_output_schema_controls_protocol_validation(tmp_path):
         (0.35, 0.25, 0.60),
     ],
 )
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
 def test_timeout_enforces_declared_bound_and_kills_delayed_effect(
     tmp_path,
     bound,
     minimum_elapsed,
     maximum_elapsed,
+    role,
 ):
     marker = tmp_path / "late-effect"
     delayed_effect_seconds = 0.6
     selected = fixture_action("delayed_effect.py", marker, delayed_effect_seconds, bound=bound)
     started = time.monotonic()
-    result = run_action(selected, "sample", "check", cwd=tmp_path, environ={})
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
     elapsed = time.monotonic() - started
     assert result["status"] == "protocol_failure" and result["timed_out"] is True
     assert minimum_elapsed <= elapsed < maximum_elapsed
@@ -108,21 +235,108 @@ def test_output_limit_applies_to_stdout_and_stderr(tmp_path, limit):
     assert result["stderr"] == "y" * limit
 
 
-def test_relative_cwd_is_anchored_to_catalog_directory(tmp_path):
+@pytest.mark.parametrize(("limit", "size", "complete"), [(16, 15, True), (16, 16, True), (16, 17, False)])
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_output_limit_has_exact_byte_boundary_for_every_action(tmp_path, role, limit, size, complete):
+    selected = fixture_action("output_exact.py", size, limit=limit)
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert result["capture_complete"] is complete
+    assert len(result["stdout"].encode("utf-8")) == min(size, limit)
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_continuous_output_is_terminated_at_the_declared_limit(tmp_path, role):
+    marker = tmp_path / "writer"
+    selected = fixture_action("stream_output.py", marker, limit=1024, bound=2)
+    started = time.monotonic()
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert time.monotonic() - started < 1.0
+    assert result["status"] == "protocol_failure" and result["capture_complete"] is False
+    assert len(result["stdout"].encode("utf-8")) == 1024
+    assert len(result["stderr"].encode("utf-8")) == 1024
+    first = marker.stat().st_mtime_ns
+    time.sleep(0.15)
+    assert marker.stat().st_mtime_ns == first
+
+
+def test_timeout_kills_the_complete_process_group(tmp_path):
+    marker = tmp_path / "descendant-effect"
+    selected = fixture_action(
+        "spawn_delayed_descendant.py",
+        FIXTURES / "write_after_delay.py",
+        marker,
+        0.35,
+        bound=0.06,
+    )
+    result = run_action(selected, "sample", "check", cwd=tmp_path, environ={})
+    assert result["timed_out"] is True
+    deadline = time.monotonic() + 0.55
+    while time.monotonic() < deadline:
+        assert not marker.exists()
+        time.sleep(0.02)
+
+
+@pytest.mark.parametrize(
+    "selected",
+    [
+        {**action("pass"), "argv": ["/definitely/absent/environment-maintenance-command"]},
+        {**action("pass"), "cwd": "absent-directory"},
+        fixture_action("invalid_utf8_output.py"),
+    ],
+)
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_launch_and_decode_failures_are_structured_protocol_failures(tmp_path, selected, role):
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert result["status"] == "protocol_failure"
+    assert result["capture_complete"] in {True, False}
+    assert result["timed_out"] is False
+    assert isinstance(result["error"], str) and result["error"]
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_non_executable_argv_is_a_structured_protocol_failure(tmp_path, role):
+    executable = tmp_path / "not-executable"
+    executable.write_text("plain text", encoding="utf-8")
+    executable.chmod(0o600)
+    selected = {**action("pass"), "argv": [str(executable)]}
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert result["status"] == "protocol_failure"
+    assert result["timed_out"] is False
+    assert isinstance(result["error"], str) and result["error"]
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_file_cwd_is_a_structured_protocol_failure(tmp_path, role):
+    cwd_file = tmp_path / "cwd-file"
+    cwd_file.write_text("not a directory", encoding="utf-8")
+    selected = {**action("pass"), "cwd": str(cwd_file)}
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert result["status"] == "protocol_failure"
+    assert result["timed_out"] is False
+    assert isinstance(result["error"], str) and result["error"]
+
+
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_relative_cwd_is_anchored_to_catalog_directory(tmp_path, role):
     root = catalog(tmp_path)
     child = root / "child"
     child.mkdir()
-    selected = fixture_action("cwd_report.py", cwd="child")
-    result = run_action(selected, "sample", "check", cwd=root, environ={})
-    assert result["response"]["cwd"] == str(child)
+    observed = tmp_path / "cwd.txt"
+    selected = fixture_action("cwd_report.py", observed, role, cwd="child")
+    result = run_action(selected, "sample", role, cwd=root, environ={})
+    assert result["status"] == "passed"
+    assert observed.read_text(encoding="utf-8") == str(child)
 
 
-def test_arguments_are_not_interpreted_by_a_shell(tmp_path):
+@pytest.mark.parametrize("role", ["check", "install", "repair"])
+def test_arguments_are_not_interpreted_by_a_shell(tmp_path, role):
     marker = tmp_path / "owned"
+    observed = tmp_path / "argument.txt"
     hostile = "; touch " + str(marker)
-    selected = fixture_action("echo_argument.py", hostile)
-    result = run_action(selected, "sample", "check", cwd=tmp_path, environ={})
-    assert result["response"]["value"] == hostile and not marker.exists()
+    selected = fixture_action("echo_argument.py", observed, hostile, role)
+    result = run_action(selected, "sample", role, cwd=tmp_path, environ={})
+    assert result["status"] == "passed"
+    assert observed.read_text(encoding="utf-8") == hostile and not marker.exists()
 
 
 def test_cli_selects_directory_and_emits_v2_result(tmp_path):
@@ -139,16 +353,125 @@ def test_cli_selects_directory_and_emits_v2_result(tmp_path):
     assert json.loads(completed.stdout)["schema"] == "environment-maintenance/result/v2"
 
 
+def test_source_cli_covers_operations_dry_run_parameters_and_failures(tmp_path):
+    from v2_helpers import stateful_requirement
+
+    source = Path(__file__).resolve().parents[1] / "src"
+    command = [sys.executable, "-S", "-B", "-m", "environment_maintenance"]
+    cli_env = {"PYTHONPATH": str(source), "TEXT": "environment"}
+
+    cases = tmp_path / "cases"
+    cases.mkdir()
+    dry_case = cases / "dry"
+    dry_case.mkdir()
+    item, state, log = stateful_requirement(dry_case, "missing")
+    dry_catalog = catalog(dry_case, [item])
+    dry = invoke_cli(command, "run", "--catalog-dir", dry_catalog, "--dry-run", env=cli_env)
+    assert dry.returncode == 2 and dry.stderr == ""
+    assert json.loads(dry.stdout)["status"] == "action_required"
+    assert state.read_text(encoding="utf-8") == "missing"
+    assert log.read_text(encoding="utf-8") == "check\n"
+
+    run_case = cases / "run"
+    run_case.mkdir()
+    item, state, log = stateful_requirement(run_case, "missing")
+    run_catalog = catalog(run_case, [item])
+    ran = invoke_cli(command, "run", "--catalog-dir", run_catalog, env=cli_env)
+    assert ran.returncode == 0 and ran.stderr == ""
+    assert json.loads(ran.stdout)["status"] == "ready"
+    assert log.read_text(encoding="utf-8").splitlines() == ["check", "install", "check"]
+
+    parameter_case = cases / "parameters"
+    parameter_case.mkdir()
+    observed = parameter_case / "observed.json"
+    selected = fixture_action(
+        "capture_execution.py",
+        observed,
+        "check",
+        "${text}",
+        "${count}",
+        "${ratio}",
+        "${enabled}",
+    )
+    parameter_catalog = catalog(
+        parameter_case,
+        [requirement(check=selected)],
+        parameters={
+            "text": {"type": "string", "default": "default", "env": "TEXT"},
+            "count": {"type": "integer"},
+            "ratio": {"type": "number", "default": 1.5},
+            "enabled": {"type": "boolean", "default": False},
+        },
+    )
+    values = parameter_case / "values.json"
+    values.write_text('{"count":2}', encoding="utf-8")
+    checked = invoke_cli(
+        command,
+        "check",
+        "--catalog-dir",
+        parameter_catalog,
+        "--values",
+        values,
+        "--set",
+        'text="cli"',
+        "--set",
+        "enabled=true",
+        env=cli_env,
+    )
+    assert checked.returncode == 0 and checked.stderr == ""
+    assert json.loads(checked.stdout)["status"] == "ready"
+    assert json.loads(observed.read_text(encoding="utf-8"))["argv"] == [
+        "cli",
+        "2",
+        "1.5",
+        "true",
+    ]
+
+    for arguments in [(), ("check",), ("unknown",), ("check", "--unknown")]:
+        failed = invoke_cli(command, *arguments, env=cli_env)
+        assert failed.returncode == 2
+        assert failed.stdout == "" and failed.stderr != ""
+    invalid_values = parameter_case / "invalid-values.json"
+    invalid_values.write_text("not-json", encoding="utf-8")
+    for arguments in [
+        ("check", "--catalog-dir", parameter_catalog, "--values", invalid_values),
+        ("check", "--catalog-dir", parameter_catalog, "--set", "count=wrong"),
+    ]:
+        failed = invoke_cli(command, *arguments, env=cli_env)
+        assert failed.returncode == 2
+        assert failed.stdout == "" and failed.stderr != ""
+
+
+@pytest.mark.parametrize(
+    ("result_name", "exit_code", "status"),
+    [
+        ("check-satisfied.json", 0, "ready"),
+        ("check-unavailable.json", 3, "unavailable"),
+        ("check-unavailable-incomplete.json", 4, "failed"),
+    ],
+)
+def test_cli_maps_domain_status_to_exact_exit_code(tmp_path, result_name, exit_code, status):
+    root = catalog(tmp_path, [requirement(check=result_action(result_name))])
+    source = Path(__file__).resolve().parents[1] / "src"
+    command = [sys.executable, "-S", "-B", "-m", "environment_maintenance"]
+    completed = invoke_cli(command, "check", "--catalog-dir", root, env={"PYTHONPATH": str(source)})
+    assert completed.returncode == exit_code and completed.stderr == ""
+    assert json.loads(completed.stdout)["status"] == status
+
+
 def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
     root = Path(__file__).resolve().parents[1]
     package = (root / "pyproject.toml").read_text(encoding="utf-8")
     assert 'name = "environment-maintenance"' in package
     assert "maintenance-repair" not in package
     forbidden = ("requirements.json", "repairs.json", "--repairs", "second-file", "'apply'", '"apply"')
+    forbidden_basenames = {"requirements.json", "repairs.json", "repair.py"}
     paths = [root / "src", root / "examples", root / "pyproject.toml"]
     for selected in paths:
         files = [selected] if selected.is_file() else [p for p in selected.rglob("*") if p.is_file()]
         for path in files:
+            assert path.name not in forbidden_basenames
+            assert "repairs" not in path.parts
             text = path.read_text(encoding="utf-8")
             assert not any(token in text for token in forbidden), (path, forbidden)
     for path in (root / "src").rglob("*.py"):
@@ -187,6 +510,20 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
         timeout=60,
     )
     assert built.returncode == 0, built.stderr
+    sdist_dir = tmp_path / "sdist"
+    sdist_dir.mkdir()
+    sdist = subprocess.run(
+        [
+            str(BUILD_PYTHON),
+            str(FIXTURES / "build_sdist.py"),
+            str(sdist_dir),
+        ],
+        cwd=source_copy,
+        text=True,
+        capture_output=True,
+        timeout=60,
+    )
+    assert sdist.returncode == 0, sdist.stderr
     wheels = list(wheelhouse.glob("environment_maintenance-*.whl"))
     assert len(wheels) == 1
     with zipfile.ZipFile(wheels[0]) as archive:
@@ -199,6 +536,13 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
         )
         assert not any("environment_maintenance/repairs/" in name for name in names)
         assert "environment_maintenance/repair.py" not in names
+        assert not any(Path(name).name in forbidden_basenames for name in names)
+    archives = list(sdist_dir.glob("environment_maintenance-*.tar.gz"))
+    assert len(archives) == 1
+    with tarfile.open(archives[0], "r:gz") as archive:
+        names = archive.getnames()
+        assert not any(Path(name).name in forbidden_basenames for name in names)
+        assert not any("/repairs/" in name for name in names)
 
     environment = tmp_path / "installed"
     created = subprocess.run(
@@ -223,6 +567,14 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
         timeout=60,
     )
     assert installed.returncode == 0, installed.stderr
+    installed_files = [
+        path
+        for path in environment.rglob("*")
+        if path.is_file()
+        and any(part.startswith("environment_maintenance") for part in path.parts)
+    ]
+    assert not any(path.name in forbidden_basenames for path in installed_files)
+    assert not any("repairs" in path.parts for path in installed_files)
     selected = catalog(tmp_path, [requirement()])
     executed = subprocess.run(
         [
@@ -237,3 +589,50 @@ def test_distribution_and_release_path_are_independent_and_v2_only(tmp_path):
     )
     assert executed.returncode == 0, executed.stderr
     assert json.loads(executed.stdout)["schema"] == "environment-maintenance/result/v2"
+
+    from v2_helpers import stateful_requirement
+
+    installed_command = [environment / "bin" / "environment-maintenance"]
+    installed_case = tmp_path / "installed-case"
+    installed_case.mkdir()
+    item, state, log = stateful_requirement(installed_case, "invalid")
+    installed_catalog = catalog(installed_case, [item])
+    dry = invoke_cli(
+        installed_command,
+        "run",
+        "--catalog-dir",
+        installed_catalog,
+        "--dry-run",
+        env={},
+    )
+    assert dry.returncode == 2 and json.loads(dry.stdout)["status"] == "action_required"
+    assert state.read_text(encoding="utf-8") == "invalid"
+    ran = invoke_cli(installed_command, "run", "--catalog-dir", installed_catalog, env={})
+    assert ran.returncode == 0 and json.loads(ran.stdout)["status"] == "ready"
+    assert log.read_text(encoding="utf-8").splitlines() == [
+        "check",
+        "check",
+        "repair",
+        "check",
+    ]
+
+    parameter_case = tmp_path / "installed-parameters"
+    parameter_case.mkdir()
+    observed = parameter_case / "observed.json"
+    selected = fixture_action("capture_execution.py", observed, "check", "${value}")
+    parameter_catalog = catalog(
+        parameter_case,
+        [requirement(check=selected)],
+        parameters={"value": {"type": "integer", "default": 1}},
+    )
+    checked = invoke_cli(
+        installed_command,
+        "check",
+        "--catalog-dir",
+        parameter_catalog,
+        "--set",
+        "value=2",
+        env={},
+    )
+    assert checked.returncode == 0 and checked.stderr == ""
+    assert json.loads(observed.read_text(encoding="utf-8"))["argv"] == ["2"]
