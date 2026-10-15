@@ -83,6 +83,18 @@ def observe_case(tmp_path, cli, case):
         else:
             args += ["--set", "text=" + json.dumps(selected)]
         catalog["parameters"]["text"] = declaration
+    if family == "typed-input":
+        declaration = {"type": case["parameter_type"]}
+        raw_typed = (
+            (FIXTURES / "typed-depth-12000.json").read_text(encoding="utf-8")
+            if case["mode"] == "deep" else case["raw"]
+        )
+        if case["origin"] == "cli":
+            args += ["--set", "value=" + raw_typed]
+        else:
+            declaration["env"] = "RECOVERY_TYPED"
+            env["RECOVERY_TYPED"] = raw_typed
+        catalog["parameters"]["value"] = declaration
     if family in ("used", "unrepresentable"):
         field = case["field"]
         action = item["install"]
@@ -133,7 +145,9 @@ def observe_case(tmp_path, cli, case):
         "returncode": process.returncode, "resource": after.decode("ascii"),
         "actions": actions, "child_observations": observations,
     }, ensure_ascii=True, indent=2), encoding="ascii")
-    if family in ("unrepresentable", "deep-input", "huge-bound"):
+    if family in ("unrepresentable", "deep-input", "huge-bound") or (
+        family == "typed-input" and case["mode"] == "deep"
+    ):
         assert after == initial.encode("ascii")
         assert actions == []
         assert not log.exists()
@@ -164,6 +178,10 @@ def observe_case(tmp_path, cli, case):
     assert result["status"] == {0: "ready", 2: "action_required", 3: "unavailable", 4: "failed"}[expected_code]
     assert len(result["requirements"]) == 1
     row = result["requirements"][0]
+    if family == "typed-input":
+        assert result["parameters"]["value"] == case["expected"]
+        assert type(result["parameters"]["value"]) is type(case["expected"])
+        assert result["parameter_sources"]["value"] == case["origin"]
     if family in ("unused", "used", "diagnostic"):
         assert result["parameters"]["text"] == selected
         assert result["parameter_sources"]["text"] == case.get("origin", "default")

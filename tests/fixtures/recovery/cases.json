@@ -249,5 +249,101 @@
     "family": "diagnostic",
     "operation": "dry-run",
     "state": "invalid"
+  },
+  {
+    "id": "typed-input-integer-cli-deep",
+    "family": "typed-input",
+    "parameter_type": "integer",
+    "origin": "cli",
+    "mode": "deep"
+  },
+  {
+    "id": "typed-input-number-cli-deep",
+    "family": "typed-input",
+    "parameter_type": "number",
+    "origin": "cli",
+    "mode": "deep"
+  },
+  {
+    "id": "typed-input-boolean-cli-deep",
+    "family": "typed-input",
+    "parameter_type": "boolean",
+    "origin": "cli",
+    "mode": "deep"
+  },
+  {
+    "id": "typed-input-integer-environment-deep",
+    "family": "typed-input",
+    "parameter_type": "integer",
+    "origin": "environment",
+    "mode": "deep"
+  },
+  {
+    "id": "typed-input-number-environment-deep",
+    "family": "typed-input",
+    "parameter_type": "number",
+    "origin": "environment",
+    "mode": "deep"
+  },
+  {
+    "id": "typed-input-boolean-environment-deep",
+    "family": "typed-input",
+    "parameter_type": "boolean",
+    "origin": "environment",
+    "mode": "deep"
+  },
+  {
+    "id": "typed-input-integer-cli-valid",
+    "family": "typed-input",
+    "parameter_type": "integer",
+    "origin": "cli",
+    "mode": "valid",
+    "raw": "7",
+    "expected": 7
+  },
+  {
+    "id": "typed-input-number-cli-valid",
+    "family": "typed-input",
+    "parameter_type": "number",
+    "origin": "cli",
+    "mode": "valid",
+    "raw": "1.25",
+    "expected": 1.25
+  },
+  {
+    "id": "typed-input-boolean-cli-valid",
+    "family": "typed-input",
+    "parameter_type": "boolean",
+    "origin": "cli",
+    "mode": "valid",
+    "raw": "true",
+    "expected": true
+  },
+  {
+    "id": "typed-input-integer-environment-valid",
+    "family": "typed-input",
+    "parameter_type": "integer",
+    "origin": "environment",
+    "mode": "valid",
+    "raw": "7",
+    "expected": 7
+  },
+  {
+    "id": "typed-input-number-environment-valid",
+    "family": "typed-input",
+    "parameter_type": "number",
+    "origin": "environment",
+    "mode": "valid",
+    "raw": "1.25",
+    "expected": 1.25
+  },
+  {
+    "id": "typed-input-boolean-environment-valid",
+    "family": "typed-input",
+    "parameter_type": "boolean",
+    "origin": "environment",
+    "mode": "valid",
+    "raw": "true",
+    "expected": true
   }
 ]
