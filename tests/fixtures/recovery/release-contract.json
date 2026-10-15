@@ -1,0 +1,34 @@
+{
+  "manifest_fields": [
+    "distribution",
+    "version",
+    "requires_python",
+    "source_commit",
+    "source_bundle_sha256",
+    "wheel",
+    "wheel_sha256",
+    "build"
+  ],
+  "build_fields": [
+    "purpose",
+    "source_commit",
+    "source_bundle_sha256",
+    "wheel",
+    "wheel_sha256",
+    "backend_python",
+    "backend",
+    "argv",
+    "exit_code",
+    "stdout_sha256",
+    "stderr_sha256"
+  ],
+  "package_files": [
+    "__init__.py",
+    "__main__.py",
+    "catalogue.py",
+    "cli.py",
+    "engine.py",
+    "parameters.py",
+    "process.py"
+  ]
+}

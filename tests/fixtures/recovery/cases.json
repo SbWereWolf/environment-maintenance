@@ -1,0 +1,253 @@
+[
+  {
+    "id": "unused-default-d800",
+    "family": "unused",
+    "origin": "default",
+    "text": "d800"
+  },
+  {
+    "id": "unused-default-dc80",
+    "family": "unused",
+    "origin": "default",
+    "text": "dc80"
+  },
+  {
+    "id": "unused-default-astral",
+    "family": "unused",
+    "origin": "default",
+    "text": "astral"
+  },
+  {
+    "id": "unused-values-d800",
+    "family": "unused",
+    "origin": "values",
+    "text": "d800"
+  },
+  {
+    "id": "unused-values-dc80",
+    "family": "unused",
+    "origin": "values",
+    "text": "dc80"
+  },
+  {
+    "id": "unused-values-astral",
+    "family": "unused",
+    "origin": "values",
+    "text": "astral"
+  },
+  {
+    "id": "unused-cli-d800",
+    "family": "unused",
+    "origin": "cli",
+    "text": "d800"
+  },
+  {
+    "id": "unused-cli-dc80",
+    "family": "unused",
+    "origin": "cli",
+    "text": "dc80"
+  },
+  {
+    "id": "unused-cli-astral",
+    "family": "unused",
+    "origin": "cli",
+    "text": "astral"
+  },
+  {
+    "id": "unused-environment-dc80",
+    "family": "unused",
+    "origin": "environment",
+    "text": "dc80"
+  },
+  {
+    "id": "unused-environment-astral",
+    "family": "unused",
+    "origin": "environment",
+    "text": "astral"
+  },
+  {
+    "id": "posix-path-",
+    "family": "posix-path"
+  },
+  {
+    "id": "used-dc80-argv",
+    "family": "used",
+    "text": "dc80",
+    "field": "argv"
+  },
+  {
+    "id": "used-dc80-cwd",
+    "family": "used",
+    "text": "dc80",
+    "field": "cwd"
+  },
+  {
+    "id": "used-dc80-env",
+    "family": "used",
+    "text": "dc80",
+    "field": "env"
+  },
+  {
+    "id": "used-astral-argv",
+    "family": "used",
+    "text": "astral",
+    "field": "argv"
+  },
+  {
+    "id": "used-astral-cwd",
+    "family": "used",
+    "text": "astral",
+    "field": "cwd"
+  },
+  {
+    "id": "used-astral-env",
+    "family": "used",
+    "text": "astral",
+    "field": "env"
+  },
+  {
+    "id": "unrepresentable-argv",
+    "family": "unrepresentable",
+    "field": "argv"
+  },
+  {
+    "id": "unrepresentable-cwd",
+    "family": "unrepresentable",
+    "field": "cwd"
+  },
+  {
+    "id": "unrepresentable-env",
+    "family": "unrepresentable",
+    "field": "env"
+  },
+  {
+    "id": "deep-input-catalog-check-12000",
+    "family": "deep-input",
+    "location": "catalog",
+    "operation": "check",
+    "depth": 12000
+  },
+  {
+    "id": "deep-input-catalog-run-12000",
+    "family": "deep-input",
+    "location": "catalog",
+    "operation": "run",
+    "depth": 12000
+  },
+  {
+    "id": "deep-input-catalog-run-1100",
+    "family": "deep-input",
+    "location": "catalog",
+    "operation": "run",
+    "depth": 1100
+  },
+  {
+    "id": "deep-input-values-check-12000",
+    "family": "deep-input",
+    "location": "values",
+    "operation": "check",
+    "depth": 12000
+  },
+  {
+    "id": "deep-input-values-run-12000",
+    "family": "deep-input",
+    "location": "values",
+    "operation": "run",
+    "depth": 12000
+  },
+  {
+    "id": "deep-input-values-run-1100",
+    "family": "deep-input",
+    "location": "values",
+    "operation": "run",
+    "depth": 1100
+  },
+  {
+    "id": "huge-bound-check",
+    "family": "huge-bound",
+    "role": "check"
+  },
+  {
+    "id": "huge-bound-install",
+    "family": "huge-bound",
+    "role": "install"
+  },
+  {
+    "id": "huge-bound-repair",
+    "family": "huge-bound",
+    "role": "repair"
+  },
+  {
+    "id": "deep-mutation-install-12000",
+    "family": "deep-mutation",
+    "role": "install",
+    "depth": 12000
+  },
+  {
+    "id": "deep-mutation-install-1100",
+    "family": "deep-mutation",
+    "role": "install",
+    "depth": 1100
+  },
+  {
+    "id": "deep-mutation-repair-12000",
+    "family": "deep-mutation",
+    "role": "repair",
+    "depth": 12000
+  },
+  {
+    "id": "deep-mutation-repair-1100",
+    "family": "deep-mutation",
+    "role": "repair",
+    "depth": 1100
+  },
+  {
+    "id": "deep-initial-12000",
+    "family": "deep-initial",
+    "depth": 12000
+  },
+  {
+    "id": "deep-initial-1100",
+    "family": "deep-initial",
+    "depth": 1100
+  },
+  {
+    "id": "action-text-d800",
+    "family": "action-text",
+    "text": "d800"
+  },
+  {
+    "id": "action-text-dc80",
+    "family": "action-text",
+    "text": "dc80"
+  },
+  {
+    "id": "action-text-astral",
+    "family": "action-text",
+    "text": "astral"
+  },
+  {
+    "id": "diagnostic-check-missing",
+    "family": "diagnostic",
+    "operation": "check",
+    "state": "missing"
+  },
+  {
+    "id": "diagnostic-check-invalid",
+    "family": "diagnostic",
+    "operation": "check",
+    "state": "invalid"
+  },
+  {
+    "id": "diagnostic-dry-run-missing",
+    "family": "diagnostic",
+    "operation": "dry-run",
+    "state": "missing"
+  },
+  {
+    "id": "diagnostic-dry-run-invalid",
+    "family": "diagnostic",
+    "operation": "dry-run",
+    "state": "invalid"
+  }
+]
