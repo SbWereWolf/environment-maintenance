@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 import json
 import math
+import os
 from pathlib import Path
 import re
 from typing import Any
@@ -39,7 +40,7 @@ def read_json(path: Path) -> dict[str, Any]:
         value = json.loads(raw, object_pairs_hook=_unique_pairs)
     except ContractError:
         raise
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
         raise ContractError(f"Cannot read {path}: {exc}") from exc
     if not isinstance(value, dict):
         raise ContractError(f"Expected JSON object: {path}")
@@ -112,6 +113,12 @@ def validate_action(action: Any, label: str) -> None:
         for key, value in env.items()
     ):
         raise ContractError(f"{label}: invalid env")
+    for field, values in (("argv", argv), ("cwd", (cwd,)), ("env", env.values())):
+        try:
+            for value in values:
+                os.fsencode(value)
+        except UnicodeError as exc:
+            raise ContractError(f"{label}: invalid {field} encoding") from exc
     output = action["output"]
     if not isinstance(output, dict) or set(output) != {"schema"}:
         raise ContractError(f"{label}: invalid output")
@@ -122,7 +129,7 @@ def validate_action(action: Any, label: str) -> None:
     if type(limit) is not int or not 1 <= limit <= 16_777_216:
         raise ContractError(f"{label}: invalid max_output_bytes")
     bound = action["execution_bound_seconds"]
-    if type(bound) not in (int, float) or not math.isfinite(bound) or not 0 < bound <= 3600:
+    if type(bound) not in (int, float) or not 0 < bound <= 3600 or not math.isfinite(bound):
         raise ContractError(f"{label}: invalid execution_bound_seconds")
 
 

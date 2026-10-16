@@ -161,7 +161,7 @@ def run_action(action, requirement_id, role, *, cwd, environ):
             decoded = stdout.decode("utf-8")
             stderr.decode("utf-8")
             parsed = _protocol(decoded, requirement_id, role, action["output"]["schema"])
-        except (UnicodeError, ValueError) as exc:
+        except (UnicodeError, ValueError, RecursionError) as exc:
             response["error"] = f"Invalid action output: {exc}"
         else:
             response["status"] = "passed"

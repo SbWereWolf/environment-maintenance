@@ -31,5 +31,5 @@ def main(argv=None):
     except ContractError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
+    print(json.dumps(result, ensure_ascii=True, separators=(",", ":")))
     return result["exit_code"]

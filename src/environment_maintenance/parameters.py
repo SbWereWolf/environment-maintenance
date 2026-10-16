@@ -16,7 +16,7 @@ def _typed_input(raw: str, kind: str, name: str, *, from_environment: bool) -> A
     else:
         try:
             value = json.loads(raw, parse_constant=lambda constant: None)
-        except (TypeError, ValueError) as exc:
+        except (TypeError, ValueError, RecursionError) as exc:
             raise ContractError(f"{name}: invalid typed value") from exc
     if not _valid_parameter_value(kind, value):
         raise ContractError(f"{name}: invalid typed value")
