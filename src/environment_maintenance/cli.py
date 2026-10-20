@@ -5,12 +5,16 @@ import json
 from pathlib import Path
 import sys
 
+from . import __version__
 from .catalogue import ContractError, load_catalog, read_json
 from .engine import execute
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Проверка и обслуживание окружения")
+    parser.add_argument(
+        "--version", action="version", version=f"environment-maintenance {__version__}"
+    )
     parser.add_argument("command", choices=["check", "run"])
     parser.add_argument("--catalog-dir", required=True, type=Path)
     parser.add_argument("--values", action="append", default=[], type=Path)

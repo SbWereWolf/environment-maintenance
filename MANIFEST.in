@@ -1,0 +1,11 @@
+include README.md
+include pyproject.toml
+include start-app
+recursive-include examples *
+recursive-include tests *
+recursive-include docs *.md
+prune .venv
+prune build
+prune dist
+prune .git
+global-exclude __pycache__ *.py[cod]

@@ -4,13 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "environment-maintenance"
-version = "0.2.1"
+version = "1.0.0"
 description = "Independent catalog/v2 environment maintenance runner"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.optional-dependencies]
+dev = [
+    "build",
+    "pytest",
+    "setuptools>=65",
+    "wheel",
+]
+
 [project.scripts]
 environment-maintenance = "environment_maintenance.cli:main"
+start-app = "environment_maintenance.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

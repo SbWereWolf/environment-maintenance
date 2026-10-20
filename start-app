@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+set -eu
+
+app_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+runtime="$app_root/.venv/bin/python"
+
+if [ ! -x "$runtime" ]; then
+    printf 'environment-maintenance: не найден собственный Python: %s. Подготовьте .venv и установите приложение по инструкции.\n' "$runtime" >&2
+    exit 2
+fi
+
+exec "$runtime" -I -B -m environment_maintenance "$@"
