@@ -154,6 +154,31 @@ def test_short_entry_preserves_input_refusal_and_stderr(consumer, tmp_path, kind
     assert "Selected catalog directory does not exist" in result.stderr
 
 
+@pytest.mark.parametrize("kind", ["installed", "root"])
+@pytest.mark.parametrize("operation", ["check", "run"])
+def test_short_entry_forwards_values_only_from_file(consumer, tmp_path, kind, operation):
+    entry = short_entry(consumer, kind)
+    _, _, cwd = consumer
+    parent = tmp_path / "file-only catalog with spaces"
+    parent.mkdir()
+    selected = catalog(
+        parent,
+        [requirement(check=fixture_action("v1_release_action.py", "echo-marker", "${marker}"))],
+        parameters={"marker": {"type": "string", "default": "default marker"}},
+    )
+    values = tmp_path / "file-only values with spaces.json"
+    values.write_text(json.dumps({"marker": "value only from file"}))
+    result = invoke([entry, operation, "--catalog-dir", selected, "--values", values], cwd)
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == ""
+    response = json.loads(result.stdout)
+    assert response["operation"] == operation
+    assert response["parameters"] == {"marker": "value only from file"}
+    assert response["parameter_sources"] == {"marker": "values"}
+    action = response["requirements"][0]["initial_check"]
+    assert action["stderr"] == "fixture note: value only from file\n"
+
+
 def test_root_start_app_uses_its_own_installation_from_another_cwd(consumer):
     source = ROOT / "start-app"
     assert source.is_file(), "The application root must supply start-app"
