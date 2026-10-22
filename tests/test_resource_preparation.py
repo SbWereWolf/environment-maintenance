@@ -168,7 +168,7 @@ def edit(s, name, change):
     write_json(path, value)
 
 
-def config_error(s, token, **changes):
+def config_error(s, token, *, requirement_id=None, **changes):
     function = api()
     arguments = dict(config_path=s.main, operation='infra', selection='all',
                      parameters=s.parameters, base_dir=s.root, interpreters=s.interpreters)
@@ -177,6 +177,8 @@ def config_error(s, token, **changes):
         function(**arguments)
     message = str(caught.value)
     assert token.lower() in message.lower() and 'infra' in message.lower()
+    if requirement_id is not None:
+        assert requirement_id in message
     assert events(s) == []
 
 
@@ -263,7 +265,7 @@ def test_library_preflights_late_selected_chain_before_first_process(scenario, d
         else:
             item['commands'][0]['interpreter']['name'] = 'missing_handler'
     edit(scenario, 'infra', damage)
-    config_error(scenario, token)
+    config_error(scenario, token, requirement_id='beta')
 
 
 def test_library_ignores_unselected_chain_for_execution(scenario):
@@ -340,6 +342,31 @@ def test_library_retains_opaque_value_without_cli_restriction(scenario):
     result = invoke(scenario, selection=['beta'])
     assert result['status'] == 'succeeded'
     assert result['requirements'][0]['result']['commands'][0]['interpretation']['value'] == b'opaque\x00\xff'
+
+
+def test_library_keeps_empty_streams_as_complete_bytes(scenario):
+    empty = scenario.root / 'empty.hex'
+    empty.write_text('', encoding='utf-8')
+    scenario.parameters.update(stdout_file=str(empty), stderr_file=str(empty))
+    result = invoke(scenario, selection=['beta'])
+    assert_shape(result)
+    assert result['status'] == 'succeeded' and result['error'] is None
+    assert [item['id'] for item in result['requirements']] == ['beta']
+    assert len(result['requirements'][0]['result']['commands']) == 1
+    assert_streams(result, stdout=b'', stderr=b'')
+    assert_events(scenario, ['beta-install'])
+
+
+def test_library_retains_complete_long_distinct_binary_streams(scenario):
+    scenario.parameters.update(stdout_file=str(FIXTURES / 'long-stdout.hex'),
+                               stderr_file=str(FIXTURES / 'long-stderr.hex'))
+    result = invoke(scenario, selection=['beta'])
+    assert_shape(result)
+    assert result['status'] == 'succeeded' and result['error'] is None
+    assert [item['id'] for item in result['requirements']] == ['beta']
+    assert len(result['requirements'][0]['result']['commands']) == 1
+    assert_streams(result, stdout=payload('long-stdout.hex'), stderr=payload('long-stderr.hex'))
+    assert_events(scenario, ['beta-install'])
 
 
 @pytest.mark.parametrize('operation,ids,tags', [
@@ -498,6 +525,8 @@ def test_cli_input_errors_have_context_and_no_process_effects(scenario, case, to
     message = completed.stderr.decode('utf-8').lower()
     contexts = ('requirements', 'selection') if case == 'bad-selection' else (token.lower(),)
     assert any(context in message for context in contexts)
+    if case == 'late-template':
+        assert 'infra' in message and 'beta' in message
     assert_events(scenario, [])
 
 
