@@ -6,7 +6,7 @@ from pathlib import Path
 from string import Template
 from typing import Any, Protocol
 
-from .domain import declared_commands, interpreted_result
+from .domain import declared_commands, interpreted_result, validate_command
 
 
 class ResultInterpreter(Protocol):
@@ -29,13 +29,16 @@ def _prepare_command(
         }
     except (KeyError, ValueError) as exc:
         raise ValueError(f"commands[{index}] template: {exc}") from exc
+    prepared = dict(
+        argv=argv, cwd=cwd, env=env,
+        interpreter=deepcopy(command["interpreter"]),
+    )
+    validate_command(prepared, index)
     directory = Path(cwd)
     if not directory.is_absolute():
         directory = base_dir / directory
-    return dict(
-        argv=argv, cwd=str(directory), env=env,
-        interpreter=deepcopy(command["interpreter"]),
-    )
+    prepared["cwd"] = str(directory)
+    return prepared
 
 
 def prepare_action(
