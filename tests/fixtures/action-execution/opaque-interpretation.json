@@ -1,0 +1,7 @@
+{
+  "success": true,
+  "value": {"items": [false, 0, "${untouched}"], "details": {"state": "ready"}},
+  "error": null,
+  "source": "test-owned-answer",
+  "additional": {"confirmed": false, "count": 0}
+}

@@ -1,0 +1,12 @@
+[
+  {"name": "null", "answer": null, "references": ["result"]},
+  {"name": "list", "answer": [], "references": ["result"]},
+  {"name": "missing-success", "answer": {"value": null, "error": null}, "references": ["success"]},
+  {"name": "missing-value", "answer": {"success": true, "error": null}, "references": ["value"]},
+  {"name": "missing-error", "answer": {"success": true, "value": null}, "references": ["error"]},
+  {"name": "integer-success", "answer": {"success": 1, "value": null, "error": null}, "references": ["success"]},
+  {"name": "success-with-error", "answer": {"success": true, "value": null, "error": "contradiction"}, "references": ["error", "success"]},
+  {"name": "failure-with-null-error", "answer": {"success": false, "value": null, "error": null}, "references": ["error"]},
+  {"name": "failure-with-empty-error", "answer": {"success": false, "value": null, "error": ""}, "references": ["error"]},
+  {"name": "failure-with-integer-error", "answer": {"success": false, "value": null, "error": 7}, "references": ["error"]}
+]

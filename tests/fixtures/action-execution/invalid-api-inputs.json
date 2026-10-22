@@ -1,0 +1,17 @@
+[
+  {"name": "action-null", "field": "action", "value": null, "references": ["action"]},
+  {"name": "action-list", "field": "action", "value": [], "references": ["action"]},
+  {"name": "action-string", "field": "action", "value": "command", "references": ["action"]},
+  {"name": "parameters-null", "field": "parameters", "value": null, "references": ["parameters"]},
+  {"name": "parameters-list", "field": "parameters", "value": [], "references": ["parameters"]},
+  {"name": "used-list", "field": "used_parameter", "value": ["two", "words"], "references": ["parameters", "arg", "argv"]},
+  {"name": "used-object", "field": "used_parameter", "value": {"word": "value"}, "references": ["parameters", "arg", "argv"]},
+  {"name": "used-null", "field": "used_parameter", "value": null, "references": ["parameters", "arg", "argv"]},
+  {"name": "relative-base", "field": "base_dir", "value": "relative/work", "references": ["base_dir"]},
+  {"name": "empty-base", "field": "base_dir", "value": "", "references": ["base_dir"]},
+  {"name": "registry-null", "field": "interpreters", "value": null, "references": ["interpreters", "interpreter"]},
+  {"name": "registry-list", "field": "interpreters", "value": [], "references": ["interpreters", "interpreter"]},
+  {"name": "registry-string", "field": "interpreters", "value": "exit", "references": ["interpreters", "interpreter"]},
+  {"name": "selected-null", "field": "selected_interpreter", "value": null, "references": ["interpreters", "interpreter", "exit"]},
+  {"name": "selected-no-method", "field": "selected_interpreter", "value": {}, "references": ["interpreters", "interpreter", "exit"]}
+]

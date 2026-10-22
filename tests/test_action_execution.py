@@ -72,6 +72,16 @@ class BrokenInterpreter:
         raise ValueError('specific interpreter refusal')
 
 
+class AnswerInterpreter:
+    def __init__(self, answer):
+        self.answer = answer
+        self.calls = []
+
+    def interpret(self, result, options):
+        self.calls.append((deepcopy(result), deepcopy(options)))
+        return deepcopy(self.answer)
+
+
 @pytest.fixture
 def scenario(tmp_path, monkeypatch):
     root = tmp_path / 'workspace with spaces'
@@ -166,6 +176,53 @@ def test_plan_preserves_environment_inputs_and_opaque_options(scenario, absolute
     assert not scenario.events.exists()
     assert all(item.calls == [] for item in scenario.interpreters.values())
     assert sorted(p.name for p in scenario.root.iterdir()) == ['other', 'work']
+
+
+@pytest.mark.parametrize('absolute', [False, True])
+def test_plan_accepts_future_resources_prepared_by_an_earlier_command(scenario, absolute):
+    executable = scenario.root / 'future-python'
+    directory = scenario.root / 'future-work'
+    preparation = 'import pathlib,shutil,sys; pathlib.Path(sys.argv[2]).mkdir(); shutil.copy2(sys.executable,sys.argv[1])'
+    action = deepcopy(scenario.action)
+    action['commands'][0]['argv'] = ['${python}', '-c', preparation, '${future_executable}', '${future_directory}']
+    future = command(scenario, token='future', cwd='${future_cwd}')
+    future['argv'][0] = '${future_executable}'
+    action['commands'].append(future)
+    parameters = deepcopy(scenario.parameters)
+    parameters.update(future_executable=str(executable), future_directory=str(directory),
+                      future_cwd=str(directory) if absolute else 'future-work')
+    before = deepcopy((action, parameters))
+    assert not executable.exists() and not directory.exists()
+    plan = invoke('plan_action', scenario, action=action, parameters=parameters)
+    assert len(plan['commands']) == 2
+    first = expected_invocation(scenario)
+    first['argv'] = [sys.executable, '-c', preparation, str(executable), str(directory)]
+    second = expected_invocation(scenario, token='future', cwd='future-work')
+    second['argv'][0] = str(executable)
+    for actual, expected in zip(plan['commands'], (first, second), strict=True):
+        assert_invocation(actual, expected)
+        assert_json_value(actual['interpreter'], action['commands'][0]['interpreter'])
+    assert_json_value((action, parameters), before)
+    assert not executable.exists() and not directory.exists() and not scenario.events.exists()
+    assert sorted(p.name for p in scenario.root.iterdir()) == ['other', 'work']
+    assert all(item.calls == [] for item in scenario.interpreters.values())
+
+
+@pytest.mark.parametrize('name', FUNCTIONS)
+def test_unused_parameters_are_allowed_and_preserved(scenario, name):
+    parameters = deepcopy(scenario.parameters)
+    parameters.update(unused='${unbound_unused}', unused_number=42, unused_flag=False)
+    before = deepcopy(parameters)
+    result = invoke(name, scenario, parameters=parameters)
+    record = result['commands'][0]
+    assert_invocation(record if name == 'plan_action' else record['invocation'], expected_invocation(scenario))
+    assert_json_value(parameters, before)
+    if name == 'plan_action':
+        assert not scenario.events.exists()
+        assert all(item.calls == [] for item in scenario.interpreters.values())
+    else:
+        assert result['status'] == 'succeeded' and result['error'] is None
+        assert [row['token'] for row in events(scenario)] == ['first']
 
 
 @pytest.mark.parametrize(('template', 'value', 'expected'), [
@@ -335,6 +392,81 @@ def test_interpretation_failure_retains_all_raw_data_and_stops(scenario, malform
     assert_context(failed['error'], 'broken', 'second', 'interpreter', 'interpretation', 'success')
     assert result['error'] == failed['error']
     assert [row['token'] for row in events(scenario)] == ['first', 'second']
+
+
+@pytest.mark.parametrize('case', fixture('invalid-interpretations.json'), ids=lambda row: row['name'])
+def test_invalid_interpreter_answer_retains_raw_results_and_stops(scenario, case):
+    answer = AnswerInterpreter(case['answer'])
+    scenario.interpreters['answer'] = answer
+    action = deepcopy(scenario.action)
+    action['commands'].extend([command(scenario, token='second', interpreter='answer'),
+                               command(scenario, token='never')])
+    before = deepcopy((action, scenario.parameters, case['answer']))
+    result = invoke('execute_action', scenario, action=action)
+    assert result['status'] == 'failed' and len(result['commands']) == 2
+    assert_raw(result['commands'][0], expected_invocation(scenario))
+    assert_json_value(result['commands'][0]['interpretation'], fixture('expected-interpretations.json')['exit'])
+    failed = result['commands'][1]
+    assert_raw(failed, expected_invocation(scenario, token='second'))
+    assert failed['error'] and result['error'] == failed['error']
+    assert_context(failed['error'], 'answer', 'interpreter', 'interpretation', *case['references'])
+    assert [row['token'] for row in events(scenario)] == ['first', 'second']
+    assert len(answer.calls) == len(scenario.interpreters['exit'].calls) == 1
+    raw, options = answer.calls[0]
+    assert_raw(raw, expected_invocation(scenario, token='second'))
+    assert_json_value(options, action['commands'][1]['interpreter']['options'])
+    assert_json_value((action, scenario.parameters, case['answer']), before)
+
+
+def test_opaque_interpreter_value_and_extra_fields_are_preserved(scenario):
+    answer = fixture('opaque-interpretation.json')
+    scenario.interpreters['answer'] = AnswerInterpreter(answer)
+    action = deepcopy(scenario.action)
+    action['commands'][0]['interpreter']['name'] = 'answer'
+    result = invoke('execute_action', scenario, action=action)
+    assert result['status'] == 'succeeded' and result['error'] is None
+    assert len(result['commands']) == 1
+    assert_raw(result['commands'][0], expected_invocation(scenario))
+    assert_json_value(result['commands'][0]['interpretation'], answer)
+    assert_json_value(scenario.interpreters['answer'].answer, answer)
+    assert [row['token'] for row in events(scenario)] == ['first']
+
+
+@pytest.mark.parametrize('name', FUNCTIONS)
+@pytest.mark.parametrize('case', fixture('invalid-api-inputs.json'), ids=lambda row: row['name'])
+def test_invalid_api_inputs_fail_before_effects_with_context(scenario, name, case):
+    function = api(name)
+    action = deepcopy(scenario.action)
+    parameters = deepcopy(scenario.parameters)
+    base_dir = scenario.root
+    interpreters = scenario.interpreters.copy()
+    field = case['field']
+    if field == 'action':
+        action = deepcopy(case['value'])
+    elif field == 'parameters':
+        parameters = deepcopy(case['value'])
+    elif field == 'used_parameter':
+        parameters['arg'] = deepcopy(case['value'])
+    elif field == 'base_dir':
+        base_dir = case['value']
+    elif field == 'interpreters':
+        interpreters = deepcopy(case['value'])
+    else:
+        assert field == 'selected_interpreter'
+        interpreters['exit'] = deepcopy(case['value'])
+    before = deepcopy((action, parameters, base_dir))
+    registry_before = ({key: value if hasattr(value, 'interpret') else deepcopy(value)
+                        for key, value in interpreters.items()}
+                       if isinstance(interpreters, dict) else deepcopy(interpreters))
+    with pytest.raises(ValueError) as error:
+        function(action, parameters, base_dir=base_dir, interpreters=interpreters)
+    assert_context(error.value, *case['references'])
+    assert_json_value((action, parameters), before[:2])
+    assert base_dir == before[2]
+    assert interpreters == registry_before
+    assert not scenario.events.exists()
+    assert sorted(p.name for p in scenario.root.iterdir()) == ['other', 'work']
+    assert all(item.calls == [] for item in scenario.interpreters.values())
 
 
 @pytest.mark.parametrize('name', FUNCTIONS)
