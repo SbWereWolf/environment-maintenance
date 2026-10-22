@@ -17,7 +17,7 @@ def write_json(path: Path, document: dict[str, Any]) -> None:
             mode="w",
             encoding="utf-8",
             dir=path.parent,
-            prefix=f".{path.name}.",
+            prefix=".",
             suffix=".tmp",
             delete=False,
         ) as stream:
