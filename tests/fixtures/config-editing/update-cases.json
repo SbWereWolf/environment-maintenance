@@ -1,0 +1,767 @@
+[
+  {
+    "name": "nested-replace",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": 6655
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 6655,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "add-new-field",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/data/label",
+        "value": "База"
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes",
+        "label": "База"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "add-replaces-existing-member",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/data/port",
+        "value": 7000
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 7000,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "remove-is-not-null",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/data/port"
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "null-value",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": null
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": null,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "false-value",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": false
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": false,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "zero-value",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": 0
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 0,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "empty-value",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": ""
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": "",
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "command-insertion-shifts",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/commands/1",
+        "value": [
+          "tool",
+          "migrate"
+        ]
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "migrate"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "command-append",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/commands/-",
+        "value": [
+          "tool",
+          "check"
+        ]
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ],
+        [
+          "tool",
+          "check"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "command-add-at-length",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/commands/2",
+        "value": [
+          "tool",
+          "check"
+        ]
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ],
+        [
+          "tool",
+          "check"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "command-replace",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/commands/0",
+        "value": [
+          "tool",
+          "setup"
+        ]
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "setup"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "command-argument-only",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/commands/0/1",
+        "value": "setup"
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "setup"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "command-remove-shifts",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/commands/0"
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "escaped-slash-tilde",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/a~1b/~0key",
+        "value": "new"
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "new"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "empty-key-and-single-decoding",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "//~01",
+        "value": "changed"
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "changed"
+      }
+    }
+  },
+  {
+    "name": "root-not-empty-key",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "",
+        "value": {
+          "id": "renewed",
+          "only": true
+        }
+      }
+    ],
+    "expected": {
+      "id": "renewed",
+      "only": true
+    }
+  },
+  {
+    "name": "rename-identifier",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/id",
+        "value": "renewed"
+      }
+    ],
+    "expected": {
+      "id": "renewed",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "noop-empty-sequence",
+    "changes": [],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "sequence-order",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": 6000
+      },
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": 7000
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 7000,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "invariant-after-whole-sequence",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/id"
+      },
+      {
+        "op": "add",
+        "path": "/id",
+        "value": "renewed"
+      }
+    ],
+    "expected": {
+      "id": "renewed",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "unknown-patch-member-ignored",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": 7000,
+        "extra": {
+          "ignored": true
+        }
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 7000,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    }
+  },
+  {
+    "name": "empty-key-not-root",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/",
+        "value": "empty-member"
+      }
+    ],
+    "expected": {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": "empty-member"
+    }
+  }
+]

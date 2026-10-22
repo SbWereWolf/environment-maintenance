@@ -1,0 +1,11 @@
+{
+  "operations": {
+    "infra": "documents/infra.json",
+    "deps": "documents/deps.json",
+    "custom": "documents/deps.json"
+  },
+  "metadata": {
+    "owner": "main",
+    "literal": "${MAIN}"
+  }
+}

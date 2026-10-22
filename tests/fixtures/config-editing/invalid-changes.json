@@ -1,0 +1,282 @@
+[
+  {
+    "name": "not-an-array",
+    "changes": {}
+  },
+  {
+    "name": "not-an-operation",
+    "changes": [
+      null
+    ]
+  },
+  {
+    "name": "missing-value-replace",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port"
+      }
+    ]
+  },
+  {
+    "name": "missing-value-add",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/data/new"
+      }
+    ]
+  },
+  {
+    "name": "unsupported-copy",
+    "changes": [
+      {
+        "op": "copy",
+        "from": "/id",
+        "path": "/other"
+      }
+    ]
+  },
+  {
+    "name": "unsupported-move",
+    "changes": [
+      {
+        "op": "move",
+        "from": "/data/port",
+        "path": "/data/new"
+      }
+    ]
+  },
+  {
+    "name": "unsupported-test",
+    "changes": [
+      {
+        "op": "test",
+        "path": "/id",
+        "value": "subject"
+      }
+    ]
+  },
+  {
+    "name": "missing-op",
+    "changes": [
+      {
+        "path": "/data/port",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "unknown-op",
+    "changes": [
+      {
+        "op": "change",
+        "path": "/data/port",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "missing-path",
+    "changes": [
+      {
+        "op": "remove"
+      }
+    ]
+  },
+  {
+    "name": "path-type",
+    "changes": [
+      {
+        "op": "remove",
+        "path": []
+      }
+    ]
+  },
+  {
+    "name": "path-without-slash",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "data"
+      }
+    ]
+  },
+  {
+    "name": "bad-pointer-escape",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/bad~2key",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "bad-trailing-escape",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/bad~",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "missing-parent",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/missing/child",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "missing-replace-member",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/missing",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "missing-remove-member",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/missing"
+      }
+    ]
+  },
+  {
+    "name": "array-insertion-too-far",
+    "changes": [
+      {
+        "op": "add",
+        "path": "/commands/3",
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "array-replacement-at-length",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/commands/2",
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "array-remove-at-length",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/commands/2"
+      }
+    ]
+  },
+  {
+    "name": "array-replace-dash",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/commands/-",
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "array-remove-dash",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/commands/-"
+      }
+    ]
+  },
+  {
+    "name": "array-leading-zero",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/commands/01"
+      }
+    ]
+  },
+  {
+    "name": "array-negative",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/commands/-1"
+      }
+    ]
+  },
+  {
+    "name": "array-nonnumeric",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/commands/one"
+      }
+    ]
+  },
+  {
+    "name": "remove-id",
+    "changes": [
+      {
+        "op": "remove",
+        "path": "/id"
+      }
+    ]
+  },
+  {
+    "name": "empty-id",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/id",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "name": "duplicate-id",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/id",
+        "value": "sibling"
+      }
+    ]
+  },
+  {
+    "name": "root-not-object",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "",
+        "value": []
+      }
+    ]
+  },
+  {
+    "name": "late-failure",
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/data/port",
+        "value": 7000
+      },
+      {
+        "op": "remove",
+        "path": "/missing"
+      }
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "requirements": [
+    {
+      "id": "composer",
+      "commands": [
+        [
+          "composer",
+          "install"
+        ],
+        [
+          "composer",
+          "dump-autoload"
+        ]
+      ],
+      "opaque": "${DEPS}"
+    }
+  ],
+  "metadata": {
+    "owner": "dependencies",
+    "keep": true
+  }
+}

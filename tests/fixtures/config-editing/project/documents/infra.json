@@ -1,0 +1,42 @@
+{
+  "requirements": [
+    {
+      "id": "subject",
+      "data": {
+        "port": 5544,
+        "keep": "yes"
+      },
+      "commands": [
+        [
+          "tool",
+          "install"
+        ],
+        [
+          "tool",
+          "configure"
+        ]
+      ],
+      "a/b": {
+        "~key": "old"
+      },
+      "": {
+        "~1": "literal"
+      }
+    },
+    {
+      "id": "sibling",
+      "opaque": {
+        "queue": "orders",
+        "literal": "${QUEUE}"
+      }
+    }
+  ],
+  "metadata": {
+    "owner": "operator",
+    "opaque": [
+      7,
+      8
+    ],
+    "literal": "${META}"
+  }
+}

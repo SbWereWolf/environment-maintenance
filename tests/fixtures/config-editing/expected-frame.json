@@ -1,0 +1,11 @@
+{
+  "requirements": [],
+  "metadata": {
+    "owner": "operator",
+    "opaque": [
+      7,
+      8
+    ],
+    "literal": "${META}"
+  }
+}

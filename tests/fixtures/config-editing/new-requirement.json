@@ -1,0 +1,12 @@
+{
+  "id": "added",
+  "opaque": {
+    "literal": "${NEW}"
+  },
+  "commands": [
+    [
+      "echo",
+      "ready"
+    ]
+  ]
+}
