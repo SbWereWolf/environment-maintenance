@@ -17,10 +17,11 @@ def configuration_for_operation(document: dict[str, Any], operation: str) -> str
 
 
 class Requirements:
-    """Own unique identifiers, source order and detached object selections."""
+    """Own full-document preservation, unique identifiers and ordered changes."""
 
     def __init__(self, document: dict[str, Any]):
-        items = document.get("requirements")
+        self._document = deepcopy(document)
+        items = self._document.get("requirements")
         if not isinstance(items, list):
             raise ValueError("requirements must be an array")
         self._by_id: dict[str, dict[str, Any]] = {}
@@ -48,3 +49,32 @@ class Requirements:
                 raise ValueError(f"Unknown requirement id: {identifier}")
             result.append(deepcopy(self._by_id[identifier]))
         return result
+
+    def document(self) -> dict[str, Any]:
+        return deepcopy(self._document)
+
+    def _with_items(self, items: list[dict[str, Any]]) -> "Requirements":
+        document = self.document()
+        document["requirements"] = items
+        return Requirements(document)
+
+    def with_added(self, requirement: dict[str, Any]) -> "Requirements":
+        return self._with_items([*self.select("all"), requirement])
+
+    def with_replaced(
+        self, identifier: str, requirement: dict[str, Any]
+    ) -> "Requirements":
+        self.select([identifier])
+        return self._with_items([
+            requirement if item["id"] == identifier else item
+            for item in self.select("all")
+        ])
+
+    def without(self, identifier: str) -> "Requirements":
+        self.select([identifier])
+        return self._with_items([
+            item for item in self.select("all") if item["id"] != identifier
+        ])
+
+    def cleared(self) -> "Requirements":
+        return self._with_items([])
