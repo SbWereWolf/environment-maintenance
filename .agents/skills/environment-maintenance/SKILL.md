@@ -1,12 +1,12 @@
 ---
 name: environment-maintenance
-description: Use environment-maintenance's released catalogue CLI and its source configuration-reading API through the application's own instructions.
+description: Use environment-maintenance's released catalogue CLI and source configuration CRUD API through its own documented contracts and executable examples.
 ---
 
 # Environment maintenance
 
 Use the selected application's own runtime and explicit configuration paths.
-The released 1.0.0 CLI and the source-development 2.0 reading API are distinct;
+The released 1.0.0 CLI and the source-development 2.0 configuration APIs are distinct;
 see the [capability boundary](../../../docs/configuration-reading.md#библиотека-чтения).
 Source development integrates into master; this skill does not publish or install a release.
 
@@ -48,4 +48,35 @@ Use the documented ordering, all mode, file freshness and error semantics.
 Operation-to-file mapping comes from the main config, not a fixed operation list.
 The [custom-tool instruction](../../../docs/configuration-reading.md#собственный-внешний-инструмент)
 explains developing an external tool when existing tools cannot provide the required behavior.
-This API reads configuration; later CRUD/execution capabilities have their own delivery.
+
+## Change configuration from another tool
+
+Read the [write contract and immediate walkthrough link](../../../docs/configuration-editing.md#библиотека-записи)
+and [executable instructions for every operation](../../../docs/configuration-editing.md#пошаговая-инструкция).
+Prepare the declared dependencies using the selected Python and the documented
+external package-manager command; retain `PYTHONPATH=src` for source-development use.
+The instructions use owned temporary copies, not tracked examples or live configs.
+
+```python
+from environment_maintenance import (
+    add_requirement, update_requirement, delete_requirement, clear_requirements,
+)
+
+# config points to the main file of an owned writable example copy.
+add_requirement(config, "infra", {"id": "assets", "commands": []})
+update_requirement(config, "infra", "assets", [
+    {"op": "add", "path": "/label", "value": "Assets"},
+])
+delete_requirement(config, "infra", "assets")
+clear_requirements(config, "infra")  # Explicit request to empty this selected list.
+```
+
+Add appends one complete requirement; update patches one existing requirement;
+delete removes one ID; clear empties the list while preserving other document data.
+All four return `None` after saving; confirm results with batch reading or `all`.
+Use only the documented `add`/`replace`/`remove` patch subset and pointer semantics.
+Commands and placeholders remain opaque data; this API does not execute them.
+For errors follow the [diagnostic procedure](../../../docs/configuration-editing.md#диагностика-и-повторный-вызов).
+When existing tools cannot provide the needed behavior, develop an external tool
+using the [documented library integration](../../../docs/configuration-editing.md#собственный-внешний-инструмент).
+The future universal executor, new CLI operations and a new release remain separate work.
