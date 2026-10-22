@@ -1,0 +1,11 @@
+[
+  {
+    "id": "queue",
+    "payload": {
+      "name": "orders",
+      "options": {
+        "durable": true
+      }
+    }
+  }
+]

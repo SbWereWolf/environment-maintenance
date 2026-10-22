@@ -51,7 +51,7 @@ def test_batch_preserves_requested_order_repetitions_and_full_objects(config):
 
 
 def test_batch_can_select_a_proper_subset(config):
-    assert read(config, ["composer"], "deps") == expected("deps-all.json")
+    assert read(config, ["queue"], "infra") == expected("infra-subset.json")
 
 
 def test_empty_batch_returns_empty_list(config):
