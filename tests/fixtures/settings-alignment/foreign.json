@@ -1,0 +1,15 @@
+{
+  "requirements": [
+    {
+      "id": "foreign",
+      "commands": [
+        {
+          "argv": ["${python}", "-B", "${probe}", "${target_document}", "${trace}", "foreign"],
+          "cwd": ".",
+          "env": {},
+          "interpreter": {"name": "chosen", "options": {"accept": [0]}}
+        }
+      ]
+    }
+  ]
+}

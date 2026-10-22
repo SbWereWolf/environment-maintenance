@@ -1,0 +1,7 @@
+{
+  "status": "succeeded",
+  "writer": "writer",
+  "reader": "cache",
+  "variable": "QUEUE_NAME",
+  "queue": "reports.jobs"
+}

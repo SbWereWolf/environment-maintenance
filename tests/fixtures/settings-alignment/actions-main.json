@@ -1,0 +1,11 @@
+{
+  "operations": {
+    "adjust": "adjust.json",
+    "infra": "foreign.json",
+    "deps": "foreign.json"
+  },
+  "interpreters": {
+    "chosen": {"module": "env2_alignment_plugins", "attribute": "exit_result"}
+  },
+  "owner": {"keep": [false, 0, "actions"]}
+}

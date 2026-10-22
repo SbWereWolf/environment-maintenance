@@ -1,0 +1,4 @@
+{
+  "operations": {"applications": "applications.json"},
+  "owner": {"keep": [false, 0, "settings"]}
+}

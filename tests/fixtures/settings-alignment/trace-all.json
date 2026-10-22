@@ -1,0 +1,5 @@
+[
+  {"phase": "note", "writer": "writer.old", "reader": "reader.old"},
+  {"phase": "observed", "writer": "billing.jobs", "reader": "billing.jobs"},
+  {"phase": "tail", "writer": "billing.jobs", "reader": "billing.jobs"}
+]

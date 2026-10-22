@@ -1,0 +1,28 @@
+{
+  "requirements": [
+    {
+      "id": "writer",
+      "commands": [
+        {"argv": ["writer-service"], "cwd": ".", "env": {"QUEUE_NAME": "writer.old", "OTHER_QUEUE": "archive.jobs"}, "interpreter": {"name": "worker", "options": {}}},
+        {"argv": ["second-service"], "cwd": ".", "env": {"QUEUE_NAME": "secondary.keep"}, "interpreter": {"name": "worker", "options": {}}}
+      ],
+      "label": "Писатель",
+      "flags": [false, 0]
+    },
+    {
+      "id": "cache",
+      "commands": [
+        {"argv": ["cache-service"], "cwd": ".", "env": {"QUEUE_NAME": "cache.keep"}, "interpreter": {"name": "worker", "options": {}}}
+      ],
+      "extra": {"keep": [0, false]}
+    },
+    {
+      "id": "reader",
+      "commands": [
+        {"argv": ["reader-service"], "cwd": ".", "env": {"QUEUE_NAME": "reader.old", "OTHER_QUEUE": "archive.jobs"}, "interpreter": {"name": "worker", "options": {"tag": "preserve"}}}
+      ],
+      "label": "Читатель"
+    }
+  ],
+  "owner": {"keep": [false, 0, {"name": "serviced applications"}]}
+}

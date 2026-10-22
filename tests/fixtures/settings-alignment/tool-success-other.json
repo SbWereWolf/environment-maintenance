@@ -1,0 +1,7 @@
+{
+  "status": "succeeded",
+  "writer": "writer",
+  "reader": "reader",
+  "variable": "OTHER_QUEUE",
+  "queue": "archive.jobs"
+}

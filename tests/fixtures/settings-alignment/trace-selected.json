@@ -1,0 +1,3 @@
+[
+  {"phase": "observed", "writer": "reports.jobs", "reader": "reader.old"}
+]

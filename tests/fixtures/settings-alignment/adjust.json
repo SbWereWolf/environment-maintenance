@@ -1,0 +1,44 @@
+{
+  "requirements": [
+    {
+      "id": "note",
+      "commands": [
+        {
+          "argv": ["${python}", "-B", "${probe}", "${target_document}", "${trace}", "note"],
+          "cwd": ".",
+          "env": {},
+          "interpreter": {"name": "chosen", "options": {"accept": [0]}}
+        }
+      ]
+    },
+    {
+      "id": "queue-agreement",
+      "commands": [
+        {
+          "argv": ["${python}", "-B", "${tool}", "--config", "${settings_config}", "--operation", "applications", "--writer", "writer", "--reader", "${reader}", "--queue-variable", "QUEUE_NAME", "--queue", "${queue}"],
+          "cwd": ".",
+          "env": {"PYTHONPATH": "${source_path}", "PYTHONDONTWRITEBYTECODE": "1"},
+          "interpreter": {"name": "chosen", "options": {"accept": [0], "transport_number": 0}}
+        },
+        {
+          "argv": ["${python}", "-B", "${probe}", "${target_document}", "${trace}", "observed"],
+          "cwd": ".",
+          "env": {},
+          "interpreter": {"name": "chosen", "options": {"accept": [0]}}
+        }
+      ]
+    },
+    {
+      "id": "tail",
+      "commands": [
+        {
+          "argv": ["${python}", "-B", "${probe}", "${target_document}", "${trace}", "tail"],
+          "cwd": ".",
+          "env": {},
+          "interpreter": {"name": "chosen", "options": {"accept": [0]}}
+        }
+      ]
+    }
+  ],
+  "owner": {"keep": [false, 0, "adjustment description"]}
+}
