@@ -1,0 +1,32 @@
+{
+  "requirements": [
+    {
+      "id": "assets",
+      "commands": [
+        {
+          "argv": ["${python}", "${probe}", "${events}", "install", "${state}"],
+          "cwd": ".",
+          "env": {"VALUE": "${token}"},
+          "interpreter": {"name": "result", "options": {"accept": [0]}}
+        },
+        {
+          "argv": ["${python}", "${probe}", "${events}", "configure", "${state}"],
+          "cwd": ".",
+          "env": {"VALUE": "${token}"},
+          "interpreter": {"name": "result", "options": {"accept": [0]}}
+        }
+      ]
+    },
+    {
+      "id": "later",
+      "commands": [
+        {
+          "argv": ["${python}", "${probe}", "${events}", "later", "${state}"],
+          "cwd": ".",
+          "env": {"VALUE": "${token}"},
+          "interpreter": {"name": "result", "options": {"accept": [0]}}
+        }
+      ]
+    }
+  ]
+}

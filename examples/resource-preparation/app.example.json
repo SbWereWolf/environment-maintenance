@@ -1,0 +1,12 @@
+{
+  "operations": {
+    "infra": "infra.example.json",
+    "deps": "deps.example.json"
+  },
+  "interpreters": {
+    "result": {
+      "module": "interpreters",
+      "attribute": "exit_result"
+    }
+  }
+}

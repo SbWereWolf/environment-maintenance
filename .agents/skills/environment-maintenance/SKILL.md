@@ -1,16 +1,16 @@
 ---
 name: environment-maintenance
-description: Use environment-maintenance's released catalogue CLI and source configuration/action APIs through their documented contracts and executable examples.
+description: Use environment-maintenance's released catalogue CLI and source configuration, action and resource-preparation APIs/CLI through documented contracts and executable examples.
 ---
 
 # Environment maintenance
 
 Use the selected application's own runtime and explicit configuration paths.
-The released 1.0.0 CLI and the source-development 2.0 configuration/action APIs are distinct;
+The released 1.0.0 CLI and source-development 2.0 APIs/infra/deps CLI are distinct;
 see the [capability boundary](../../../docs/configuration-reading.md#библиотека-чтения).
 Source development integrates into master; this skill does not publish or install a release.
 
-## Current CLI
+## Released catalogue CLI
 
 Read the [complete argument reference and walkthrough link](../../../docs/configuration.md#команды-и-аргументы).
 Activate the installed application environment before these commands.
@@ -80,7 +80,8 @@ For errors follow the [diagnostic procedure](../../../docs/configuration-editing
 When existing tools cannot provide the needed behavior, develop an external tool
 using the [documented library integration](../../../docs/configuration-editing.md#собственный-внешний-инструмент).
 The [action execution library](../../../docs/action-execution.md#библиотека-исполнения)
-is available in source development. New CLI operations and a new release remain separate work.
+is available in source development. Source infra/deps are described below;
+a new packaged release remains separate work.
 
 ## Plan and execute declared actions
 
@@ -112,3 +113,46 @@ Prepared executable/cwd remain nonempty after standard Template substitution.
 Use the [documented diagnostic procedure](../../../docs/action-execution.md#диагностика-и-осознанное-продолжение).
 When needed, develop a [custom external tool](../../../docs/action-execution.md#собственный-внешний-инструмент)
 using configuration CRUD and this action API; do not reimplement the library contract.
+
+## Prepare infrastructure and dependencies
+
+Read the [canonical preparation contract and immediate instruction link](../../../docs/resource-preparation.md#подготовка-ресурсов),
+the [complete arguments](../../../docs/resource-preparation.md#команды-и-аргументы)
+and [executed walkthrough](../../../docs/resource-preparation.md#пошаговая-инструкция).
+From the selected source checkout use its explicit Python and import path:
+
+```bash
+PYTHONPATH=src "$app_python" -B examples/resource-preparation/walkthrough.py
+```
+
+The walkthrough executes source CLI infra/deps through real subprocesses with
+--config, --parameters, --base-dir and --requirements. It prepares owned temporary
+files, checks effects and decodes complete streams. The root ./start-app still uses
+installed 1.0.0; source invocation does not update that installation.
+The short packaged start-app entry uses the same CLI after a separate package delivery.
+
+For the public API, use the owned demonstration input helper, not live configs:
+
+```python
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from environment_maintenance import prepare_resources
+from walkthrough import prepare_demo, assert_result
+
+# Run with PYTHONPATH=src:examples/resource-preparation in the source checkout.
+with TemporaryDirectory() as temporary:
+    workspace = Path(temporary)
+    config, parameters, registry = prepare_demo(workspace)
+    result = prepare_resources(config, "deps", "all", parameters,
+                               base_dir=workspace, interpreters=registry)
+    assert_result(result, ["packages"], ["dependencies"], workspace)
+```
+
+All selected chains are planned before effects; execution stops at the first failure.
+Empty selection still validates declared common inputs. API keeps opaque values/bytes.
+CLI requires ordinary JSON interpreter answers and validates selected reflected metadata
+before effects; command streams use reversible base64. Inspect complete partial results
+before deciding continuation. The [configured plugin reference](../../../docs/resource-preparation.md#конфигурация-и-подключение-обработчиков)
+explains ready module/attribute objects and the ordinary Python import path.
+Use the [custom-tool instruction](../../../docs/resource-preparation.md#собственный-внешний-инструмент)
+when existing external tools do not provide the needed behavior.

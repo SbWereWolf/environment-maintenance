@@ -80,6 +80,23 @@ app_python=/absolute/path/to/environment-maintenance/.venv/bin/python
 [Полные API и примеры](action-execution.md#библиотека-исполнения) описывают
 фактическую исходную возможность, не новый релиз или изменение старого CLI.
 
+`preparation.application` владеет последовательностью выбранных требований:
+переданные порты чтения, планирования и исполнения переиспользуют configuration
+и actions. Общая проверка parameters/base_dir/interpreters принадлежит
+`actions.application.validate_execution_inputs` и выполняется также для пустой
+выборки. Все выбранные цепочки планируются до первого процесса; результат содержит
+только попытанные требования и полную частичную работу до первого неуспеха.
+Отдельный доменный aggregate или второй исполнитель команд для этого не вводится.
+
+`preparation.plugins` загружает готовые обработчики стандартным importlib и
+адаптирует их ответы к обычному JSON CLI. `preparation.cli` декорирует общий
+планировщик проверкой всех отражаемых данных до процессов. Библиотечная композиция
+сохраняет непрозрачные Python-значения. `preparation.presentation` отдельно кодирует
+полные stdout/stderr стандартным base64, не меняя предметный итог.
+`cli.main` явно выбирает infra/deps либо прежний check/run, не угадывая формат.
+[Полные входы и инструкции](resource-preparation.md#подготовка-ресурсов)
+описывают фактическое source-расширение, не установленную пакетную поставку.
+
 ## Проверки
 
 Команды из исходного корня; установленный `dev` обеспечивает средства сборки:
@@ -97,6 +114,9 @@ PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
 PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
   tests/test_action_execution.py
 PYTHONPATH=src .venv/bin/python -B examples/action-execution/walkthrough.py
+PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
+  --basetemp build/preparation-check tests/test_resource_preparation.py
+PYTHONPATH=src .venv/bin/python -B examples/resource-preparation/walkthrough.py
 ```
 
 Модуль исполнения содержит 114 случаев: подготовка/реальные процессы/полные bytes,

@@ -1,0 +1,15 @@
+{
+  "requirements": [
+    {
+      "id": "packages",
+      "commands": [
+        {
+          "argv": ["${python}", "${probe}", "${events}", "dependencies", "${state}"],
+          "cwd": ".",
+          "env": {"VALUE": "${token}"},
+          "interpreter": {"name": "result", "options": {"accept": [0]}}
+        }
+      ]
+    }
+  ]
+}
