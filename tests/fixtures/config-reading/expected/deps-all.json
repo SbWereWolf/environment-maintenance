@@ -1,0 +1,12 @@
+[
+  {
+    "id": "composer",
+    "payload": {
+      "steps": [
+        ["composer", "install"],
+        ["composer", "dump-autoload"]
+      ],
+      "literal": "${WORKDIR}"
+    }
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "operations": {
+    "infra": "requirements/infra.json",
+    "deps": "requirements/deps.json",
+    "inspect-custom": "requirements/deps.json"
+  },
+  "operator_note": "Preserve this additional field"
+}

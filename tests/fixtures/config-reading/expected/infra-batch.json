@@ -1,0 +1,31 @@
+[
+  {
+    "id": "queue",
+    "payload": {
+      "name": "orders",
+      "options": {
+        "durable": true
+      }
+    }
+  },
+  {
+    "id": "database",
+    "label": "База данных",
+    "payload": {
+      "address": "127.0.0.1",
+      "port": 5544
+    },
+    "steps": [
+      ["not-an-installed-command", "--listen", "${port}"]
+    ]
+  },
+  {
+    "id": "queue",
+    "payload": {
+      "name": "orders",
+      "options": {
+        "durable": true
+      }
+    }
+  }
+]
