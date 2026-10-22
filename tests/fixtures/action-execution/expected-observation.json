@@ -1,0 +1,8 @@
+{
+  "token": "first",
+  "argv": [
+    "two words"
+  ],
+  "visible": "selected",
+  "host_only": null
+}

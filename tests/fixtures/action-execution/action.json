@@ -1,0 +1,34 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "${python}",
+        "${probe}",
+        "${events}",
+        "${token}",
+        "${stdout}",
+        "${stderr}",
+        "${code}",
+        "${arg}"
+      ],
+      "cwd": "${cwd}",
+      "env": {
+        "VISIBLE": "${value}"
+      },
+      "interpreter": {
+        "name": "exit",
+        "options": {
+          "accept": [
+            0
+          ],
+          "tag": "opaque ${untouched}",
+          "expected": "ready"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "owner": "test",
+    "kept": false
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "PYTHON",
+    "PROBE",
+    "EVENTS",
+    "first",
+    "STDOUT",
+    "STDERR",
+    "0",
+    "two words"
+  ],
+  "cwd": "WORK",
+  "env": {
+    "VISIBLE": "selected"
+  }
+}

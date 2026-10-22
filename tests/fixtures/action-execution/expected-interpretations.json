@@ -1,0 +1,14 @@
+{
+  "exit": {
+    "success": true,
+    "value": "opaque ${untouched}",
+    "error": null,
+    "source": "exit"
+  },
+  "json": {
+    "success": true,
+    "value": 7,
+    "error": null,
+    "source": "json"
+  }
+}

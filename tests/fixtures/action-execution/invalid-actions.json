@@ -1,0 +1,474 @@
+[
+  {
+    "name": "missing-commands",
+    "action": {
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "commands"
+    ]
+  },
+  {
+    "name": "empty-commands",
+    "action": {
+      "commands": [],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "commands"
+    ]
+  },
+  {
+    "name": "wrong-commands-type",
+    "action": {
+      "commands": "one",
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "commands"
+    ]
+  },
+  {
+    "name": "nonobject-command",
+    "action": {
+      "commands": [
+        null
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "commands"
+    ]
+  },
+  {
+    "name": "missing-argv",
+    "action": {
+      "commands": [
+        {
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "argv"
+    ]
+  },
+  {
+    "name": "string-argv",
+    "action": {
+      "commands": [
+        {
+          "argv": "python tool",
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "argv"
+    ]
+  },
+  {
+    "name": "empty-argv",
+    "action": {
+      "commands": [
+        {
+          "argv": [],
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "argv"
+    ]
+  },
+  {
+    "name": "empty-executable",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            ""
+          ],
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "argv"
+    ]
+  },
+  {
+    "name": "nonstr-argument",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "python",
+            3
+          ],
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "argv"
+    ]
+  },
+  {
+    "name": "missing-cwd",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "${token}",
+            "${stdout}",
+            "${stderr}",
+            "${code}",
+            "${arg}"
+          ],
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "cwd"
+    ]
+  },
+  {
+    "name": "empty-cwd",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "${token}",
+            "${stdout}",
+            "${stderr}",
+            "${code}",
+            "${arg}"
+          ],
+          "cwd": "",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "cwd"
+    ]
+  },
+  {
+    "name": "nonobject-env",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "${token}",
+            "${stdout}",
+            "${stderr}",
+            "${code}",
+            "${arg}"
+          ],
+          "cwd": "${cwd}",
+          "env": [],
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "env"
+    ]
+  },
+  {
+    "name": "nonstr-env-value",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "${token}",
+            "${stdout}",
+            "${stderr}",
+            "${code}",
+            "${arg}"
+          ],
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": 3
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "env"
+    ]
+  },
+  {
+    "name": "missing-interpreter",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "${token}",
+            "${stdout}",
+            "${stderr}",
+            "${code}",
+            "${arg}"
+          ],
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "interpreter"
+    ]
+  },
+  {
+    "name": "missing-name",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "${token}",
+            "${stdout}",
+            "${stderr}",
+            "${code}",
+            "${arg}"
+          ],
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "options": {
+              "accept": [
+                0
+              ],
+              "tag": "opaque ${untouched}",
+              "expected": "ready"
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "name"
+    ]
+  },
+  {
+    "name": "nonobject-options",
+    "action": {
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "${token}",
+            "${stdout}",
+            "${stderr}",
+            "${code}",
+            "${arg}"
+          ],
+          "cwd": "${cwd}",
+          "env": {
+            "VISIBLE": "${value}"
+          },
+          "interpreter": {
+            "name": "exit",
+            "options": []
+          }
+        }
+      ],
+      "metadata": {
+        "owner": "test",
+        "kept": false
+      }
+    },
+    "references": [
+      "options"
+    ]
+  }
+]
