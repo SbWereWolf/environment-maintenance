@@ -11,3 +11,5 @@ from .configuration import (
     read_requirements,
     update_requirement,
 )
+
+from .preparation import prepare_resources

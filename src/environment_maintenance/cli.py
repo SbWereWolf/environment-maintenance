@@ -1,4 +1,4 @@
-"""Public catalog/v2 command line for the independent distribution."""
+"""Explicit catalog maintenance and resource-preparation command routes."""
 
 import argparse
 import json
@@ -15,12 +15,38 @@ def main(argv=None):
     parser.add_argument(
         "--version", action="version", version=f"environment-maintenance {__version__}"
     )
-    parser.add_argument("command", choices=["check", "run"])
-    parser.add_argument("--catalog-dir", required=True, type=Path)
+    parser.add_argument("command", choices=["check", "run", "infra", "deps"])
+    parser.add_argument("--catalog-dir", type=Path)
     parser.add_argument("--values", action="append", default=[], type=Path)
     parser.add_argument("--set", dest="overrides", action="append", default=[])
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--config", type=Path)
+    parser.add_argument("--parameters", type=Path)
+    parser.add_argument("--base-dir", type=Path)
+    parser.add_argument("--requirements")
     args = parser.parse_args(argv)
+    preparation_arguments = (
+        ('config', '--config'),
+        ('parameters', '--parameters'),
+        ('base_dir', '--base-dir'),
+        ('requirements', '--requirements'),
+    )
+    if args.command in ('infra', 'deps'):
+        for name, flag in (('catalog_dir', '--catalog-dir'), ('values', '--values'),
+                           ('overrides', '--set'), ('dry_run', '--dry-run')):
+            if getattr(args, name):
+                parser.error(f"{flag} is not supported for {args.command}")
+        for name, flag in preparation_arguments:
+            if getattr(args, name) is None:
+                parser.error(f"{flag} is required for {args.command}")
+        from .preparation.cli import run_preparation
+        return run_preparation(args.command, args.config, args.parameters,
+                               args.base_dir, args.requirements)
+    for name, flag in preparation_arguments:
+        if getattr(args, name) is not None:
+            parser.error(f"{flag} is only supported for infra/deps")
+    if args.catalog_dir is None:
+        parser.error("--catalog-dir is required for check/run")
     try:
         values = {}
         for path in args.values:
