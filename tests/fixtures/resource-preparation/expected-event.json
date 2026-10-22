@@ -1,0 +1,8 @@
+{
+  "tag": "<tag>",
+  "token": "<token>",
+  "cwd": "<cwd>",
+  "value": "<token>",
+  "scalar": "42",
+  "host_only": null
+}

@@ -1,0 +1,4 @@
+{
+  "token": "two words ${unbound} Кириллица",
+  "number": 42
+}

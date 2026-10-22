@@ -1,0 +1,8 @@
+{
+  "alpha-install": ".",
+  "alpha-configure": "nested",
+  "beta-install": ".",
+  "literal-all": ".",
+  "vendor-install": ".",
+  "vendor-configure": "nested"
+}

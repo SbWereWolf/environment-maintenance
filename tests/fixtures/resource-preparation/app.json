@@ -1,0 +1,13 @@
+{
+  "operations": {
+    "infra": "infra.json",
+    "deps": "deps.json"
+  },
+  "interpreters": {
+    "chosen": {
+      "module": "env2_test_plugins",
+      "attribute": "exit_result"
+    }
+  },
+  "operator_metadata": {"keep": [false, 0, "unchanged"]}
+}

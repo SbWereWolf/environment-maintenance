@@ -1,0 +1,44 @@
+{
+  "requirements": [
+    {
+      "id": "alpha",
+      "commands": [
+        {
+          "argv": ["${python}", "${probe}", "${events}", "alpha-install", "${token}", "${stdout_file}", "${stderr_file}", "0"],
+          "cwd": ".",
+          "env": {"RESOURCE_VALUE": "${token}", "SCALAR": "${number}"},
+          "interpreter": {"name": "chosen", "options": {"accept": [0], "tag": "accepted"}}
+        },
+        {
+          "argv": ["${python}", "${probe}", "${events}", "alpha-configure", "${token}", "${stdout_file}", "${stderr_file}", "0"],
+          "cwd": "nested",
+          "env": {"RESOURCE_VALUE": "${token}", "SCALAR": "${number}"},
+          "interpreter": {"name": "chosen", "options": {"accept": [0], "tag": "accepted"}}
+        }
+      ]
+    },
+    {
+      "id": "beta",
+      "commands": [
+        {
+          "argv": ["${python}", "${probe}", "${events}", "beta-install", "${token}", "${stdout_file}", "${stderr_file}", "0"],
+          "cwd": ".",
+          "env": {"RESOURCE_VALUE": "${token}", "SCALAR": "${number}"},
+          "interpreter": {"name": "chosen", "options": {"accept": [0], "tag": "accepted"}}
+        }
+      ]
+    },
+    {
+      "id": "all",
+      "commands": [
+        {
+          "argv": ["${python}", "${probe}", "${events}", "literal-all", "${token}", "${stdout_file}", "${stderr_file}", "0"],
+          "cwd": ".",
+          "env": {"RESOURCE_VALUE": "${token}", "SCALAR": "${number}"},
+          "interpreter": {"name": "chosen", "options": {"accept": [0], "tag": "accepted"}}
+        }
+      ]
+    }
+  ],
+  "owner_metadata": {"keep": [false, 0, "infra"]}
+}

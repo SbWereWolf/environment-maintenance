@@ -1,0 +1,8 @@
+{
+  "aggregate": ["operation", "status", "requirements", "error"],
+  "requirement": ["id", "result"],
+  "action": ["status", "commands", "error"],
+  "command": ["invocation", "interpreter", "exit_code", "stdout", "stderr", "interpretation", "error"],
+  "invocation": ["argv", "cwd", "env"],
+  "encoded_bytes": ["encoding", "data"]
+}

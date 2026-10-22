@@ -1,0 +1,21 @@
+{
+  "requirements": [
+    {
+      "id": "vendor",
+      "commands": [
+        {
+          "argv": ["${python}", "${probe}", "${events}", "vendor-install", "${token}", "${stdout_file}", "${stderr_file}", "0"],
+          "cwd": ".",
+          "env": {"RESOURCE_VALUE": "${token}", "SCALAR": "${number}"},
+          "interpreter": {"name": "chosen", "options": {"accept": [0], "tag": "accepted"}}
+        },
+        {
+          "argv": ["${python}", "${probe}", "${events}", "vendor-configure", "${token}", "${stdout_file}", "${stderr_file}", "0"],
+          "cwd": "nested",
+          "env": {"RESOURCE_VALUE": "${token}", "SCALAR": "${number}"},
+          "interpreter": {"name": "chosen", "options": {"accept": [0], "tag": "accepted"}}
+        }
+      ]
+    }
+  ]
+}

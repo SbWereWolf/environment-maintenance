@@ -1,0 +1,5 @@
+{
+  "argv": ["<python>", "<probe>", "<events>", "<tag>", "<token>", "<stdout_file>", "<stderr_file>", "<code>"],
+  "cwd": "<cwd>",
+  "env": {"RESOURCE_VALUE": "<token>", "SCALAR": "42"}
+}
