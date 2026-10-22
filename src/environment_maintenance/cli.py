@@ -15,7 +15,7 @@ def main(argv=None):
     parser.add_argument(
         "--version", action="version", version=f"environment-maintenance {__version__}"
     )
-    parser.add_argument("command", choices=["check", "run", "infra", "deps"])
+    parser.add_argument("command", choices=["check", "run", "infra", "deps", "adjust"])
     parser.add_argument("--catalog-dir", type=Path)
     parser.add_argument("--values", action="append", default=[], type=Path)
     parser.add_argument("--set", dest="overrides", action="append", default=[])
@@ -31,7 +31,7 @@ def main(argv=None):
         ('base_dir', '--base-dir'),
         ('requirements', '--requirements'),
     )
-    if args.command in ('infra', 'deps'):
+    if args.command in ('infra', 'deps', 'adjust'):
         for name, flag in (('catalog_dir', '--catalog-dir'), ('values', '--values'),
                            ('overrides', '--set'), ('dry_run', '--dry-run')):
             if getattr(args, name):
@@ -44,7 +44,7 @@ def main(argv=None):
                                args.base_dir, args.requirements)
     for name, flag in preparation_arguments:
         if getattr(args, name) is not None:
-            parser.error(f"{flag} is only supported for infra/deps")
+            parser.error(f"{flag} is only supported for infra/deps/adjust")
     if args.catalog_dir is None:
         parser.error("--catalog-dir is required for check/run")
     try:
