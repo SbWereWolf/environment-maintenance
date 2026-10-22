@@ -2,15 +2,7 @@
 
 ## Команды и аргументы
 
-После [установки](installation.md) и активации собственной `.venv`:
-
-```bash
-start-app --version
-start-app --help
-start-app check --catalog-dir examples/catalog-v2
-start-app run --catalog-dir examples/catalog-v2 --dry-run
-start-app run --catalog-dir examples/catalog-v2
-```
+[Пошаговая инструкция CLI](#пошаговая-инструкция-cli).
 
 `check` проверяет каждый ресурс в порядке каталога. `run --dry-run` выполняет
 проверки и показывает нужные действия. `run` обслуживает ресурсы: по состоянию
@@ -31,6 +23,24 @@ start-app run --catalog-dir examples/catalog-v2
 В поставляемом [примере](../examples/catalog-v2/catalog.json) один ресурс `example`
 с действием `probe.py`, сообщающим `satisfied`. Это пример протокола, а не
 профиль инфраструктуры ERP или Poise.
+
+## Пошаговая инструкция CLI
+
+После [установки](installation.md) и активации собственной `.venv`, из корня
+приложения сначала прочитайте версию и справку, затем используйте выбранную операцию:
+
+```bash
+start-app --version
+start-app --help
+start-app check --catalog-dir examples/catalog-v2
+start-app run --catalog-dir examples/catalog-v2 --dry-run
+start-app run --catalog-dir examples/catalog-v2
+```
+
+На поставляемом демонстрационном каталоге все три рабочих вызова сообщают
+`ready` и завершаются кодом 0: его probe уже подтверждает ресурс. Он не
+развёртывает инфраструктуру. Подготовка значений для собственного каталога описана
+ниже; аргументы перечислены в [полном справочнике](#команды-и-аргументы).
 
 ## Формат каталога и значения
 

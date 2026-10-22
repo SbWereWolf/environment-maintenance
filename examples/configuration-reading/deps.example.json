@@ -1,0 +1,11 @@
+{
+  "requirements": [
+    {
+      "id": "php-vendor",
+      "details": {
+        "directory": "vendor",
+        "manager": "composer"
+      }
+    }
+  ]
+}

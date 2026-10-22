@@ -1,0 +1,7 @@
+{
+  "operations": {
+    "infra": "infra.example.json",
+    "deps": "deps.example.json",
+    "custom-check": "infra.example.json"
+  }
+}
