@@ -1,0 +1,41 @@
+{
+  "requirements": [
+    {
+      "id": "queue-agreement",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-B",
+            "${tool}",
+            "--config",
+            "${settings_config}",
+            "--operation",
+            "${operation}",
+            "--writer",
+            "${writer}",
+            "--reader",
+            "${reader}",
+            "--queue-variable",
+            "${variable}",
+            "--queue",
+            "${queue}"
+          ],
+          "cwd": ".",
+          "env": {
+            "PYTHONPATH": "${source_path}",
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "python": "/absolute/path/to/prepared/python",
+  "tool": "/absolute/path/to/checkout/examples/settings-alignment/align_queue.py",
+  "settings_config": "/absolute/path/to/working/settings.example.json",
+  "operation": "applications",
+  "writer": "writer",
+  "reader": "reader",
+  "variable": "QUEUE_NAME",
+  "queue": "billing.jobs",
+  "source_path": "/absolute/path/to/checkout/src"
+}

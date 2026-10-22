@@ -1,0 +1,11 @@
+{
+  "operations": {
+    "adjust": "adjust.example.json"
+  },
+  "interpreters": {
+    "result": {
+      "module": "interpreters",
+      "attribute": "exit_result"
+    }
+  }
+}

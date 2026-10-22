@@ -93,9 +93,16 @@ app_python=/absolute/path/to/environment-maintenance/.venv/bin/python
 планировщик проверкой всех отражаемых данных до процессов. Библиотечная композиция
 сохраняет непрозрачные Python-значения. `preparation.presentation` отдельно кодирует
 полные stdout/stderr стандартным base64, не меняя предметный итог.
-`cli.main` явно выбирает infra/deps либо прежний check/run, не угадывая формат.
+`cli.main` явно выбирает infra/deps/adjust либо прежний check/run, не угадывая формат.
 [Полные входы и инструкции](resource-preparation.md#подготовка-ресурсов)
 описывают фактическое source-расширение, не установленную пакетную поставку.
+
+`examples/settings-alignment/align_queue.py` принадлежит обслуживаемому примеру:
+`queue_value` читает выбранную позицию стандартным JSON Pointer, `align_queue`
+выполняет пакетное чтение, точечные публичные update и подтверждающее перечитывание,
+`main` доставляет CLI/JSON. Правило равенства очередей не находится в общем ядре.
+Две публикации не являются общей транзакцией; обычный неуспех сохраняет фактическую
+частичную работу. [Полный договор и инструкция](settings-alignment.md#согласование-настроек).
 
 ## Проверки
 
@@ -117,7 +124,14 @@ PYTHONPATH=src .venv/bin/python -B examples/action-execution/walkthrough.py
 PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
   --basetemp build/preparation-check tests/test_resource_preparation.py
 PYTHONPATH=src .venv/bin/python -B examples/resource-preparation/walkthrough.py
+PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
+  --basetemp build/alignment-check tests/test_settings_alignment.py
+PYTHONPATH=src .venv/bin/python -B examples/settings-alignment/walkthrough.py
 ```
+
+15 проверок согласования подтверждают выбранные значения, фактические внешние
+процессы, сохранность данных, полные/частичные итоги и общие входные границы.
+Walkthrough согласования выполняет четыре корректных сценария на своих копиях.
 
 Модуль исполнения содержит 114 случаев: подготовка/реальные процессы/полные bytes,
 смена обработчика и диагностируемые отказы с сохранностью частичной работы.

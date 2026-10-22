@@ -1,0 +1,44 @@
+{
+  "requirements": [
+    {
+      "id": "writer",
+      "commands": [
+        {
+          "env": {
+            "QUEUE_NAME": "writer.old",
+            "OTHER_QUEUE": "writer.keep"
+          }
+        },
+        {
+          "env": {
+            "QUEUE_NAME": "secondary.keep"
+          }
+        }
+      ],
+      "enabled": false
+    },
+    {
+      "id": "cache",
+      "commands": [
+        {
+          "env": {
+            "QUEUE_NAME": "cache.keep"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reader",
+      "commands": [
+        {
+          "env": {
+            "QUEUE_NAME": "reader.old",
+            "OTHER_QUEUE": "reader.keep"
+          }
+        }
+      ],
+      "retries": 0
+    }
+  ],
+  "owner": "serviced application"
+}

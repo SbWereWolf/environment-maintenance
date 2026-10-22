@@ -1,12 +1,12 @@
 ---
 name: environment-maintenance
-description: Use environment-maintenance's released catalogue CLI and source configuration, action and resource-preparation APIs/CLI through documented contracts and executable examples.
+description: Use environment-maintenance's released catalogue CLI and source configuration, action, preparation and settings-alignment capabilities through documented contracts and executable examples.
 ---
 
 # Environment maintenance
 
 Use the selected application's own runtime and explicit configuration paths.
-The released 1.0.0 CLI and source-development 2.0 APIs/infra/deps CLI are distinct;
+The released 1.0.0 CLI and source-development 2.0 APIs/infra/deps/adjust CLI are distinct;
 see the [capability boundary](../../../docs/configuration-reading.md#библиотека-чтения).
 Source development integrates into master; this skill does not publish or install a release.
 
@@ -80,7 +80,7 @@ For errors follow the [diagnostic procedure](../../../docs/configuration-editing
 When existing tools cannot provide the needed behavior, develop an external tool
 using the [documented library integration](../../../docs/configuration-editing.md#собственный-внешний-инструмент).
 The [action execution library](../../../docs/action-execution.md#библиотека-исполнения)
-is available in source development. Source infra/deps are described below;
+is available in source development. Source infra/deps/adjust are described below;
 a new packaged release remains separate work.
 
 ## Plan and execute declared actions
@@ -156,3 +156,32 @@ before deciding continuation. The [configured plugin reference](../../../docs/re
 explains ready module/attribute objects and the ordinary Python import path.
 Use the [custom-tool instruction](../../../docs/resource-preparation.md#собственный-внешний-инструмент)
 when existing external tools do not provide the needed behavior.
+
+## Align related settings
+
+Read the [canonical contract and immediate instruction link](../../../docs/settings-alignment.md#согласование-настроек),
+[all CLI arguments](../../../docs/settings-alignment.md#входы-и-результаты),
+[all external-tool arguments](../../../docs/settings-alignment.md#отдельный-инструмент-согласования)
+and [correct executable scenarios](../../../docs/settings-alignment.md#пошаговая-инструкция).
+Use the chosen source checkout and its explicit prepared Python:
+
+```bash
+PYTHONPATH=src "$app_python" -B examples/settings-alignment/walkthrough.py
+```
+
+The four scenarios exercise API all, source CLI selection, empty selection and the
+real external tool with another chosen variable/value. They use only owned temporary
+copies and check saved settings, preserved data and complete command results.
+For prepared source inputs, the existing CLI composition accepts:
+
+```text
+python -m environment_maintenance adjust --config MAIN --parameters VALUES --base-dir ABS --requirements all
+```
+
+Set the source and configured plugin import paths as documented. The main action config
+and the mutable target config have different owners. The generic runner does not own
+queue policy or invoke adjustment automatically. Inspect complete partial results and
+saved state before deciding a subsequent action; multiple updates are not one transaction.
+When existing tools cannot provide the behavior, develop a
+[custom external tool using the public library](../../../docs/settings-alignment.md#собственный-внешний-инструмент).
+Retain the installed 1.0.0 package; no new release or installation is implied.
