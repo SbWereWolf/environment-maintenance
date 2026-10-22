@@ -22,6 +22,12 @@ def _require_json_data(value: Any) -> None:
     raise ValueError(f"Unsupported JSON value type: {type(value).__name__}")
 
 
+def validate_json_data(value: Any) -> None:
+    """Validate transport data without silent JSON coercion or numeric overflow."""
+    _require_json_data(value)
+    json.dumps(value, allow_nan=False)
+
+
 class JsonResultInterpreter:
     def __init__(self, interpreter: ResultInterpreter):
         self._interpreter = interpreter
@@ -29,8 +35,7 @@ class JsonResultInterpreter:
     def interpret(self, raw: dict[str, Any], options: dict[str, Any]) -> dict[str, Any]:
         answer = self._interpreter.interpret(raw, options)
         # JSON encoding alone silently coerces tuple values and non-string keys.
-        _require_json_data(answer)
-        json.dumps(answer, allow_nan=False)
+        validate_json_data(answer)
         return answer
 
 

@@ -41,11 +41,11 @@ def _prepare_command(
     return prepared
 
 
-def prepare_action(
-    action: dict[str, Any], parameters: dict[str, Any], *,
-    base_dir: str | Path, interpreters: dict[str, ResultInterpreter],
-) -> dict[str, Any]:
-    commands = declared_commands(action)
+def validate_execution_inputs(
+    parameters: dict[str, Any], base_dir: str | Path,
+    interpreters: dict[str, ResultInterpreter],
+) -> None:
+    """Validate shared invocation inputs independently of command selection."""
     if not isinstance(parameters, dict):
         raise ValueError("parameters must be a scalar map")
     for name, value in parameters.items():
@@ -58,6 +58,14 @@ def prepare_action(
         raise ValueError("base_dir must be an absolute path")
     if not isinstance(interpreters, dict):
         raise ValueError("interpreters must be a map")
+
+
+def prepare_action(
+    action: dict[str, Any], parameters: dict[str, Any], *,
+    base_dir: str | Path, interpreters: dict[str, ResultInterpreter],
+) -> dict[str, Any]:
+    commands = declared_commands(action)
+    validate_execution_inputs(parameters, base_dir, interpreters)
     prepared = []
     for index, command in enumerate(commands):
         name = command["interpreter"]["name"]

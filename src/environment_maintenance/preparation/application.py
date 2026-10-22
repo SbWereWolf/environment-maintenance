@@ -3,7 +3,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ..actions.application import ResultInterpreter
+from ..actions.application import ResultInterpreter, validate_execution_inputs
 
 
 RequirementsReader = Callable[[str | Path, str, list[str] | str], list[dict[str, Any]]]
@@ -24,6 +24,7 @@ def prepare_resources(
 ) -> dict[str, Any]:
     try:
         requirements = reader(config_path, operation, selection)
+        validate_execution_inputs(parameters, base_dir, interpreters)
     except ValueError as exc:
         raise ValueError(f"{operation} configuration: {exc}") from exc
 
