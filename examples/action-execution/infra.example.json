@@ -1,0 +1,46 @@
+{
+  "requirements": [
+    {
+      "id": "demo",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-c",
+            "import json,os,sys; from pathlib import Path; Path(sys.argv[1]).write_text('first'+chr(10),encoding='utf-8'); print(json.dumps({'state':sys.argv[2],'value':os.environ['VALUE']}))",
+            "${marker}",
+            "${state}"
+          ],
+          "cwd": "${workspace}",
+          "env": {
+            "VALUE": "${value}"
+          },
+          "interpreter": {
+            "name": "json",
+            "options": {
+              "expected": "ready"
+            }
+          }
+        },
+        {
+          "argv": [
+            "${python}",
+            "-c",
+            "import sys; from pathlib import Path; p=Path(sys.argv[1]); p.write_text(p.read_text(encoding='utf-8')+'second'+chr(10),encoding='utf-8'); sys.stdout.buffer.write(bytes([255])+b'ready'+bytes([0,10])); sys.stderr.write('diagnostic'+chr(10))",
+            "${marker}"
+          ],
+          "cwd": "${workspace}",
+          "env": {},
+          "interpreter": {
+            "name": "exit",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

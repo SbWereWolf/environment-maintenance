@@ -1,12 +1,12 @@
 ---
 name: environment-maintenance
-description: Use environment-maintenance's released catalogue CLI and source configuration CRUD API through its own documented contracts and executable examples.
+description: Use environment-maintenance's released catalogue CLI and source configuration/action APIs through their documented contracts and executable examples.
 ---
 
 # Environment maintenance
 
 Use the selected application's own runtime and explicit configuration paths.
-The released 1.0.0 CLI and the source-development 2.0 configuration APIs are distinct;
+The released 1.0.0 CLI and the source-development 2.0 configuration/action APIs are distinct;
 see the [capability boundary](../../../docs/configuration-reading.md#библиотека-чтения).
 Source development integrates into master; this skill does not publish or install a release.
 
@@ -79,4 +79,36 @@ Commands and placeholders remain opaque data; this API does not execute them.
 For errors follow the [diagnostic procedure](../../../docs/configuration-editing.md#диагностика-и-повторный-вызов).
 When existing tools cannot provide the needed behavior, develop an external tool
 using the [documented library integration](../../../docs/configuration-editing.md#собственный-внешний-инструмент).
-The future universal executor, new CLI operations and a new release remain separate work.
+The [action execution library](../../../docs/action-execution.md#библиотека-исполнения)
+is available in source development. New CLI operations and a new release remain separate work.
+
+## Plan and execute declared actions
+
+Read the [complete API and immediate walkthrough link](../../../docs/action-execution.md#библиотека-исполнения)
+and [correct examples for each capability](../../../docs/action-execution.md#пошаговая-инструкция).
+Use source `PYTHONPATH=src` and a prepared Python; retain the installed 1.0.0 package.
+The example helper below supplies only documented demonstration data and interpreters.
+
+```python
+import runpy
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from environment_maintenance import plan_action, execute_action
+
+demo = runpy.run_path("examples/action-execution/walkthrough.py")
+with TemporaryDirectory(dir="examples/action-execution") as temporary:
+    workspace = Path(temporary).absolute()
+    action, parameters, interpreters = demo["example_inputs"](workspace)
+    plan = plan_action(action, parameters, base_dir=workspace, interpreters=interpreters)
+    result = execute_action(action, parameters, base_dir=workspace, interpreters=interpreters)
+    assert len(plan["commands"]) == 2 and result["status"] == "succeeded"
+```
+
+Configuration selects each interpreter name/options; the caller supplies objects through
+the [structural interface](../../../docs/action-execution.md#интерфейс-интерпретатора).
+Plan has no process/interpreter effects. Execution preserves full bytes/actual codes and
+stops after the first failure; inspect saved partial results before an intentional next action.
+Prepared executable/cwd remain nonempty after standard Template substitution.
+Use the [documented diagnostic procedure](../../../docs/action-execution.md#диагностика-и-осознанное-продолжение).
+When needed, develop a [custom external tool](../../../docs/action-execution.md#собственный-внешний-инструмент)
+using configuration CRUD and this action API; do not reimplement the library contract.

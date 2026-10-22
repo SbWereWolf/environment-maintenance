@@ -68,6 +68,18 @@ app_python=/absolute/path/to/environment-maintenance/.venv/bin/python
 Исправление принятого теста согласуется с проверяющим отдельно от реализации.
 Документация обновляется по фактическому принятому поведению.
 
+`actions.domain.validate_command` задаёт единые правила исходных и подставленных
+команд; `interpreted_result` проверяет ответ обработчика. `actions.application`
+подготавливает всю цепочку через стандартный `Template` до эффектов; подставленные
+обязательные поля проверяются до разрешения cwd. `ActionExecutor` зависит
+от портов процесса и `ResultInterpreter`.
+`actions.process` использует стандартный `subprocess.run` с полными bytes;
+`actions` компонует публичные функции и конкретный адаптер. Домен зависит внутрь,
+а не от CLI/файлов/процесса. Это отдельный от прежнего catalog/v2 договор;
+чтение/запись конфигурации переиспользуются без копирования их правил.
+[Полные API и примеры](action-execution.md#библиотека-исполнения) описывают
+фактическую исходную возможность, не новый релиз или изменение старого CLI.
+
 ## Проверки
 
 Команды из исходного корня; установленный `dev` обеспечивает средства сборки:
@@ -82,7 +94,16 @@ PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
   tests/test_configuration_reading.py
 PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
   tests/test_configuration_editing.py
+PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
+  tests/test_action_execution.py
+PYTHONPATH=src .venv/bin/python -B examples/action-execution/walkthrough.py
 ```
+
+Модуль исполнения содержит 114 случаев: подготовка/реальные процессы/полные bytes,
+смена обработчика и диагностируемые отказы с сохранностью частичной работы.
+Walkthrough исполняет [четыре корректных сценария](action-execution.md#пошаговая-инструкция)
+на собственных временных данных. Для изменения исполнителя обычный узкий набор:
+этот модуль, 116 проверок записи, 30 чтения и 24 smoke; выпускная сборка отдельно.
 
 Узкие файлы содержат 30 случаев библиотечного чтения и 116 случаев записи:
 четыре операции, точечные изменения, сохранение остальных данных, контекст
