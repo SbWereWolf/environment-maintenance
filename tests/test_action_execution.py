@@ -182,7 +182,7 @@ def test_plan_preserves_environment_inputs_and_opaque_options(scenario, absolute
 def test_plan_accepts_future_resources_prepared_by_an_earlier_command(scenario, absolute):
     executable = scenario.root / 'future-python'
     directory = scenario.root / 'future-work'
-    preparation = 'import pathlib,shutil,sys; pathlib.Path(sys.argv[2]).mkdir(); shutil.copy2(sys.executable,sys.argv[1])'
+    preparation = payload('prepare-resource.py').decode('utf-8').removesuffix('\n')
     action = deepcopy(scenario.action)
     action['commands'][0]['argv'] = ['${python}', '-c', preparation, '${future_executable}', '${future_directory}']
     future = command(scenario, token='future', cwd='${future_cwd}')
