@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import subprocess
@@ -66,6 +67,16 @@ def assert_json_equal(actual, expected):
     assert json.dumps(actual, ensure_ascii=False, sort_keys=True) == json.dumps(
         expected, ensure_ascii=False, sort_keys=True
     )
+
+
+def assert_error_context(error, *references):
+    message = str(error).casefold()
+    assert any(
+        reference and re.search(
+            r"(?<!\w)" + re.escape(reference.casefold()) + r"(?!\w)", message
+        )
+        for reference in references
+    ), f"Diagnostic has no input-related context: {str(error)!r}"
 
 
 def assert_saved(config, expected, before, operation="infra"):
@@ -211,9 +222,14 @@ def test_invalid_update_and_late_failure_preserve_all_files(config, case):
     before = snapshots(config)
     with pytest.raises(ValueError) as error:
         function(config, "infra", "subject", changes)
-    assert any(word in str(error.value).lower() for word in (
-        "subject", "sibling", "changes", "patch", "path", "operation", "id"
-    ))
+    references = [selected(config).name, "subject", "infra", "update_requirement",
+                  "changes", "op", "path", "value", "id"]
+    if isinstance(changes, list):
+        for change in changes:
+            if isinstance(change, dict):
+                references.extend(change[key] for key in ("op", "path")
+                                  if isinstance(change.get(key), str) and change[key])
+    assert_error_context(error.value, *references)
     assert_json_equal(changes, original_argument)
     assert snapshots(config) == before
 
@@ -235,7 +251,8 @@ def test_invalid_or_duplicate_added_requirement_preserves_files(config, requirem
     before = snapshots(config)
     with pytest.raises(ValueError) as error:
         function(config, "infra", requirement)
-    assert str(error.value)
+    assert_error_context(error.value, selected(config).name, "infra",
+                         "add_requirement", "requirement", "id")
     assert_json_equal(requirement, original_argument)
     assert snapshots(config) == before
 
@@ -257,7 +274,11 @@ def test_invalid_selected_document_preserves_all_bytes(config, name, document):
     before = snapshots(config)
     with pytest.raises(ValueError) as error:
         function(config, "infra", *arguments(name))
-    assert str(error.value)
+    references = [selected(config).name, "infra", name, "requirements"]
+    if isinstance(document.get("requirements"), list):
+        references.extend(item["id"] for item in document["requirements"]
+                          if isinstance(item, dict) and isinstance(item.get("id"), str))
+    assert_error_context(error.value, *references)
     assert snapshots(config) == before
 
 
