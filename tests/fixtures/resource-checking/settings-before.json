@@ -1,0 +1,8 @@
+{
+  "requirements": [
+    {"id": "source", "commands": [{"env": {"CHANNEL": "reports.jobs", "OTHER_CHANNEL": "archive.jobs"}}, {"env": {"CHANNEL": "secondary.keep"}}], "enabled": false},
+    {"id": "unselected", "commands": [{"env": {"CHANNEL": "untouched"}}]},
+    {"id": "sink", "commands": [{"env": {"CHANNEL": "reports.jobs", "OTHER_CHANNEL": "archive.jobs"}}], "retries": 0}
+  ],
+  "owner": {"keep": [false, 0, "read only"]}
+}

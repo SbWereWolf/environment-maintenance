@@ -1,0 +1,1 @@
+{"status": "succeeded", "check": "consistency", "writer": "source", "reader": "sink", "variable": "CHANNEL", "value": "reports.jobs"}

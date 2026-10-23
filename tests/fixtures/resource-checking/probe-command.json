@@ -1,0 +1,6 @@
+{
+  "argv": ["${python}", "-B", "${probe}", "${events}", "TAG", "${infra_one}", "${stdout_file}", "${stderr_file}", "${probe_code}"],
+  "cwd": ".",
+  "env": {"RESOURCE_TOKEN": "${token}", "NUMBER": "${number}"},
+  "interpreter": {"name": "result", "options": {"accept": [0]}}
+}

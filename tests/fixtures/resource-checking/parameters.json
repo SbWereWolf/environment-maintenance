@@ -1,0 +1,9 @@
+{
+  "token": "selected choice",
+  "number": 42,
+  "probe_code": 0,
+  "writer": "source",
+  "reader": "sink",
+  "variable": "CHANNEL",
+  "operation": "applications"
+}

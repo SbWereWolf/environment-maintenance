@@ -1,0 +1,5 @@
+{
+  "presence": ["PYTHON", "-B", "TOOL", "presence", "--path", "RESOURCE"],
+  "availability": ["PYTHON", "-B", "TOOL", "availability", "--path", "RESOURCE"],
+  "consistency": ["PYTHON", "-B", "TOOL", "consistency", "--config", "SETTINGS", "--operation", "applications", "--writer", "source", "--reader", "sink", "--queue-variable", "CHANNEL"]
+}

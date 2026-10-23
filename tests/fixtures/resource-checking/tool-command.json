@@ -1,0 +1,6 @@
+{
+  "argv": ["${python}", "-B", "${tool}"],
+  "cwd": ".",
+  "env": {"PYTHONPATH": "${source_path}", "PYTHONDONTWRITEBYTECODE": "1"},
+  "interpreter": {"name": "result", "options": {"accept": [0], "transport_number": 0}}
+}

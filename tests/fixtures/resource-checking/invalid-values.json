@@ -1,0 +1,5 @@
+[
+  {"case": "equal-empty", "left": "", "right": ""},
+  {"case": "boolean-zero", "left": false, "right": 0},
+  {"case": "truthy-boolean-one", "left": true, "right": 1}
+]

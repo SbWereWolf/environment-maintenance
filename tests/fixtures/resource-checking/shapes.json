@@ -1,0 +1,8 @@
+{
+  "aggregate": ["operation", "status", "resources", "checks", "error"],
+  "resource": ["operation", "id", "presence", "availability"],
+  "availability": ["status", "result", "reason"],
+  "action": ["status", "commands", "error"],
+  "extra": ["id", "result"],
+  "command": ["invocation", "interpreter", "exit_code", "stdout", "stderr", "interpretation", "error"]
+}

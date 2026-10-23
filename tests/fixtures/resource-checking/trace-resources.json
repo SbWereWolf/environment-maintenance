@@ -1,0 +1,9 @@
+{
+  "infra-service-presence": "infra_one",
+  "infra-service-availability": "infra_one",
+  "infra-later-presence": "infra_two",
+  "deps-service-presence": "deps_one",
+  "deps-service-availability": "deps_one",
+  "check-agreement": "infra_one",
+  "check-after": "deps_one"
+}

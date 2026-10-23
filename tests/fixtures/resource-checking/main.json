@@ -1,0 +1,5 @@
+{
+  "operations": {"infra": "infra.json", "deps": "deps.json", "check": "check.json"},
+  "interpreters": {"result": {"module": "env2_check_plugins", "attribute": "exit_result"}, "opaque": {"module": "env2_check_plugins", "attribute": "opaque_result"}},
+  "owner": {"keep": [false, 0, "selected source"]}
+}
