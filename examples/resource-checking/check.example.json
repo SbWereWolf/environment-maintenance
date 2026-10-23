@@ -1,0 +1,20 @@
+{
+  "requirements": [
+    {
+      "id": "queue-agreement",
+      "commands": [
+        {
+          "argv": [
+            "${python}", "-B", "${tool}", "consistency",
+            "--config", "${settings_config}", "--operation", "${operation}",
+            "--writer", "${writer}", "--reader", "${reader}",
+            "--queue-variable", "${variable}"
+          ],
+          "cwd": ".",
+          "env": {"PYTHONPATH": "${source_path}"},
+          "interpreter": {"name": "result", "options": {"accept": [0]}}
+        }
+      ]
+    }
+  ]
+}

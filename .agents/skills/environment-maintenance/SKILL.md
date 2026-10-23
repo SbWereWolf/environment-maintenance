@@ -1,12 +1,12 @@
 ---
 name: environment-maintenance
-description: Use environment-maintenance's released catalogue CLI and source configuration, action, preparation and settings-alignment capabilities through documented contracts and executable examples.
+description: Use environment-maintenance's released catalogue CLI and source configuration, action, preparation, alignment and resource checking through documented contracts and executable examples.
 ---
 
 # Environment maintenance
 
 Use the selected application's own runtime and explicit configuration paths.
-The released 1.0.0 CLI and source-development 2.0 APIs/infra/deps/adjust CLI are distinct;
+The released 1.0.0 CLI and source-development 2.0 APIs/configured CLI are distinct;
 see the [capability boundary](../../../docs/configuration-reading.md#библиотека-чтения).
 Source development integrates into master; this skill does not publish or install a release.
 
@@ -185,3 +185,53 @@ saved state before deciding a subsequent action; multiple updates are not one tr
 When existing tools cannot provide the behavior, develop a
 [custom external tool using the public library](../../../docs/settings-alignment.md#собственный-внешний-инструмент).
 Retain the installed 1.0.0 package; no new release or installation is implied.
+
+## Check resources and related settings
+
+Read the [canonical contract and immediate walkthrough link](../../../docs/resource-checking.md#проверка-окружения),
+[all CLI arguments](../../../docs/resource-checking.md#команды-и-аргументы),
+[external-tool arguments](../../../docs/resource-checking.md#внешний-инструмент-примера)
+and [correct executable instructions](../../../docs/resource-checking.md#пошаговая-инструкция).
+Use the prepared Python and selected source checkout, not an update of installed 1.0.0:
+
+```bash
+PYTHONPATH=src "$app_python" -B examples/resource-checking/walkthrough.py
+```
+
+The seven scenarios demonstrate public API, configured CLI, optional availability,
+empty documents and each real external-tool mode on owned copies with preserved inputs.
+Configured checking uses this CLI shape; paths and values are explicit:
+
+```text
+python -m environment_maintenance check --config MAIN --parameters VALUES --base-dir ABS
+```
+
+For a prepared owned example, use the public API:
+
+```python
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from environment_maintenance import check_resources
+from walkthrough import prepare_demo, assert_result, snapshot
+
+# Run with PYTHONPATH=src:examples/resource-checking in the selected checkout.
+with TemporaryDirectory() as temporary:
+    workspace = Path(temporary)
+    config, parameters, registry = prepare_demo(workspace)
+    before = snapshot(workspace)
+    result = check_resources(config, parameters, base_dir=workspace, interpreters=registry)
+    assert_result(result, encoded=False)
+    assert snapshot(workspace) == before
+```
+
+All infra/deps/check documents and declared plans are validated before effects.
+Presence is mandatory; provided availability follows successful presence.
+Independent checks continue after failure. Inspect individual attempted results,
+not_configured/not_attempted and complete raw streams; overall success confirms
+applicable actions, not omitted conditions. API retains bytes/opaque; CLI encodes
+raw streams only. Configured check and explicit catalogue check remain separate.
+The external example supports presence --path, availability --path and consistency
+with --config/--operation/--writer/--reader/--queue-variable; its queue policy stays
+outside the generic core. Use the [diagnostic procedure](../../../docs/resource-checking.md#диагностика-и-осознанное-продолжение).
+When existing tools cannot provide a required check, develop a
+[custom external tool with the public configuration library](../../../docs/resource-checking.md#собственный-внешний-инструмент).

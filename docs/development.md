@@ -88,12 +88,15 @@ app_python=/absolute/path/to/environment-maintenance/.venv/bin/python
 только попытанные требования и полную частичную работу до первого неуспеха.
 Отдельный доменный aggregate или второй исполнитель команд для этого не вводится.
 
-`preparation.plugins` загружает готовые обработчики стандартным importlib и
-адаптирует их ответы к обычному JSON CLI. `preparation.cli` декорирует общий
-планировщик проверкой всех отражаемых данных до процессов. Библиотечная композиция
-сохраняет непрозрачные Python-значения. `preparation.presentation` отдельно кодирует
-полные stdout/stderr стандартным base64, не меняя предметный итог.
-`cli.main` явно выбирает infra/deps/adjust либо прежний check/run, не угадывая формат.
+`actions.transport` — общий владелец загрузки готовых обработчиков через importlib,
+обычных JSON-ответов, JSON-safe планирования и base64-доставки rawstreams.
+`preparation.cli` и `checking.cli` используют его без второго загрузчика или кодека.
+Библиотечные композиции сохраняют непрозрачные Python-значения.
+`preparation.presentation` и `checking.presentation` обходят собственные формы
+итога, делегируя доставку action единому владельцу. Прежний private модуль
+заменён этим владельцем и не предоставляет совместимого alias.
+`cli.main` явно выбирает infra/deps/adjust, check с одним источником либо
+каталоговый run, не угадывая формат.
 [Полные входы и инструкции](resource-preparation.md#подготовка-ресурсов)
 описывают фактическое source-расширение, не установленную пакетную поставку.
 
@@ -103,6 +106,17 @@ app_python=/absolute/path/to/environment-maintenance/.venv/bin/python
 `main` доставляет CLI/JSON. Правило равенства очередей не находится в общем ядре.
 Две публикации не являются общей транзакцией; обычный неуспех сохраняет фактическую
 частичную работу. [Полный договор и инструкция](settings-alignment.md#согласование-настроек).
+
+`checking.domain` владеет обязательным presence и предоставляемым availability.
+`checking.application` читает все три документа и планирует все объявленные
+действия до процессов, выполняет условные проверки и продолжает независимые
+ресурсы/дополнительные условия. Он сохраняет источник/ID, попытанные результаты
+и отдельные непроверенные состояния. Composition использует существующие
+reader/planner/executor, а не изменяет fail-fast preparation.
+`examples/resource-checking/check_settings.py` принадлежит обслуживаемому примеру:
+проверяет реальный файл/JSON и две непустые queue strings через публичное
+пакетное чтение/стандартный Pointer, ничего не записывает.
+[Полный договор и инструкция](resource-checking.md#проверка-окружения).
 
 ## Проверки
 
@@ -127,11 +141,20 @@ PYTHONPATH=src .venv/bin/python -B examples/resource-preparation/walkthrough.py
 PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
   --basetemp build/alignment-check tests/test_settings_alignment.py
 PYTHONPATH=src .venv/bin/python -B examples/settings-alignment/walkthrough.py
+PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
+  --basetemp build/checking-check tests/test_resource_checks.py
+PYTHONPATH=src .venv/bin/python -B examples/resource-checking/walkthrough.py
 ```
 
 15 проверок согласования подтверждают выбранные значения, фактические внешние
 процессы, сохранность данных, полные/частичные итоги и общие входные границы.
 Walkthrough согласования выполняет четыре корректных сценария на своих копиях.
+
+45 проверок checking подтверждают реальные условия/процессы, исходники ресурсов,
+полные bytes, непрозрачный API, JSON CLI, независимое продолжение, непроверенные
+состояния и полный preflight. Walkthrough проверки исполняет семь правильных
+сценариев на собственных копиях. Код и документационные примеры проверяются
+узко вместе с прежними границами и maintained smoke, не выпускной сборкой.
 
 Модуль исполнения содержит 114 случаев: подготовка/реальные процессы/полные bytes,
 смена обработчика и диагностируемые отказы с сохранностью частичной работы.

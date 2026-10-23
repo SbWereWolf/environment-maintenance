@@ -1,0 +1,13 @@
+{
+  "operations": {
+    "infra": "infra.example.json",
+    "deps": "deps.example.json",
+    "check": "check.example.json"
+  },
+  "interpreters": {
+    "result": {
+      "module": "interpreters",
+      "attribute": "exit_result"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "python": "/absolute/path/to/prepared/python",
+  "tool": "/absolute/path/to/checkout/examples/resource-checking/check_settings.py",
+  "source_path": "/absolute/path/to/checkout/src",
+  "infra_file": "/absolute/path/to/owned/applications.example.json",
+  "deps_file": "/absolute/path/to/owned/settings.example.json",
+  "settings_config": "/absolute/path/to/owned/settings.example.json",
+  "operation": "applications",
+  "writer": "producer",
+  "reader": "consumer",
+  "variable": "QUEUE_NAME"
+}

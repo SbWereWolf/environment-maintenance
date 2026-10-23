@@ -1,0 +1,13 @@
+{
+  "requirements": [
+    {
+      "id": "producer",
+      "commands": [{"env": {"QUEUE_NAME": "reports.jobs", "ROLE": "writer"}}]
+    },
+    {
+      "id": "consumer",
+      "commands": [{"env": {"QUEUE_NAME": "reports.jobs", "ROLE": "reader"}}]
+    }
+  ],
+  "owner": "serviced example"
+}

@@ -1,0 +1,19 @@
+{
+  "requirements": [
+    {
+      "id": "manifest",
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": ["${python}", "-B", "${tool}", "presence", "--path", "${deps_file}"],
+              "cwd": ".",
+              "env": {"PYTHONPATH": "${source_path}"},
+              "interpreter": {"name": "result", "options": {"accept": [0]}}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

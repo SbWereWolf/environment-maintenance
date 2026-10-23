@@ -1,0 +1,29 @@
+{
+  "requirements": [
+    {
+      "id": "settings",
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": ["${python}", "-B", "${tool}", "presence", "--path", "${infra_file}"],
+              "cwd": ".",
+              "env": {"PYTHONPATH": "${source_path}"},
+              "interpreter": {"name": "result", "options": {"accept": [0]}}
+            }
+          ]
+        },
+        "availability": {
+          "commands": [
+            {
+              "argv": ["${python}", "-B", "${tool}", "availability", "--path", "${infra_file}"],
+              "cwd": ".",
+              "env": {"PYTHONPATH": "${source_path}"},
+              "interpreter": {"name": "result", "options": {"accept": [0]}}
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
