@@ -31,10 +31,10 @@ def main(argv=None):
         ('base_dir', '--base-dir'),
         ('requirements', '--requirements'),
     )
-    if args.command == 'check':
+    if args.command in ('check', 'run'):
         if (args.config is None) == (args.catalog_dir is None):
-            parser.error("check requires exactly one source: --config or --catalog-dir")
-        if args.config is not None:
+            parser.error(f"{args.command} requires exactly one source: --config or --catalog-dir")
+        if args.command == 'check' and args.config is not None:
             for name, flag in (('values', '--values'), ('overrides', '--set'),
                                ('dry_run', '--dry-run')):
                 if getattr(args, name):
@@ -46,7 +46,9 @@ def main(argv=None):
                     parser.error(f"{flag} is required for check")
             from .checking.cli import run_checks
             return run_checks(args.config, args.parameters, args.base_dir)
-    if args.command in ('infra', 'deps', 'adjust'):
+    if args.command in ('infra', 'deps', 'adjust') or (
+        args.command == 'run' and args.config is not None
+    ):
         for name, flag in (('catalog_dir', '--catalog-dir'), ('values', '--values'),
                            ('overrides', '--set'), ('dry_run', '--dry-run')):
             if getattr(args, name):
@@ -59,7 +61,7 @@ def main(argv=None):
                                args.base_dir, args.requirements)
     for name, flag in preparation_arguments:
         if getattr(args, name) is not None:
-            parser.error(f"{flag} is only supported for infra/deps/adjust")
+            parser.error(f"{flag} is only supported for configured infra/deps/adjust/run")
     if args.catalog_dir is None:
         parser.error("--catalog-dir is required for check/run")
     try:
