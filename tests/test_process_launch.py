@@ -195,11 +195,18 @@ def launch(s, label):
     return command(argv, env=dict(DISPLAY=os.environ['DISPLAY'], LAUNCH_TOKEN='${token}'))
 
 
-def assert_binary_record(record, *, encoded=False, code=0):
+def assert_binary_record(record, *, encoded=False, code=0, error=None):
     assert raw(record, 'stdout', encoded) == payload('stdout')
     assert raw(record, 'stderr', encoded) == payload('stderr')
     assert type(record['exit_code']) is int and record['exit_code'] == code
-    assert record['error'] is None
+    assert record['error'] == error
+
+
+def assert_rejected_second_command(result, record, *, encoded=False):
+    assert_binary_record(record, encoded=encoded, code=9,
+                         error='interpreter result: selected exit rejected')
+    assert record['interpretation'] == dict(success=False, value=9, error='selected exit rejected')
+    assert result['error'] == 'run requirement two: interpreter result: selected exit rejected'
 
 
 def assert_logs(s, prefixes, repetitions=1):
@@ -465,9 +472,8 @@ def test_run_late_failure_keeps_first_console_and_never_launches_tail(scenario, 
     result = cli_json(cli(s), 1)
     aggregate(result, ['one', 'two'], status='failed')
     record = result['requirements'][1]['result']['commands'][0]
-    assert_binary_record(record, encoded=True, code=9)
-    assert record['interpretation'] == dict(success=False, value=9, error='selected exit rejected')
-    assert result['error'] and len(result['requirements'][1]['result']['commands']) == 1
+    assert_rejected_second_command(result, record, encoded=True)
+    assert len(result['requirements'][1]['result']['commands']) == 1
     assert [row['label'] for row in trace(s)] == ['failure']
     assert not (s.root / 'forbidden.ready.json').exists()
     s.lab.ready('one')
