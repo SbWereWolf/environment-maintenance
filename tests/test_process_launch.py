@@ -166,6 +166,12 @@ def usage_cause(result):
     return result.stderr.rsplit(b'error:', 1)[1]
 
 
+def assert_missing_selected_plugin(result):
+    assert result.returncode == 2 and result.stdout == b''
+    assert result.stderr.startswith(b'interpreter result missing_selected_launch_plugin:exit_result: ')
+    assert b"No module named 'missing_selected_launch_plugin'" in result.stderr
+
+
 def tool(s, argv, *, log_names=('tool.stdout', 'tool.stderr'), extra=()):
     assert TOOL.is_file(), 'Missing required external console launch tool'
     args = ['--stdout-log', log_names[0], '--stderr-log', log_names[1], *extra, '--', *argv]
@@ -311,7 +317,7 @@ def test_run_empty_selection_still_validates_common_inputs(scenario, defect):
         doc['interpreters']['result']['module'] = 'missing_selected_launch_plugin'
         write_json(s.main, doc)
         result = cli(s, [])
-        assert b'missing_selected_launch_plugin' in usage_cause(result)
+        assert_missing_selected_plugin(result)
         no_effects(s)
         return
     with pytest.raises(ValueError) as caught:

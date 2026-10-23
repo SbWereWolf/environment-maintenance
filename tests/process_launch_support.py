@@ -135,7 +135,15 @@ class ConsoleLab:
         window = self.visible(label)
         x, display = self.connection()
         try:
-            x.XMoveWindow(display, window, 20 + list(self.owned).index(label) * 830, 20)
+            # Arrange every observed owned console before the first capture.
+            # A still-overlapping neighbour can occlude an otherwise viewable
+            # GL-backed window and produce a blank capture of its contents.
+            for index, owned_label in enumerate(self.owned):
+                owned_window = self.visible(owned_label)
+                position = (20 + index * 830, 20)
+                x.XMoveWindow(display, owned_window, *position)
+                self.record('arrangement', label=owned_label, window=owned_window,
+                            x=position[0], y=position[1])
             x.XSync(display, 0)
             time.sleep(0.15)
             path = self.directory / (label + '.png')
