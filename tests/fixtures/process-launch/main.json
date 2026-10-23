@@ -1,0 +1,9 @@
+{
+  "operations": {"run": "run.json"},
+  "interpreters": {
+    "result": {"module": "env2_launch_plugins", "attribute": "exit_result"},
+    "opaque": {"module": "env2_launch_plugins", "attribute": "opaque_result"},
+    "broken": {"module": "env2_launch_plugins", "attribute": "broken_result"}
+  },
+  "owner": {"keep": [false, 0, "selected source"]}
+}
