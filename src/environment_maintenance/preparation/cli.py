@@ -4,10 +4,10 @@ from pathlib import Path
 import sys
 
 from ..catalogue import read_json
-from ..actions import execute_action, plan_action
+from ..actions import execute_action
+from ..actions.transport import load_interpreters, plan_for_json_transport
 from ..configuration import read_requirements
 from .application import prepare_resources
-from .plugins import load_interpreters, validate_json_data
 from .presentation import encode_result
 
 
@@ -23,12 +23,6 @@ def _selection(raw: str) -> list[str] | str:
     return selected
 
 
-def _plan_for_json_transport(action, parameters, *, base_dir, interpreters):
-    plan = plan_action(action, parameters, base_dir=base_dir, interpreters=interpreters)
-    validate_json_data(plan)
-    return plan
-
-
 def run_preparation(
     operation: str,
     config_path: Path,
@@ -42,7 +36,7 @@ def run_preparation(
         interpreters = load_interpreters(read_json(config_path))
         result = prepare_resources(config_path, operation, selection, parameters,
                                    base_dir=base_dir, interpreters=interpreters,
-                                   reader=read_requirements, planner=_plan_for_json_transport,
+                                   reader=read_requirements, planner=plan_for_json_transport,
                                    executor=execute_action)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

@@ -31,6 +31,21 @@ def main(argv=None):
         ('base_dir', '--base-dir'),
         ('requirements', '--requirements'),
     )
+    if args.command == 'check':
+        if (args.config is None) == (args.catalog_dir is None):
+            parser.error("check requires exactly one source: --config or --catalog-dir")
+        if args.config is not None:
+            for name, flag in (('values', '--values'), ('overrides', '--set'),
+                               ('dry_run', '--dry-run')):
+                if getattr(args, name):
+                    parser.error(f"{flag} is not supported for configured check")
+            if args.requirements is not None:
+                parser.error("--requirements is not supported for configured check")
+            for name, flag in (('parameters', '--parameters'), ('base_dir', '--base-dir')):
+                if getattr(args, name) is None:
+                    parser.error(f"{flag} is required for check")
+            from .checking.cli import run_checks
+            return run_checks(args.config, args.parameters, args.base_dir)
     if args.command in ('infra', 'deps', 'adjust'):
         for name, flag in (('catalog_dir', '--catalog-dir'), ('values', '--values'),
                            ('overrides', '--set'), ('dry_run', '--dry-run')):

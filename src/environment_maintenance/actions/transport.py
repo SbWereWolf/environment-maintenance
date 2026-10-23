@@ -1,9 +1,11 @@
-"""Compose configured result interpreters for the ordinary JSON CLI transport."""
+"""Shared ordinary JSON transport for configured action consumers."""
+import base64
+from copy import deepcopy
 import importlib
 import json
 from typing import Any
 
-from ..actions.application import ResultInterpreter
+from .application import ResultInterpreter, prepare_action
 
 
 def _require_json_data(value: Any) -> None:
@@ -23,7 +25,7 @@ def _require_json_data(value: Any) -> None:
 
 
 def validate_json_data(value: Any) -> None:
-    """Validate transport data without silent JSON coercion or numeric overflow."""
+    """Validate transport data without silent coercion or numeric overflow."""
     _require_json_data(value)
     json.dumps(value, allow_nan=False)
 
@@ -34,7 +36,6 @@ class JsonResultInterpreter:
 
     def interpret(self, raw: dict[str, Any], options: dict[str, Any]) -> dict[str, Any]:
         answer = self._interpreter.interpret(raw, options)
-        # JSON encoding alone silently coerces tuple values and non-string keys.
         validate_json_data(answer)
         return answer
 
@@ -60,3 +61,20 @@ def load_interpreters(document: dict[str, Any]) -> dict[str, ResultInterpreter]:
             raise ValueError(f"interpreter {name} {module}:{attribute}: callable interpret is required")
         result[name] = JsonResultInterpreter(interpreter)
     return result
+
+
+def plan_for_json_transport(action, parameters, *, base_dir, interpreters):
+    plan = prepare_action(action, parameters, base_dir=base_dir, interpreters=interpreters)
+    validate_json_data(plan)
+    return plan
+
+
+def encode_action_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Encode raw streams only; interpreted JSON retains its original types."""
+    encoded = deepcopy(result)
+    for command in encoded['commands']:
+        for field in ('stdout', 'stderr'):
+            command[field] = dict(
+                encoding='base64', data=base64.b64encode(command[field]).decode('ascii')
+            )
+    return encoded

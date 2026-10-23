@@ -13,3 +13,4 @@ from .configuration import (
 )
 
 from .preparation import prepare_resources
+from .checking import check_resources
