@@ -27,10 +27,10 @@ def living_group(group):
     result = []
     for path in Path('/proc').glob('[0-9]*/stat'):
         try:
-            fields = path.read_text().rpartition(')')[2].split()
+            fields = path.read_bytes().rpartition(b')')[2].split()
         except (FileNotFoundError, ProcessLookupError, PermissionError):
             continue
-        if len(fields) > 2 and int(fields[2]) == group and fields[0] not in ('Z', 'X'):
+        if len(fields) > 2 and int(fields[2]) == group and fields[0] not in (b'Z', b'X'):
             result.append(int(path.parent.name))
     return sorted(result)
 
