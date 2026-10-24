@@ -1,0 +1,36 @@
+{
+  "name": "environment-maintenance",
+  "version": "2.0.0",
+  "description": "Инструмент обслуживания окружения по конфигурации",
+  "bin": {
+    "start-app": "src/npm-start-app.cjs"
+  },
+  "scripts": {
+    "install": "node src/npm-install.cjs"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
+  "os": [
+    "linux"
+  ],
+  "files": [
+    "pyproject.toml",
+    "MANIFEST.in",
+    "start-app",
+    "src/**/*.py",
+    "src/npm-*.cjs",
+    "docs/**/*.md",
+    "examples/**/*.py",
+    "examples/**/*.json",
+    "examples/**/*.md",
+    "tests/**/*.py",
+    "tests/**/*.json",
+    "tests/**/*.sh",
+    "tests/**/*.md",
+    "tests/**/*.hex",
+    "tests/**/*.txt",
+    ".agents/skills/environment-maintenance/SKILL.md"
+  ]
+}
