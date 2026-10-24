@@ -1,0 +1,9 @@
+{
+  "before": ["selected"],
+  "selected": [{"id": "created", "flag": 0, "extra": null}],
+  "all_ids": ["selected", "created"],
+  "after_delete": ["selected"],
+  "after_clear": [],
+  "owner": {"unchanged": [false, 0, null]},
+  "main_unchanged": true
+}

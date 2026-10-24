@@ -1,0 +1,9 @@
+{
+  "input": "input from caller Ω\n",
+  "stdout_hex": "7265736f75726365206f757470757400ff0a",
+  "stderr_hex": "7265736f757263652073746465727200fe0a",
+  "large_stdout_pattern_hex": "30313233343536373839616263646566",
+  "large_stdout_repetitions": 70001,
+  "large_stderr_pattern_hex": "4e504d2d53544445525200ff",
+  "large_stderr_repetitions": 100001
+}

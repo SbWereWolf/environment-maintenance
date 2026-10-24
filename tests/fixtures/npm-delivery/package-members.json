@@ -1,0 +1,15 @@
+[
+  "pyproject.toml",
+  "README.md",
+  "src/environment_maintenance/cli.py",
+  "src/environment_maintenance/configuration/json_patch.py",
+  "src/environment_maintenance/actions/transport.py",
+  "docs/installation.md",
+  "docs/configuration-reading.md",
+  "docs/configuration-editing.md",
+  "docs/process-launch.md",
+  "examples/process-launch/start_console.py",
+  "tests/smoke.sh",
+  "tests/test_process_launch.py",
+  ".agents/skills/environment-maintenance/SKILL.md"
+]

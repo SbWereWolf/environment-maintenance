@@ -1,0 +1,6 @@
+{
+  "result": ["commands", "error", "status"],
+  "command": ["error", "exit_code", "interpretation", "interpreter", "invocation", "stderr", "stdout"],
+  "interpretation": ["error", "success", "value"],
+  "invocation": ["argv", "cwd", "env"]
+}

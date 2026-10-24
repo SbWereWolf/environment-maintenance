@@ -1,0 +1,6 @@
+{
+  "argv": ["${python}", "-B", "${probe}", "${events}", "operation", "${token}", "argument with spaces Ω"],
+  "cwd": "${serviced}",
+  "env": {"ONLY_ENV": "${token}"},
+  "interpreter": {"name": "chosen", "options": {"accept": [0]}}
+}
