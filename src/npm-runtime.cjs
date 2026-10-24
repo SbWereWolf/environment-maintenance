@@ -13,6 +13,12 @@ function runProcess(label, executable, args, options = {}) {
     return 2;
   }
   if (result.signal) {
+    if (result.signal === 'SIGPIPE') {
+      // Removing the temporary listener restores the ignored signal's default action.
+      const listener = () => {};
+      process.on(result.signal, listener);
+      process.removeListener(result.signal, listener);
+    }
     process.kill(process.pid, result.signal);
     return 2;
   }
