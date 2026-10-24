@@ -45,6 +45,22 @@ def events(scenario):
     return [json.loads(line) for line in scenario.events.read_text().splitlines()]
 
 
+def assert_json_equal(actual, expected):
+    options = dict(ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    assert json.dumps(actual, **options) == json.dumps(expected, **options)
+
+
+def assert_entry_identity(identity, prefix):
+    assert identity['version'] == identity['metadata'] == '2.0.0'
+    assert type(identity['pid']) is int and identity['pid'] > 0
+    assert Path(identity['executable']).is_relative_to(prefix)
+    assert Path(identity['prefix']).is_relative_to(prefix)
+    assert set(identity['modules']) == {'environment_maintenance', 'jsonpatch', 'jsonpointer'}
+    for path in identity['modules'].values():
+        assert Path(path).is_relative_to(prefix)
+        assert not Path(path).is_relative_to(ROOT)
+
+
 def assert_action(action, scenario, label, profile):
     keys = fixture('action-keys.json')
     assert sorted(action) == keys['result']
@@ -52,8 +68,8 @@ def assert_action(action, scenario, label, profile):
     assert len(action['commands']) == 1
     command = action['commands'][0]
     assert sorted(command) == keys['command']
-    assert command['exit_code'] == 0 and command['error'] is None
-    assert command['interpreter'] == dict(name='chosen', options=dict(accept=[0]))
+    assert type(command['exit_code']) is int and command['exit_code'] == 0 and command['error'] is None
+    assert_json_equal(command['interpreter'], dict(name='chosen', options=dict(accept=[0])))
     assert sorted(command['invocation']) == keys['invocation']
     assert command['invocation']['argv'] == [scenario.parameters['python'], '-B',
         str(scenario.directory / 'probe.py'), str(scenario.events), label,
@@ -64,7 +80,7 @@ def assert_action(action, scenario, label, profile):
         assert command[field]['encoding'] == 'base64'
         assert base64.b64decode(command[field]['data'], validate=True) == bytes.fromhex(profile[field + '_hex'])
     assert sorted(command['interpretation']) == keys['interpretation']
-    assert command['interpretation'] == dict(success=True, value=dict(plugin='first', stdin=''), error=None)
+    assert_json_equal(command['interpretation'], dict(success=True, value=dict(plugin='first', stdin=''), error=None))
 
 
 def test_candidate_python_metadata_identifies_new_delivery():
@@ -110,18 +126,12 @@ def test_short_entry_from_another_cwd(package, consumer, argument):
             assert name in result.stdout
 
 
-def test_installed_core_libraries_and_metadata_belong_to_instance(package, consumer):
+def test_installed_core_libraries_and_metadata_belong_to_instance(package, consumer, scenario):
     require(package, consumer)
-    result = package.capture('identity', [consumer.python, '-P', '-s', '-B',
-        package.tools / 'identity.py'], package.root, timeout=20)
+    result = package.invoke(consumer, scenario, changes=dict(NPM_TEST_ENTRY_IDENTITY='1'))
     assert result.returncode == 0 and result.stderr == b''
-    identity = json.loads(result.stdout)
-    assert identity['version'] == identity['metadata'] == '2.0.0'
-    assert Path(identity['prefix']).is_relative_to(consumer.prefix)
-    assert set(identity['modules']) == {'environment_maintenance', 'jsonpatch', 'jsonpointer'}
-    for path in identity['modules'].values():
-        assert Path(path).is_relative_to(consumer.prefix)
-        assert not Path(path).is_relative_to(ROOT)
+    identity = command_result(json.loads(result.stdout))['interpretation']['value']['identity']
+    assert_entry_identity(identity, consumer.prefix)
 
 
 @pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
@@ -139,13 +149,13 @@ def test_installed_operations_keep_actual_inputs_effects_and_results(package, co
         item = fixture('event.json')
         item.update(label=label, cwd=str(scenario.serviced))
         expected.append(item)
-    assert observed == expected
+    assert_json_equal(observed, expected)
     profile = fixture('stream-profile.json')
     if operation == 'check':
         assert [r['operation'] for r in answer['resources']] == ['infra', 'deps']
         assert [r['id'] for r in answer['checks']] == ['selected']
         for resource, label in zip(answer['resources'], labels):
-            assert resource['availability'] == dict(status='not_configured', result=None, reason=None)
+            assert_json_equal(resource['availability'], dict(status='not_configured', result=None, reason=None))
             assert_action(resource['presence'], scenario, label, profile)
         assert_action(answer['checks'][0]['result'], scenario, 'check', profile)
     else:
@@ -166,7 +176,7 @@ def test_caller_stdin_and_large_raw_streams_survive_entry(package, consumer, sce
     command = command_result(json.loads(result.stdout))
     assert base64.b64decode(command['stdout']['data'], validate=True) == (
         bytes.fromhex(profile['large_stdout_pattern_hex']) * profile['large_stdout_repetitions'])
-    assert command['interpretation']['value'] == dict(plugin='first', stdin=profile['input'])
+    assert_json_equal(command['interpretation']['value'], dict(plugin='first', stdin=profile['input']))
 
 
 def test_operation_failure_keeps_code_one_and_diagnostics(package, consumer, scenario):
@@ -179,7 +189,7 @@ def test_operation_failure_keeps_code_one_and_diagnostics(package, consumer, sce
     answer = json.loads(result.stdout)
     assert answer['status'] == 'failed'
     command = command_result(answer)
-    assert command['exit_code'] == 7
+    assert type(command['exit_code']) is int and command['exit_code'] == 7
     assert command['interpretation']['error'] == 'consumer action failed'
     assert 'consumer action failed' in answer['error']
     assert base64.b64decode(command['stderr']['data']) == bytes.fromhex(fixture('stream-profile.json')['stderr_hex'])
@@ -235,11 +245,13 @@ def test_missing_runtime_does_not_select_foreign_python(package):
     package.require_package()
     installed = package.install('runtime-failure')
     require(package, installed)
-    installed.python.unlink()
+    runtime = installed.python.parent.parent
+    assert runtime.is_relative_to(installed.prefix)
+    shutil.rmtree(runtime)
     result = package.capture('runtime-failure', [installed.entry, '--version'], package.root, timeout=20)
     assert result.returncode != 0 and result.stdout == b''
     assert b'python' in result.stderr.lower()
-    assert list(installed.prefix.rglob('pyvenv.cfg'))
+    assert not list(installed.prefix.rglob('pyvenv.cfg'))
 
 
 def test_explicit_interpreter_objects_are_interchangeable(package, consumer, scenario):
@@ -250,7 +262,7 @@ def test_explicit_interpreter_objects_are_interchangeable(package, consumer, sce
         write_json(scenario.main, main)
         result = package.invoke(consumer, scenario)
         assert result.returncode == 0 and result.stderr == b''
-        assert command_result(json.loads(result.stdout))['interpretation']['value'] == dict(plugin=attribute, stdin='')
+        assert_json_equal(command_result(json.loads(result.stdout))['interpretation']['value'], dict(plugin=attribute, stdin=''))
 
 
 def test_installed_public_configuration_round_trip(package, consumer, scenario):
@@ -258,7 +270,7 @@ def test_installed_public_configuration_round_trip(package, consumer, scenario):
     result = package.capture('crud', [consumer.python, '-P', '-s', '-B',
         package.tools / 'crud.py', scenario.main], scenario.serviced, timeout=20)
     assert result.returncode == 0 and result.stderr == b''
-    assert json.loads(result.stdout) == fixture('crud-expected.json')
+    assert_json_equal(json.loads(result.stdout), fixture('crud-expected.json'))
 
 
 def test_npm_uninstall_and_reinstall_same_archive(package):

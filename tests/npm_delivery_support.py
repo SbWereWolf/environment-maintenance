@@ -7,6 +7,7 @@ import shutil
 import signal
 import subprocess
 import tempfile
+import time
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,34 @@ def fixture(name):
 
 def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False), encoding='utf-8')
+
+
+def living_group(group):
+    """Observe only the group created by this helper; zombies are not running."""
+    result = []
+    for path in Path('/proc').glob('[0-9]*/stat'):
+        try:
+            fields = path.read_text().rpartition(')')[2].split()
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            continue
+        if len(fields) > 2 and int(fields[2]) == group and fields[0] not in ('Z', 'X'):
+            result.append(int(path.parent.name))
+    return sorted(result)
+
+
+def stop_group(group):
+    before = living_group(group)
+    for requested in (signal.SIGTERM, signal.SIGKILL):
+        if not living_group(group):
+            break
+        try:
+            os.killpg(group, requested)
+        except ProcessLookupError:
+            break
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and living_group(group):
+            time.sleep(.02)
+    return dict(group=group, before=before, after=living_group(group))
 
 
 class PackageLab:
@@ -43,7 +72,7 @@ class PackageLab:
         Path(self.env['TMPDIR']).mkdir()
         self.tools = self.root / 'observers'
         self.tools.mkdir()
-        for name in ('identity.py', 'crud.py'):
+        for name in ('crud.py',):
             shutil.copyfile(FIXTURES / name, self.tools / name)
         self.archive_dir = self.root / 'archive'
         self.archive_dir.mkdir()
@@ -78,16 +107,22 @@ class PackageLab:
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid, signal.SIGKILL)
                 stdout, stderr = process.communicate()
+        remaining = living_group(process.pid)
+        cleanup = stop_group(process.pid)
         stem.with_suffix('.stdout').write_bytes(stdout)
         stem.with_suffix('.stderr').write_bytes(stderr)
         observed = {key: selected[key] for key in (
             'PYTHONPATH', 'ENVIRONMENT_MAINTENANCE_PYTHON', 'PIP_NO_INDEX', 'PIP_FIND_LINKS',
-            'PIP_CACHE_DIR', 'npm_config_cache', 'NPM_TEST_STDIN', 'NPM_TEST_LARGE_STDERR') if key in selected}
+            'PIP_CACHE_DIR', 'npm_config_cache', 'NPM_TEST_STDIN', 'NPM_TEST_LARGE_STDERR',
+            'NPM_TEST_ENTRY_IDENTITY', 'NPM_TEST_PIP_MARKER') if key in selected}
         write_json(stem.with_suffix('.json'), dict(argv=list(map(str, argv)), cwd=str(cwd),
             environment=observed, exit_code=process.returncode, timed_out=timed_out,
             stdout_sha256=hashlib.sha256(stdout).hexdigest(), stderr_sha256=hashlib.sha256(stderr).hexdigest(),
-            stdout_bytes=len(stdout), stderr_bytes=len(stderr), child_reaped=process.poll() is not None))
+            stdout_bytes=len(stdout), stderr_bytes=len(stderr), child_reaped=process.poll() is not None,
+            group=process.pid, remaining_after_parent=remaining, group_cleanup=cleanup))
         assert not timed_out, 'Test environment process timed out; inspect full capture'
+        assert not cleanup['after'], 'Owned process group cleanup incomplete'
+        assert not remaining, 'Command left running descendants; group stopped, inspect full capture'
         return SimpleNamespace(returncode=process.returncode, stdout=stdout, stderr=stderr)
 
     def require_package(self):
@@ -160,9 +195,14 @@ class PackageLab:
         return self.capture(operation, argv, scenario.serviced, env=environment, input_bytes=input_bytes)
 
     def close(self):
-        assert all(process.poll() is not None for process in self.children)
+        groups = [stop_group(process.pid) for process in self.children]
+        for process in self.children:
+            process.wait(timeout=5)
+        closed = all(not living_group(process.pid) for process in self.children)
         if self.archive is not None:
             assert hashlib.sha256(self.archive.read_bytes()).hexdigest() == self.archive_digest
-        write_json(self.root / 'resource-closure.json', dict(no_live_owned_children=True,
+        write_json(self.root / 'resource-closure.json', dict(no_live_owned_children=closed,
+            owned_groups=groups,
             archive_digest=getattr(self, 'archive_digest', None), archive_unchanged=True,
             temporary_material_retained_until_task_delivery=True))
+        assert closed, 'Owned descendants remain alive; closure receipt is not successful'
