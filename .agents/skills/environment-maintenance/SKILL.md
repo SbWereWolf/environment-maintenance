@@ -1,6 +1,6 @@
 ---
 name: environment-maintenance
-description: Use environment-maintenance's released catalogue CLI and source configuration, action, preparation, alignment and resource checking through documented contracts and executable examples.
+description: Use environment-maintenance's released catalogue CLI and source configuration, actions, preparation, alignment, checking and configured process launch through canonical contracts and correct examples.
 ---
 
 # Environment maintenance
@@ -24,7 +24,8 @@ Activate the installed application environment before these commands.
 | Service resources | `start-app run --catalog-dir examples/catalog-v2` |
 
 The reference describes every argument, including repeatable `--values` and `--set`.
-The current CLI `run` services a catalogue; it is not the future application launcher.
+Released catalogue `run` services its explicit catalogue. Source configured `run`
+launches selected processes through the separate contract below.
 
 ## Read configuration from another tool
 
@@ -235,3 +236,47 @@ with --config/--operation/--writer/--reader/--queue-variable; its queue policy s
 outside the generic core. Use the [diagnostic procedure](../../../docs/resource-checking.md#диагностика-и-осознанное-продолжение).
 When existing tools cannot provide a required check, develop a
 [custom external tool with the public configuration library](../../../docs/resource-checking.md#собственный-внешний-инструмент).
+
+## Launch configured processes
+
+Read the [canonical launch contract and immediate instruction link](../../../docs/process-launch.md#запуск-процессов),
+[all source CLI arguments](../../../docs/process-launch.md#входы-и-аргументы),
+[all external-tool arguments](../../../docs/process-launch.md#внешний-инструмент)
+and [the four correct executable scenarios](../../../docs/process-launch.md#пошаговая-инструкция).
+Use the selected prepared Python and the checkout's source and configured plugin
+import paths. The root launcher uses its own installed runtime with `-I`; setting
+PYTHONPATH does not turn it into a source launcher. Retain the prepared installed release.
+
+After the documented owned-working-copy preparation:
+
+```bash
+"$app_python" -B -m environment_maintenance run \
+  --config "$workspace/app.json" --parameters "$workspace/parameters.json" \
+  --base-dir "$workspace" --requirements all
+```
+
+The same public API supports this operation:
+
+```text
+prepare_resources(config, "run", selection, parameters, base_dir=work, interpreters=registry)
+```
+
+Its [six arguments and result](../../../docs/resource-preparation.md#библиотечный-вход)
+and [working API subset example](../../../docs/process-launch.md#api-запустить-выбранное-подмножество)
+preserve bytes/opaque values. CLI encodes full streams as base64. All plans precede
+effects; only attempted actions appear in the fail-fast result. Empty selection
+still validates the common inputs and declared plugins.
+
+For a direct supplied external tool, select its explicit command and two distinct logs:
+
+```text
+python examples/process-launch/start_console.py --stdout-log FILE --stderr-log OTHER_FILE -- COMMAND ARG...
+```
+
+Submitted/PID/EOF acknowledge the immediate command, not worker health. The chosen
+terminal owns its PTY; users stop each console independently. Binary append logs
+contain the immediate command's diagnostics, not automatically the worker PTY output.
+Use owned ports/windows and finish previous processes before the next scenario.
+A private display alone does not prove exclusive input during automated checking.
+Inspect full partial results before continuation. When existing tools are insufficient,
+develop a [custom external tool using configuration read/CRUD and the interpreter port](../../../docs/process-launch.md#собственный-внешний-инструмент).

@@ -95,10 +95,18 @@ app_python=/absolute/path/to/environment-maintenance/.venv/bin/python
 `preparation.presentation` и `checking.presentation` обходят собственные формы
 итога, делегируя доставку action единому владельцу. Прежний private модуль
 заменён этим владельцем и не предоставляет совместимого alias.
-`cli.main` явно выбирает infra/deps/adjust, check с одним источником либо
-каталоговый run, не угадывая формат.
+`cli.main` явно выбирает infra/deps/adjust и check/run с одним объявленным
+источником, не угадывая формат. Configured run использует прежний
+`run_preparation`/reader/planner/executor; явный catalogue run сохраняет свой договор.
 [Полные входы и инструкции](resource-preparation.md#подготовка-ресурсов)
 описывают фактическое source-расширение, не установленную пакетную поставку.
+
+`examples/process-launch/start_console.py` — отдельный внешний инструмент:
+`main` владеет аргументами/JSON/диагностикой, `_submit_command` открывает
+binary append-логи и передаёт argv в Popen. Ядро не импортирует этот пример.
+Непосредственный PID/submitted/EOF отделены от времени жизни/готовности worker;
+терминал и его PTY выбираются конфигом. Нет нового supervisor или второго
+исполнителя. [Полный договор и правильные сценарии](process-launch.md#запуск-процессов).
 
 `examples/settings-alignment/align_queue.py` принадлежит обслуживаемому примеру:
 `queue_value` читает выбранную позицию стандартным JSON Pointer, `align_queue`
@@ -145,6 +153,56 @@ PYTHONPATH=src .venv/bin/python -B -m pytest -p no:cacheprovider -q \
   --basetemp build/checking-check tests/test_resource_checks.py
 PYTHONPATH=src .venv/bin/python -B examples/resource-checking/walkthrough.py
 ```
+
+### Реальные консоли и документация запуска
+
+39 проверок `tests/test_process_launch.py` требуют подготовленной X11-среды:
+Zutty, DejaVuSansMono, libX11, ImageMagick `import`/`identify`, `xwininfo`,
+`setxkbmap` и Xephyr. Их предоставляет оператор выбранной Linux-среды через
+её пакетный менеджер. `ENV2_XEPHYR_ROOT` указывает на подготовленный корень
+с `usr/bin/Xephyr` и `usr/lib/x86_64-linux-gnu`: `/` для системной установки
+либо собственный корень распакованного пакетного набора.
+[Технические условия arrangement](../tests/fixtures/process-launch/README.md)
+отделяют ошибки подготовки от продуктового RED. В выбранном checkout:
+
+```bash
+: "${app_python:?Выберите подготовленный Python}"
+: "${DISPLAY:?Выберите доступный X11 display}"
+: "${ENV2_XEPHYR_ROOT:?Выберите подготовленный корень Xephyr}"
+DISPLAY="$DISPLAY" ENV2_XEPHYR_ROOT="$ENV2_XEPHYR_ROOT" PYTHONPATH=src \
+  "$app_python" -B -m pytest -p no:cacheprovider -q \
+  --basetemp build/process-launch-check tests/test_process_launch.py
+```
+
+Три случая используют собственный видимый Xephyr и реальные PTY/input/Ctrl+C.
+Private display не доказывает исключительность ввода: для точного автоматического
+ответа наблюдайте события своих окон и учитывайте внешний ввод. Непустые PNG,
+данные процессов, фактические ответы и закрытие своих ресурсов — разные проверки.
+Дополнительный неуспешный опыт остаётся неуспешным; источник лишних событий
+не приписывается участнику без доказательства. Эталон не ослабляется ради PASS.
+
+Новые правильные [четыре инструкции](process-launch.md#пошаговая-инструкция)
+исполняются на собственных рабочих копиях: CLI all, API subset, empty selection
+и direct tool. Проверка ссылки сама не доказывает исполнение. Общие guard/smoke
+выбираются по затронутым границам; выпускная сборка остаётся отдельной работой.
+Сохраняйте полные результаты/source hash до очистки своих данных.
+
+При разработке с Poise используется его существующий владелец локальных ссылок;
+это инструмент разработки, а не зависимость поставляемого приложения:
+
+```bash
+PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
+  "$poise_root/tools/check_documentation.py" --checkout "$PWD" \
+  --changed docs/process-launch.md --changed README.md
+```
+
+Передайте выбранные пути `poise_root`/`poise_python` своей установки. Checker
+проверяет также входящие ссылки на изменённые страницы. Добавляйте остальные
+изменённые Markdown через повторяемый `--changed`; смысл и команды проверяются
+отдельно. Единственный AI-скилл проверяется штатным skill-creator validator
+в среде AI; он ссылается на канонические человеческие инструкции.
+
+### Прежние узкие наборы
 
 15 проверок согласования подтверждают выбранные значения, фактические внешние
 процессы, сохранность данных, полные/частичные итоги и общие входные границы.

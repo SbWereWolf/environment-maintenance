@@ -1,0 +1,92 @@
+{
+  "requirements": [
+    {
+      "id": "web-one",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-B",
+            "${starter}",
+            "--stdout-log",
+            "${first_stdout}",
+            "--stderr-log",
+            "${first_stderr}",
+            "--",
+            "${terminal}",
+            "-font",
+            "${font}",
+            "-fontpath",
+            "${font_path}",
+            "-title",
+            "ENV2-example-web-one",
+            "-e",
+            "${python}",
+            "-B",
+            "-m",
+            "http.server",
+            "${first_port}",
+            "--bind",
+            "${bind_address}",
+            "--directory",
+            "${content_dir}"
+          ],
+          "cwd": ".",
+          "env": {
+            "DISPLAY": "${display}"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [0]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "web-two",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "-B",
+            "${starter}",
+            "--stdout-log",
+            "${second_stdout}",
+            "--stderr-log",
+            "${second_stderr}",
+            "--",
+            "${terminal}",
+            "-font",
+            "${font}",
+            "-fontpath",
+            "${font_path}",
+            "-title",
+            "ENV2-example-web-two",
+            "-e",
+            "${python}",
+            "-B",
+            "-m",
+            "http.server",
+            "${second_port}",
+            "--bind",
+            "${bind_address}",
+            "--directory",
+            "${content_dir}"
+          ],
+          "cwd": ".",
+          "env": {
+            "DISPLAY": "${display}"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [0]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

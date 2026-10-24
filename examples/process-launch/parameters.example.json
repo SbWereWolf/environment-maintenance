@@ -1,0 +1,16 @@
+{
+  "python": "/absolute/path/to/prepared/.venv/bin/python",
+  "starter": "/absolute/path/to/source/examples/process-launch/start_console.py",
+  "terminal": "/usr/bin/zutty",
+  "font": "DejaVuSansMono",
+  "font_path": "/usr/share/fonts/truetype/dejavu",
+  "content_dir": "/absolute/path/to/source/examples/process-launch",
+  "display": ":0",
+  "bind_address": "127.0.0.1",
+  "first_port": 44181,
+  "second_port": 44182,
+  "first_stdout": "web-one.stdout.log",
+  "first_stderr": "web-one.stderr.log",
+  "second_stdout": "web-two.stdout.log",
+  "second_stderr": "web-two.stderr.log"
+}
