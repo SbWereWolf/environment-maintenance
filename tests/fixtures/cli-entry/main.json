@@ -1,0 +1,42 @@
+{
+  "operations": {
+    "infra": "infra.json",
+    "deps": "deps.json",
+    "adjust": "adjust.json",
+    "check": "check.json",
+    "run": "run.json"
+  },
+  "interpreters": {
+    "exit": {
+      "module": "env2_cli_plugins",
+      "attribute": "exit_result"
+    }
+  },
+  "invocation": {
+    "parameters": "parameters.json",
+    "base_dir": "workspace",
+    "requirements": {
+      "infra": [
+        "base",
+        "secondary"
+      ],
+      "deps": [
+        "packages"
+      ],
+      "adjust": [
+        "align-a",
+        "align-b"
+      ],
+      "run": [
+        "launch"
+      ]
+    }
+  },
+  "operator_metadata": {
+    "retain": [
+      "unchanged",
+      0,
+      false
+    ]
+  }
+}

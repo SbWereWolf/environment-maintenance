@@ -1,0 +1,22 @@
+{
+  "A": {
+    "tag": "",
+    "instance": "A",
+    "token": "A token with spaces",
+    "port": "28001",
+    "zero": "0",
+    "cwd": "",
+    "marker": "A",
+    "data": "keep existing data\n"
+  },
+  "B": {
+    "tag": "",
+    "instance": "B",
+    "token": "B token with spaces",
+    "port": "28002",
+    "zero": "0",
+    "cwd": "",
+    "marker": "B",
+    "data": "keep existing data\n"
+  }
+}

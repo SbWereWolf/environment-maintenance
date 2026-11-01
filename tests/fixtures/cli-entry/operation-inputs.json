@@ -1,0 +1,66 @@
+{
+  "infra": [
+    {
+      "id": "decoy",
+      "tags": [
+        "unselected-mutation"
+      ],
+      "presence": "presence-decoy"
+    },
+    {
+      "id": "secondary",
+      "tags": [
+        "infra-secondary"
+      ],
+      "presence": "presence-secondary",
+      "availability": "availability-secondary"
+    },
+    {
+      "id": "base",
+      "tags": [
+        "infra-first",
+        "infra-second"
+      ],
+      "presence": "presence-base"
+    }
+  ],
+  "deps": [
+    {
+      "id": "packages",
+      "tags": [
+        "deps"
+      ],
+      "presence": "presence-packages"
+    }
+  ],
+  "adjust": [
+    {
+      "id": "align-b",
+      "tags": [
+        "adjust-b"
+      ]
+    },
+    {
+      "id": "align-a",
+      "tags": [
+        "adjust-a"
+      ]
+    }
+  ],
+  "check": [
+    {
+      "id": "consistency",
+      "tags": [
+        "consistency"
+      ]
+    }
+  ],
+  "run": [
+    {
+      "id": "launch",
+      "tags": [
+        "run"
+      ]
+    }
+  ]
+}

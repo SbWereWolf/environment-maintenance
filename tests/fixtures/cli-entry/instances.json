@@ -1,0 +1,12 @@
+{
+  "A": {
+    "instance": "A",
+    "token": "A token with spaces",
+    "port": 28001
+  },
+  "B": {
+    "instance": "B",
+    "token": "B token with spaces",
+    "port": 28002
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "${python}",
+    "${probe}",
+    "${events}",
+    "__TAG__",
+    "${instance}",
+    "${token}",
+    "${port}",
+    "${zero}",
+    "0",
+    "${data}"
+  ],
+  "cwd": ".",
+  "env": {
+    "RESOURCE_MARKER": "${instance}"
+  },
+  "interpreter": {
+    "name": "exit",
+    "options": {
+      "accept": [
+        0
+      ]
+    }
+  }
+}

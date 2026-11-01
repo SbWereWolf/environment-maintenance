@@ -1,0 +1,58 @@
+{
+  "infra": {
+    "ids": [
+      "base",
+      "secondary"
+    ],
+    "tags": [
+      "infra-first",
+      "infra-second",
+      "infra-secondary"
+    ]
+  },
+  "deps": {
+    "ids": [
+      "packages"
+    ],
+    "tags": [
+      "deps"
+    ]
+  },
+  "adjust": {
+    "ids": [
+      "align-a",
+      "align-b"
+    ],
+    "tags": [
+      "adjust-a",
+      "adjust-b"
+    ]
+  },
+  "run": {
+    "ids": [
+      "launch"
+    ],
+    "tags": [
+      "run"
+    ]
+  },
+  "check": {
+    "ids": [
+      "decoy",
+      "secondary",
+      "base",
+      "packages"
+    ],
+    "checks": [
+      "consistency"
+    ],
+    "tags": [
+      "presence-decoy",
+      "presence-secondary",
+      "availability-secondary",
+      "presence-base",
+      "presence-packages",
+      "consistency"
+    ]
+  }
+}

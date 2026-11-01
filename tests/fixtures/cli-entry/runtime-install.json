@@ -1,0 +1,48 @@
+{
+  "requirements": [
+    {
+      "id": "A",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${installer}",
+            "${source_entry}",
+            "${source_runtime}",
+            "${plugin}",
+            "${probe}",
+            "${install_a}"
+          ],
+          "cwd": "${pool}",
+          "env": {},
+          "interpreter": {
+            "name": "exit",
+            "options": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${installer}",
+            "${source_entry}",
+            "${source_runtime}",
+            "${plugin}",
+            "${probe}",
+            "${install_b}"
+          ],
+          "cwd": "${pool}",
+          "env": {},
+          "interpreter": {
+            "name": "exit",
+            "options": {}
+          }
+        }
+      ]
+    }
+  ]
+}
