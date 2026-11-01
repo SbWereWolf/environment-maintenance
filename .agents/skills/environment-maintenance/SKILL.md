@@ -1,14 +1,16 @@
 ---
 name: environment-maintenance
-description: Use environment-maintenance to install a standalone npm instance, run configured environment operations, and read or change requirement configs through its public library and canonical instructions.
+description: Use a selected environment-maintenance instance for persistent short operation commands and public configuration-library operations.
 ---
 
 # Environment maintenance
 
-Use the selected instance's own runtime, explicit configuration and serviced cwd.
+Use the selected instance's own runtime and application-owned persistent profile.
+Read the [normal entry contract and immediate instruction link](../../../docs/persistent-entry.md#постоянный-вход-выбранной-установки)
+and [complete setup/verification instructions](../../../docs/persistent-entry.md#пошаговая-инструкция).
 Read the [npm contract and immediate walkthrough link](../../../docs/npm-distribution.md#пакетная-поставка-npm)
-and [installation choices](../../../docs/installation.md#npm-поставка-200).
-The 2.0.0 local candidate and the released 1.0.0 package are separate deliveries.
+and [installation choices](../../../docs/installation.md#npm-поставка-210).
+The current 2.1.0 source and retained issued 1.0.0/2.0.0 supplies are distinct.
 This skill grants no publication or live-consumer update authority.
 
 ## Install and identify an instance
@@ -22,12 +24,14 @@ These are command shapes; the walkthrough supplies actual owned paths and checks
 | Build selected source | `npm pack --json --pack-destination DIR` |
 | Install selected bytes | `ENVIRONMENT_MAINTENANCE_PYTHON=PYTHON npm install --global --prefix PREFIX --ignore-scripts=false ARCHIVE` |
 | Locate installed materials | `npm root --global --prefix PREFIX` |
-| Read version | `start-app --version` |
-| Read all argument help | `start-app --help` |
+| Read version | `./start-app --version` |
+| Read all argument help | `./start-app --help` |
 | Remove own instance | `npm uninstall --global --prefix PREFIX environment-maintenance` |
 
 Npm creates the short bin; venv/pip install the own Python core and dependencies.
-Put PREFIX/bin in the current shell PATH. For library/examples, obtain package_root
+Select the actual PREFIX/bin/start-app, or enter its bin directory for ./start-app.
+Default main belongs to the selected runtime's parent, not the caller directory.
+For library/examples, obtain package_root
 and app_python through the [common setup](../../../docs/npm-distribution.md#библиотека-и-поставленные-примеры).
 Packaged source examples and actual npm bin observations are distinct; identify which ran.
 The root ./start-app selects its neighbouring installed .venv with -I.
@@ -41,11 +45,18 @@ and [the actual installed-bin walkthrough](../../../docs/npm-distribution.md#п�
 
 | Purpose | Command shape |
 |---|---|
-| Prepare infrastructure | `start-app infra --config MAIN --parameters VALUES --base-dir ABS --requirements all` |
-| Prepare dependencies | `start-app deps --config MAIN --parameters VALUES --base-dir ABS --requirements '["packages"]'` |
-| Align selected settings | `start-app adjust --config MAIN --parameters VALUES --base-dir ABS --requirements all` |
-| Check resources/settings | `start-app check --config MAIN --parameters VALUES --base-dir ABS` |
-| Launch selected processes | `start-app run --config MAIN --parameters VALUES --base-dir ABS --requirements all` |
+| Prepare infrastructure | `./start-app infra` |
+| Prepare dependencies | `./start-app deps` |
+| Align declared settings | `./start-app adjust` |
+| Observe resources/settings | `./start-app check` |
+| Launch declared processes | `./start-app run` |
+
+These are complete ordinary calls after one-time operator setup. Paths, parameters,
+IDs and order belong to the permanent main/operation files. Use an absolute selected
+entry from a foreign cwd. Optional overrides apply only to that call; see the
+[path/override reference and immediate examples](../../../docs/persistent-entry.md#переопределение-одного-вызова).
+A shared-SDK consumer's local entry internally binds its own permanent main before
+caller arguments; actual consumer readiness must be verified by its delivery owner.
 
 Choose all, an ID array or [] using each operation's contract. Main config maps operations
 to separate requirement documents. Commands/templates/plugins belong to the serviced app.
@@ -151,9 +162,9 @@ Read the [complete catalogue argument reference and immediate instruction](../..
 In the installed example context:
 
 ```bash
-start-app check --catalog-dir "$package_root/examples/catalog-v2"
-start-app run --catalog-dir "$package_root/examples/catalog-v2" --dry-run
-start-app run --catalog-dir "$package_root/examples/catalog-v2"
+./start-app check --catalog-dir "$package_root/examples/catalog-v2"
+./start-app run --catalog-dir "$package_root/examples/catalog-v2" --dry-run
+./start-app run --catalog-dir "$package_root/examples/catalog-v2"
 ```
 
 The reference defines repeatable --values/--set and catalogue action limits/results.

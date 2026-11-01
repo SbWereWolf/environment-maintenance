@@ -4,3 +4,12 @@ build/
 dist/
 .pytest_cache/
 .venv/
+
+# Private ordinary operation profile; examples stay versioned.
+/start-app.json
+/parameters.json
+/infra.json
+/deps.json
+/adjust.json
+/check.json
+/run.json

@@ -1,0 +1,30 @@
+{
+  "requirements": [
+    {
+      "id": "launcher",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "run",
+            "${state}"
+          ],
+          "cwd": ".",
+          "env": {
+            "VALUE": "${token}"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "python": "/absolute/path/to/instance/.venv/bin/python",
+  "probe": "/absolute/path/to/package/examples/resource-preparation/probe.py",
+  "events": "/absolute/path/to/application-data/entry-events.jsonl",
+  "token": "demo value",
+  "state": "ready"
+}

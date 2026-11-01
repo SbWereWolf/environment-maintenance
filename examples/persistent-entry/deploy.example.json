@@ -1,0 +1,145 @@
+{
+  "requirements": [
+    {
+      "id": "persistent-entry",
+      "commands": [
+        {
+          "argv": [
+            "${copy}",
+            "${example_root}/start-app.example.json",
+            "${package_root}/start-app.json"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${copy}",
+            "${example_root}/infra.example.json",
+            "${package_root}/infra.json"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${copy}",
+            "${example_root}/deps.example.json",
+            "${package_root}/deps.json"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${copy}",
+            "${example_root}/adjust.example.json",
+            "${package_root}/adjust.json"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${copy}",
+            "${example_root}/check.example.json",
+            "${package_root}/check.json"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${copy}",
+            "${example_root}/run.example.json",
+            "${package_root}/run.json"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${copy}",
+            "${filled_parameters}",
+            "${package_root}/parameters.json"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${copy}",
+            "${interpreter_source}",
+            "${interpreter_target}"
+          ],
+          "cwd": "${package_root}",
+          "env": {},
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

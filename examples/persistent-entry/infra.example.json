@@ -1,0 +1,103 @@
+{
+  "requirements": [
+    {
+      "id": "assets",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "install",
+            "${state}"
+          ],
+          "cwd": ".",
+          "env": {
+            "VALUE": "${token}"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        },
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "configure",
+            "${state}"
+          ],
+          "cwd": ".",
+          "env": {
+            "VALUE": "${token}"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "${probe}",
+                "${events}",
+                "infra-presence",
+                "${state}"
+              ],
+              "cwd": ".",
+              "env": {
+                "VALUE": "${token}"
+              },
+              "interpreter": {
+                "name": "result",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "availability": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "${probe}",
+                "${events}",
+                "infra-availability",
+                "${state}"
+              ],
+              "cwd": ".",
+              "env": {
+                "VALUE": "${token}"
+              },
+              "interpreter": {
+                "name": "result",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

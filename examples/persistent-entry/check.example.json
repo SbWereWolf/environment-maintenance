@@ -1,0 +1,30 @@
+{
+  "requirements": [
+    {
+      "id": "consistency",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "consistency",
+            "${state}"
+          ],
+          "cwd": ".",
+          "env": {
+            "VALUE": "${token}"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

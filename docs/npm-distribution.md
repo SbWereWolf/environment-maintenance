@@ -4,212 +4,137 @@
 
 ## Договор экземпляра
 
-2.0.0 — локальный кандидат самостоятельного инструмента. Стандартный npm
-устанавливает tgz в выбранный отдельный prefix и предоставляет `start-app`.
-Lifecycle создаёт `.venv` внутри пакета и поручает pip установить Python-проект,
-`jsonpatch` и `jsonpointer`. Core, зависимости, исходники, docs/tests/examples
-и единственный AI-скилл находятся в этом экземпляре. Обслуживаемые конфиги,
-ресурсы и инструменты — явные внешние входы.
+Версия 2.1.0 поставляется самостоятельным пакетом. Стандартный npm устанавливает
+выбранный tgz в отдельный prefix и предоставляет его `bin/start-app`.
+Lifecycle создаёт `.venv` внутри пакета; pip устанавливает Python-проект,
+`jsonpatch` и `jsonpointer`. Исходники, docs/tests/examples и один AI-скилл
+находятся в этом экземпляре. Конфиги и инструменты обслуживаемого приложения
+задаёт его владелец.
 
-Поддерживается Linux/POSIX, требуются Node22+, npm10+, Python3.11+ с venv/pip.
-Фактически проверены Ubuntu24.04.4 WSL2 x86_64, Node22.23.2, npm10.9.8 и
-Python3.12.3. Metadata engines объявляет поддержку; строгую проверку engines
-определяет npm. Python с его стандартной библиотекой, Node и ОС являются
-внешними prerequisites. Готовое окружение создаётся в конечном месте установки.
-Доступ к выбранному Python-индексу/средствам сборки обеспечивает оператор.
+Поддерживается Linux/POSIX: Node 22+, npm 10+, Python 3.11+ с venv/pip.
+Проверенный контекст — Ubuntu/WSL, Node 22.23.2, npm 10.9.8, Python 3.12.3.
+Зависимости разрешают пакетные менеджеры. Metadata engines объявляет поддержку;
+строгую проверку engines определяет npm. Готовая среда создаётся на месте.
 
-| Вход | Назначение |
+| Настройка установки | Значение |
 |---|---|
-| `ENVIRONMENT_MAINTENANCE_PYTHON` | Обязательный выбранный executable Python при установке; используйте абсолютный путь |
-| npm `--prefix` | Самостоятельный корень экземпляра; короткий вход находится в его `bin` |
-| npm `--ignore-scripts=false` | Разрешить требуемый lifecycle подготовки runtime |
-| `PATH` | Включите `prefix/bin` для короткой команды в своей текущей оболочке |
-| `PYTHONPATH` | Явные каталоги plugins обслуживаемого приложения при рабочем вызове |
-| стандартные настройки pip | Выбранный индекс/колёса/cache; зависимости разрешает pip |
+| `ENVIRONMENT_MAINTENANCE_PYTHON` | Абсолютный выбранный Python с venv/pip; нужен при установке |
+| npm `--prefix` | Самостоятельный корень выбранного экземпляра |
+| npm `--ignore-scripts=false` | Выполнить необходимую подготовку runtime |
+| Настройки pip | Выбранный индекс/колёса/cache, включая стандартный offline-режим |
+| Приложение | Предоставляет доступные своему runtime внешние инструменты и готовые обработчики |
 
-Root `./start-app` исходного комплекта выбирает соседнюю установленную `.venv`
-с `-I`. Npm bin использует свой Python с `-P -s -B`, сохраняя явно настроенный
-plugin import path. В следующих шагах используется npm bin. Остальные экземпляры,
-включая выпущенный1.0.0, сохраняются до отдельного явного обновления.
+Корневой `./start-app` комплекта выбирает `ROOT/.venv` с `-I`.
+Npm-вход выбирает `PACKAGE_ROOT/.venv` с `-P -s -B`, сохраняя cwd и обычный
+явно подготовленный import path. После подготовки используйте локальный вход
+конкретной установки либо его абсолютный путь. Другие экземпляры сохраняются.
+[Постоянный профиль](persistent-entry.md#выбор-установки-и-рабочего-файла)
+объясняет точное расположение `start-app.json` для обоих входов.
 
 ## Команды и полные аргументы
 
-| Вход | Полный справочник и инструкция |
+| Обычный вызов | Полный справочник и инструкция |
 |---|---|
-| `start-app --version`, `--help` | Версия/справка без действий |
-| `start-app infra`, `deps` | [Подготовка ресурсов и все аргументы](resource-preparation.md#команды-и-аргументы) |
-| `start-app adjust` | [Согласование настроек](settings-alignment.md#входы-и-результаты) |
-| `start-app check --config` | [Проверки presence/availability/связанных условий](resource-checking.md#команды-и-аргументы) |
-| `start-app run --config` | [Запуск выбранных процессов](process-launch.md#входы-и-аргументы) |
-| `check/run --catalog-dir` | [Отдельный каталоговый контракт, включая --values/--set/--dry-run](configuration.md#команды-и-аргументы) |
+| `./start-app --version`, `--help` | Версия/справка выбранной установки без действий |
+| `./start-app infra`, `deps` | [Подготовка ресурсов](resource-preparation.md#команды-и-аргументы) |
+| `./start-app adjust` | [Согласование](settings-alignment.md#входы-и-результаты) |
+| `./start-app check` | [Проверки](resource-checking.md#команды-и-аргументы) |
+| `./start-app run` | [Запуск процессов](process-launch.md#входы-и-аргументы) |
+| Явные `check/run --catalog-dir` | [Отдельный каталоговый договор](configuration.md#команды-и-аргументы) |
 
-Для infra/deps/adjust/run обязательны `--config`, `--parameters`, абсолютный
-`--base-dir` и `--requirements` (`all` или JSON-массив IDs, включая `[]`).
-Configured check использует первые три аргумента. Значения путей config/parameters
-считаются от cwd caller; база cwd команд задаётся явно. Npm bin сохраняет cwd,
-argv/env/stdin/stdout/stderr и обычные коды выбранного CLI. JSON и binary-потоки
-не обрезаются обёрткой. Внутренние результаты принадлежат выбранному договору;
-например, каталоговый контракт имеет собственные явные ограничения вывода.
+Пути, значения и выбор ресурсов берутся из постоянного профиля.
+`--config`, `--parameters`, `--base-dir` и применимый `--requirements` доступны
+как [необязательные переопределения](persistent-entry.md#переопределение-одного-вызова).
+Полностью явная прежняя форма сохраняется. Npm-вход передаёт полные argv,
+env/stdin/stdout/stderr и обычные/сигнальные исходы выбранного CLI.
 
-`infra`/`deps`/`adjust`/`check`/`run` — отдельные операции. Полный рабочий путь
-оператор задаёт их явной последовательностью; `run` только запускает выбранные
-команды. Команды, цепочки, шаблоны `string.Template` и интерпретаторы предоставляет
-обслуживаемое приложение. Общий читатель одинаково разрешает отдельные конфиги.
+Все пять операций отдельны: `run` исполняет только объявленный запуск,
+`check` — объявленные наблюдения. Команды, цепочки, шаблоны `string.Template`
+и интерпретаторы принадлежат приложению; один читатель разрешает его документы.
 
 ## Библиотека и поставленные примеры
 
-[Подготовка собственного экземпляра и рабочего каталога](#пошаговая-инструкция).
+[Контекст и правильная подготовка](#пошаговая-инструкция).
 
-После установки ниже `package_root` получается штатным `npm root`, а `app_python`
-обозначает собственный Python экземпляра. Публичный API импортируется этим Python
-обычно из site-packages. Для использования поставленных руководств:
+Следующие технические API-примеры используют один подготовленный пакет.
+Оператор задаёт значения один раз: `package_root` — установленный пакет,
+`app_python` — его `.venv/bin/python`, `workspace` — существующий собственный
+каталог данных; `prefix`, `archive`, `prerequisite_python` нужны для обслуживания
+самой установки. Это контекст примеров API, а не обязательные параметры запуска.
 
 ```bash
-cd "$package_root"
+package_root=/absolute/path/to/prefix/lib/node_modules/environment-maintenance
+app_python="$package_root/.venv/bin/python"
+workspace=/absolute/path/to/private-workspace
+prefix=/absolute/path/to/prefix
+archive=/absolute/path/to/environment-maintenance-2.1.0.tgz
+prerequisite_python=/absolute/path/to/python3
+export package_root app_python workspace
 ```
 
-Руководства [чтения](configuration-reading.md#пошаговая-инструкция),
-[записи](configuration-editing.md#пошаговая-инструкция),
-[действий](action-execution.md#пошаговая-инструкция),
-[подготовки](resource-preparation.md#пошаговая-инструкция),
-[согласования](settings-alignment.md#пошаговая-инструкция),
-[проверок](resource-checking.md#пошаговая-инструкция) и
-[консолей](process-launch.md#пошаговая-инструкция) содержат все операции API,
-аргументы, исходные файлы и ожидаемые результаты. Их `PYTHONPATH=src` явно
-выбирает поставленный source-набор внутри этого экземпляра. Такой пример
-проверяет API/выбранный source CLI; настоящий npm bin проверяется отдельно ниже.
-Для development checkout действуют те же примеры с его подготовленным Python.
-
-Полные функции: list_requirement_ids/read_requirements (IDs, batch, all),
-add_requirement/update_requirement/delete_requirement/clear_requirements,
-plan_action/execute_action, prepare_resources/check_resources. Если готового
-поведения недостаточно, разработайте внешний инструмент обслуживаемого приложения
-через [публичные read/CRUD](configuration-editing.md#собственный-внешний-инструмент)
-и [интерфейс ResultInterpreter](action-execution.md#интерфейс-интерпретатора).
+[Чтение](configuration-reading.md#пошаговая-инструкция),
+[CRUD](configuration-editing.md#пошаговая-инструкция),
+[исполнение](action-execution.md#пошаговая-инструкция),
+[подготовка](resource-preparation.md#пошаговая-инструкция),
+[согласование](settings-alignment.md#пошаговая-инструкция),
+[проверка](resource-checking.md#пошаговая-инструкция) и
+[запуск](process-launch.md#пошаговая-инструкция) имеют собственные полные инструкции.
+Примеры с `PYTHONPATH=src` явно выбирают поставленный исходный набор; обычный
+npm-вход использует собственный установленный core. Наблюдения этих способов
+фиксируются отдельно.
 
 ## Пошаговая инструкция
 
 ### Собрать и установить выбранный кандидат
 
-Начальные условия: открыт исходный корень выбранной ревизии2.0.0, в текущей
-оболочке активирован выбранный Node/npm и доступен Python с venv/pip.
-Подготовьте runtime штатным менеджером своей среды. Задайте ENVIRONMENT_MAINTENANCE_PYTHON его
-реальным абсолютным путём. Для переданного готового tgz используйте его путь
-и контрольную сумму вместо шага pack. Сумма должна совпасть с квитанцией поставки.
+Оператор выбирает точный source commit и каталог результата сборки:
 
 ```bash
-: "${ENVIRONMENT_MAINTENANCE_PYTHON:?Выберите абсолютный путь Python с venv/pip}"
-source_root="$(pwd -P)"
-demo_dir="$(mktemp -d "${TMPDIR:-/tmp}/environment-maintenance-demo.XXXXXX")"
-artifact_dir="$demo_dir/artifacts"
-prefix="$demo_dir/independent prefix Ω"
-workspace="$demo_dir/serviced cwd Ω"
-mkdir -p "$artifact_dir" "$workspace"
-npm pack --json --pack-destination "$artifact_dir" > "$artifact_dir/pack.json"
-archive="$artifact_dir/environment-maintenance-2.0.0.tgz"
-sha256sum "$archive"
-npm install --global --prefix "$prefix" --ignore-scripts=false --no-audit --no-fund "$archive"
-export PATH="$prefix/bin:$PATH"
-package_root="$(npm root --global --prefix "$prefix")/environment-maintenance"
-app_python="$package_root/.venv/bin/python"
-export package_root app_python workspace
-cd "$workspace"
-start-app --version
-start-app --help
+npm pack --json --pack-destination /absolute/path/to/candidate
 ```
 
-Версия — `environment-maintenance 2.0.0`, help перечисляет пять операций.
-Вы находитесь вне исходного checkout. npm/pip выполняют свою стандартную
-установку; флаги no-audit/no-fund относятся к выводу/сетевым действиям npm,
-а не к семантике инструмента. Тестовый стенд может заранее предоставить реальные
-колёса через стандартные PIP_NO_INDEX/PIP_FIND_LINKS; это не обязательный
-продуктовый wheelhouse и не поставка Python внутри архива.
+Передайте архив и его SHA-256. Установка выбранных байтов в отдельный prefix:
+
+```bash
+ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-2.1.0.tgz
+/absolute/path/to/prefix/bin/start-app --version
+npm root --global --prefix /absolute/path/to/prefix
+```
+
+Ожидаемая версия — `environment-maintenance 2.1.0`. Последняя команда показывает
+корень npm-модулей; добавьте `environment-maintenance` для каталога пакета.
+Идентифицируйте реальный source/tree/tgz digest, runtime и результаты проверки.
+Публикация в реестре — отдельное действие, эта инструкция её не выполняет.
+
+При offline-установке оператор предоставляет стандартные `PIP_NO_INDEX=1`
+и `PIP_FIND_LINKS` с выбранными build/runtime колёсами. Проверочный wheelhouse
+не является встроенным источником зависимостей продукта.
 
 ### Подготовить собственные конфиги
 
-Демонстрации используют поставленные инструменты на собственных копиях.
-Infra/deps/run имеют общий набор, adjust/check — свои готовые демонстрационные
-данные. Это примеры входов отдельных операций, а не профиль ERP/Poise.
-Каждое реальное обслуживаемое приложение предоставляет свой согласованный набор.
-
-```bash
-export PYTHONPATH="$package_root/examples/resource-preparation"
-"$app_python" -P -s -B - <<'PY'
-import json
-import os
-from pathlib import Path
-import runpy
-root, work = Path(os.environ['package_root']), Path(os.environ['workspace'])
-for name in ('prep', 'alignment', 'checking'):
-    (work / name).mkdir()
-prep = runpy.run_path(str(root / 'examples/resource-preparation/walkthrough.py'))
-prep['prepare_demo'](work / 'prep')
-main_path = work / 'prep/app.example.json'
-main = json.loads(main_path.read_text())
-main['operations']['run'] = 'run.example.json'
-main_path.write_text(json.dumps(main))
-run = json.loads((work / 'prep/infra.example.json').read_text())
-run['requirements'] = [run['requirements'][0]]
-run['requirements'][0]['id'] = 'launcher'
-run['requirements'][0]['commands'] = [run['requirements'][0]['commands'][0]]
-run['requirements'][0]['commands'][0]['argv'][3] = 'run'
-(work / 'prep/run.example.json').write_text(json.dumps(run))
-alignment = runpy.run_path(str(root / 'examples/settings-alignment/walkthrough.py'))
-_, _, _, before = alignment['prepare_demo'](work / 'alignment')
-(work / 'alignment/before.json').write_text(json.dumps(before))
-checking = runpy.run_path(str(root / 'examples/resource-checking/walkthrough.py'))
-checking['prepare_demo'](work / 'checking')
-PY
-```
-
-Главные/операционные/параметрические файлы находятся в workspace; исходные
-*.example.json сохранены. `source_path` учебных внешних инструментов указывает
-на поставленный src внутри prefix. Обычный bin всё ещё импортирует своё ядро
-из собственного установленного runtime, а PYTHONPATH здесь предоставляет plugin.
+Следуйте [инструкции постоянного входа](persistent-entry.md#пошаговая-инструкция).
+Приложение или настроенный владелец развёртывания создаёт рабочие main/parameters
+и отдельные документы операций через свой конфиг. Примеры остаются в пакете;
+рабочие копии хранятся вне `.runtime` и Git. Подготовка готового обработчика
+в собственной среде — часть этой однократной настройки.
 
 ### Исполнить пять выбранных операций через короткий вход
 
+В каталоге выбранного локального входа:
+
 ```bash
-start-app infra --config "$workspace/prep/app.example.json" \
-  --parameters "$workspace/prep/values.json" --base-dir "$workspace/prep" \
-  --requirements '["assets"]' > "$workspace/infra-result.json"
-start-app deps --config "$workspace/prep/app.example.json" \
-  --parameters "$workspace/prep/values.json" --base-dir "$workspace/prep" \
-  --requirements all > "$workspace/deps-result.json"
-start-app adjust --config "$workspace/alignment/app.example.json" \
-  --parameters "$workspace/alignment/parameters.example.json" --base-dir "$workspace/alignment" \
-  --requirements all > "$workspace/adjust-result.json"
-start-app check --config "$workspace/checking/app.example.json" \
-  --parameters "$workspace/checking/parameters.example.json" --base-dir "$workspace/checking" \
-  > "$workspace/check-result.json"
-start-app run --config "$workspace/prep/app.example.json" \
-  --parameters "$workspace/prep/values.json" --base-dir "$workspace/prep" \
-  --requirements all > "$workspace/run-result.json"
-"$app_python" -P -s -B - <<'PY'
-import json
-import os
-from pathlib import Path
-import runpy
-root, work = Path(os.environ['package_root']), Path(os.environ['workspace'])
-for name in ('infra', 'deps', 'adjust', 'check', 'run'):
-    answer = json.loads((work / (name + '-result.json')).read_text())
-    assert answer['operation'] == name and answer['status'] == 'succeeded'
-events = [json.loads(line)['label'] for line in (work / 'prep/events.jsonl').read_text().splitlines()]
-assert events == ['install', 'configure', 'dependencies', 'run']
-demo = runpy.run_path(str(root / 'examples/settings-alignment/walkthrough.py'))
-demo['assert_settings'](work / 'alignment', json.loads((work / 'alignment/before.json').read_text()),
-                        'QUEUE_NAME', 'billing.jobs')
-checks = json.loads((work / 'check-result.json').read_text())
-assert len(checks['resources']) == 2 and checks['checks'][0]['id'] == 'queue-agreement'
-print('five installed operations: results, effects and settings confirmed')
-PY
+./start-app infra
+./start-app deps
+./start-app adjust
+./start-app check
+./start-app run
 ```
 
-Каждая команда имеет код0, выбранный operation и полный JSON результата.
-Run здесь запускает короткий внешний probe с наблюдаемым событием `run`.
-Для долгоживущих приложений используйте [полную инструкцию видимых консолей](process-launch.md#пошаговая-инструкция):
-две отдельные консоли, HTTP-проверка и независимая остановка каждого процесса.
-Факт submitted/PID означает передачу команды, пригодность сервиса проверяется отдельно.
+Ожидаются успешные результаты объявленных приложением команд.
+Учебный профиль и его точные события описаны у
+[постоянного входа](persistent-entry.md#пять-обычных-операций).
+Работа из постороннего cwd использует абсолютный вход той же установки.
+Дополнительные ключи нужны только для осознанных переопределений одного вызова.
 
 ### Прочитать и изменить конфиг через установленную библиотеку
 
@@ -265,12 +190,12 @@ source CLI явно использует поставленный src; эти р
 ```bash
 cd "$workspace"
 npm uninstall --global --prefix "$prefix" --no-audit --no-fund environment-maintenance
-npm install --global --prefix "$prefix" --ignore-scripts=false --no-audit --no-fund "$archive"
+ENVIRONMENT_MAINTENANCE_PYTHON="$prerequisite_python" npm install --global --prefix "$prefix" --ignore-scripts=false --no-audit --no-fund "$archive"
 "$prefix/bin/start-app" --version
 sha256sum "$archive"
 ```
 
-Версия снова2.0.0, digest архива прежний. Аналогично обновление устанавливает
+Версия снова2.1.0, digest архива прежний. Аналогично обновление устанавливает
 новый отдельно выбранный проверенный пакет в свой prefix. Полученные результаты
 и tgz передаются получателю до удаления демонстрационных рабочих материалов.
 Рабочие конфиги/журналы не помещаются в историю версий.

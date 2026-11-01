@@ -1,0 +1,57 @@
+{
+  "requirements": [
+    {
+      "id": "packages",
+      "commands": [
+        {
+          "argv": [
+            "${python}",
+            "${probe}",
+            "${events}",
+            "dependencies",
+            "${state}"
+          ],
+          "cwd": ".",
+          "env": {
+            "VALUE": "${token}"
+          },
+          "interpreter": {
+            "name": "result",
+            "options": {
+              "accept": [
+                0
+              ]
+            }
+          }
+        }
+      ],
+      "checks": {
+        "presence": {
+          "commands": [
+            {
+              "argv": [
+                "${python}",
+                "${probe}",
+                "${events}",
+                "deps-presence",
+                "${state}"
+              ],
+              "cwd": ".",
+              "env": {
+                "VALUE": "${token}"
+              },
+              "interpreter": {
+                "name": "result",
+                "options": {
+                  "accept": [
+                    0
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

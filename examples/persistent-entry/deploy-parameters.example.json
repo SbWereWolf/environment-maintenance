@@ -1,0 +1,8 @@
+{
+  "copy": "/usr/bin/cp",
+  "example_root": "/absolute/path/to/package/examples/persistent-entry",
+  "package_root": "/absolute/path/to/package",
+  "filled_parameters": "/absolute/path/to/private/filled-parameters.json",
+  "interpreter_source": "/absolute/path/to/package/examples/resource-preparation/interpreters.py",
+  "interpreter_target": "/absolute/path/to/package/.venv/lib/python3.12/site-packages/interpreters.py"
+}
