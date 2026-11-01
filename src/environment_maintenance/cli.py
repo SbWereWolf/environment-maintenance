@@ -8,6 +8,7 @@ import sys
 from . import __version__
 from .catalogue import ContractError, load_catalog, read_json
 from .engine import execute
+from .invocation import resolve_invocation
 
 
 def main(argv=None):
@@ -31,34 +32,32 @@ def main(argv=None):
         ('base_dir', '--base-dir'),
         ('requirements', '--requirements'),
     )
-    if args.command in ('check', 'run'):
-        if (args.config is None) == (args.catalog_dir is None):
+    if args.command in ('check', 'run') and args.catalog_dir is not None:
+        if args.config is not None:
             parser.error(f"{args.command} requires exactly one source: --config or --catalog-dir")
-        if args.command == 'check' and args.config is not None:
-            for name, flag in (('values', '--values'), ('overrides', '--set'),
-                               ('dry_run', '--dry-run')):
-                if getattr(args, name):
-                    parser.error(f"{flag} is not supported for configured check")
-            if args.requirements is not None:
-                parser.error("--requirements is not supported for configured check")
-            for name, flag in (('parameters', '--parameters'), ('base_dir', '--base-dir')):
-                if getattr(args, name) is None:
-                    parser.error(f"{flag} is required for check")
-            from .checking.cli import run_checks
-            return run_checks(args.config, args.parameters, args.base_dir)
-    if args.command in ('infra', 'deps', 'adjust') or (
-        args.command == 'run' and args.config is not None
-    ):
+    else:
         for name, flag in (('catalog_dir', '--catalog-dir'), ('values', '--values'),
                            ('overrides', '--set'), ('dry_run', '--dry-run')):
             if getattr(args, name):
                 parser.error(f"{flag} is not supported for {args.command}")
-        for name, flag in preparation_arguments:
-            if getattr(args, name) is None:
-                parser.error(f"{flag} is required for {args.command}")
+        if args.command == 'check' and args.requirements is not None:
+            parser.error("--requirements is not supported for configured check")
+        try:
+            invocation = resolve_invocation(
+                args.command, args.config, args.parameters, args.base_dir,
+                args.requirements, instance_root=Path(sys.prefix).parent,
+                read_document=read_json,
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        if args.command == 'check':
+            from .checking.cli import run_checks
+            return run_checks(invocation.config_path, invocation.parameters_path,
+                              invocation.base_dir)
         from .preparation.cli import run_preparation
-        return run_preparation(args.command, args.config, args.parameters,
-                               args.base_dir, args.requirements)
+        return run_preparation(args.command, invocation.config_path,
+                               invocation.parameters_path, invocation.base_dir,
+                               invocation.raw_selection)
     for name, flag in preparation_arguments:
         if getattr(args, name) is not None:
             parser.error(f"{flag} is only supported for configured infra/deps/adjust/run")
