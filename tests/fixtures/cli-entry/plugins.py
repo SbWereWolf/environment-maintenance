@@ -1,10 +1,12 @@
 """App-supplied test interpreter; no product imports or expected-value generator."""
+import sys
 
 
 class ExitResult:
     def interpret(self, raw, options):
         accepted = raw['exit_code'] in options['accept']
-        return dict(success=accepted, value=dict(code=raw['exit_code']),
+        return dict(success=accepted,
+                    value=dict(code=raw['exit_code'], engine_runtime=sys.prefix),
                     error=None if accepted else 'external command failed')
 
 

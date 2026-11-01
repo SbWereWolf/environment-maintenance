@@ -131,16 +131,32 @@ def protected(app, additional=()):
                         path.stat().st_mode & 0o777) for path in paths}
 
 
-def success(completed, operation):
+def assert_runtime(result, app):
+    """Observe the interpreter's CLI environment, independently of probe argv."""
+    if result['operation'] == 'check':
+        actions = [row['presence'] for row in result['resources']]
+        actions += [row['availability']['result'] for row in result['resources']
+                    if row['availability']['result'] is not None]
+        actions += [row['result'] for row in result['checks']]
+    else:
+        actions = [row['result'] for row in result['requirements']]
+    commands = [record for action in actions for record in action['commands']]
+    if commands:
+        actual = {record['interpretation']['value']['engine_runtime'] for record in commands}
+        assert actual == {str(app.root / '.venv')}
+
+
+def success(completed, operation, app):
     assert completed.returncode == 0, completed.stderr.decode(errors='replace')
     assert completed.stderr == b''
     result = json.loads(completed.stdout)
     assert result['operation'] == operation and result['status'] == 'succeeded'
+    assert_runtime(result, app)
     return result
 
 
 def assert_operation_effects(app, operation, completed):
-    result = success(completed, operation)
+    result = success(completed, operation, app)
     expected = fixture('expected.json')[operation]
     records = result['resources'] if operation == 'check' else result['requirements']
     assert [record['id'] for record in records] == expected['ids']
@@ -185,6 +201,12 @@ def parameters_with_token(app, target, token):
     write(target, values)
 
 
+def ordinary_again(app, operation, *, cwd=None):
+    """Clear only observation output, without resetting any configuration."""
+    app.events.unlink(missing_ok=True)
+    assert_operation_effects(app, operation, invoke(app, operation, cwd=cwd))
+
+
 def test_relative_config_keeps_caller_anchor_and_main_relative_defaults(apps, tmp_path):
     app = apps['A']
     caller = tmp_path / 'caller'
@@ -197,8 +219,10 @@ def test_relative_config_keeps_caller_anchor_and_main_relative_defaults(apps, tm
     workspace.mkdir()
     selected = [main, main_dir / 'parameters.json', caller / 'parameters.json']
     before = protected(app, selected)
-    success(invoke(app, 'deps', '--config', 'profiles/alternate.json', cwd=caller), 'deps')
+    success(invoke(app, 'deps', '--config', 'profiles/alternate.json', cwd=caller), 'deps', app)
     assert events(app) == [expected_event(app, 'deps', cwd=workspace, token='main-parameter')]
+    assert protected(app, selected) == before
+    ordinary_again(app, 'deps', cwd=caller)
     assert protected(app, selected) == before
 
 
@@ -209,8 +233,10 @@ def test_relative_parameter_override_keeps_other_installation_defaults(apps, tmp
     parameters_with_token(app, app.root / 'values/chosen.json', 'installation-decoy')
     selected = [caller / 'values/chosen.json']
     before = protected(app, selected)
-    success(invoke(app, 'deps', '--parameters', 'values/chosen.json', cwd=caller), 'deps')
+    success(invoke(app, 'deps', '--parameters', 'values/chosen.json', cwd=caller), 'deps', app)
     assert events(app) == [expected_event(app, 'deps', token='caller-parameter')]
+    assert protected(app, selected) == before
+    ordinary_again(app, 'deps', cwd=caller)
     assert protected(app, selected) == before
 
 
@@ -218,17 +244,51 @@ def test_base_directory_override_retains_parameter_and_selection_defaults(apps, 
     app = apps['A']
     workspace = tmp_path / 'explicit workspace'
     workspace.mkdir()
-    success(invoke(app, 'infra', '--base-dir', workspace), 'infra')
+    before = protected(app)
+    success(invoke(app, 'infra', '--base-dir', workspace), 'infra', app)
     assert events(app) == [expected_event(app, tag, cwd=workspace)
                           for tag in ['infra-first', 'infra-second', 'infra-secondary']]
+    assert protected(app) == before
+    ordinary_again(app, 'infra')
+    assert protected(app) == before
 
 
 def test_selection_override_retains_parameter_and_base_defaults(apps):
     app = apps['A']
-    result = success(invoke(app, 'infra', '--requirements', '["secondary","base"]'), 'infra')
+    before = protected(app)
+    result = success(invoke(app, 'infra', '--requirements', '["secondary","base"]'), 'infra', app)
     assert [item['id'] for item in result['requirements']] == ['secondary', 'base']
     assert events(app) == [expected_event(app, tag)
                           for tag in ['infra-secondary', 'infra-first', 'infra-second']]
+    assert protected(app) == before
+    ordinary_again(app, 'infra')
+    assert protected(app) == before
+
+
+@pytest.mark.parametrize('case', fixture('selection-cases.json'), ids=['all', 'empty'])
+def test_configured_all_and_empty_selection_are_explicit_values(apps, case):
+    app = apps['A']
+    main = json.loads(app.main.read_text(encoding='utf-8'))
+    main['invocation']['requirements']['infra'] = case['selection']
+    write(app.main, main)
+    before = protected(app)
+    result = success(invoke(app, 'infra'), 'infra', app)
+    assert [item['id'] for item in result['requirements']] == case['ids']
+    assert events(app) == [expected_event(app, tag) for tag in case['tags']]
+    assert protected(app) == before
+
+
+@pytest.mark.parametrize('case', fixture('selection-cases.json'), ids=['all', 'empty'])
+def test_all_and_empty_selection_overrides_apply_only_to_one_call(apps, case):
+    app = apps['A']
+    selection = 'all' if case['selection'] == 'all' else json.dumps(case['selection'])
+    before = protected(app)
+    result = success(invoke(app, 'infra', '--requirements', selection), 'infra', app)
+    assert [item['id'] for item in result['requirements']] == case['ids']
+    assert events(app) == [expected_event(app, tag) for tag in case['tags']]
+    assert protected(app) == before
+    ordinary_again(app, 'infra')
+    assert protected(app) == before
 
 
 def test_full_explicit_form_preserves_caller_relative_paths_without_invocation(apps, tmp_path):
@@ -240,23 +300,37 @@ def test_full_explicit_form_preserves_caller_relative_paths_without_invocation(a
     before = protected(app, selected)
     result = success(invoke(app, 'infra', '--config', 'profiles/legacy.json',
         '--parameters', 'values/explicit.json', '--base-dir', app.workspace,
-        '--requirements', '["secondary"]', cwd=caller), 'infra')
+        '--requirements', '["secondary"]', cwd=caller), 'infra', app)
     assert [item['id'] for item in result['requirements']] == ['secondary']
     assert events(app) == [expected_event(app, 'infra-secondary', token='explicit-parameter')]
+    assert protected(app, selected) == before
+    ordinary_again(app, 'infra', cwd=caller)
     assert protected(app, selected) == before
 
 
 def test_two_absolute_local_entries_keep_other_installation_unchanged(apps, tmp_path):
     a, b = apps['A'], apps['B']
     before_b = protected(b)
-    success(invoke(a, 'run', cwd=tmp_path), 'run')
+    success(invoke(a, 'run', cwd=tmp_path), 'run', a)
     assert events(a) == [expected_event(a, 'run')]
     assert events(b) == [] and protected(b) == before_b
     before_a = protected(a)
-    success(invoke(b, 'run', cwd=tmp_path), 'run')
+    success(invoke(b, 'run', cwd=tmp_path), 'run', b)
     assert events(b) == [expected_event(b, 'run')]
     assert events(a) == [expected_event(a, 'run')] and protected(a) == before_a
     assert a.module != b.module
+
+
+def test_runtime_oracle_distinguishes_engine_from_external_probe_parameters(apps, tmp_path):
+    """A/configB is valid, but its observed engine must not be mistaken for B."""
+    a, b = apps['A'], apps['B']
+    before_a, before_b = protected(a), protected(b)
+    result = success(invoke(a, 'run', '--config', b.main, '--parameters', b.parameters,
+        '--base-dir', b.workspace, '--requirements', '["launch"]', cwd=tmp_path), 'run', a)
+    assert events(b) == [expected_event(b, 'run')] and events(a) == []
+    with pytest.raises(AssertionError):
+        assert_runtime(result, b)
+    assert protected(a) == before_a and protected(b) == before_b
 
 
 def test_disposable_runtime_cleanup_preserves_short_entry_and_settings(apps):
@@ -265,9 +339,9 @@ def test_disposable_runtime_cleanup_preserves_short_entry_and_settings(apps):
     temporary.mkdir(exist_ok=True)
     (temporary / 'session.txt').write_text('disposable', encoding='utf-8')
     before = protected(app)
-    success(invoke(app, 'deps'), 'deps')
+    success(invoke(app, 'deps'), 'deps', app)
     shutil.rmtree(temporary)
-    success(invoke(app, 'deps'), 'deps')
+    success(invoke(app, 'deps'), 'deps', app)
     assert events(app) == [expected_event(app, 'deps'), expected_event(app, 'deps')]
     assert protected(app) == before
 
@@ -298,6 +372,37 @@ def test_missing_needed_invocation_setting_is_not_an_implicit_default(apps, fiel
     assert events(app) == []
 
 
+@pytest.mark.parametrize('case', fixture('invalid-defaults.json'), ids=lambda case: case['case'])
+def test_unusable_invocation_shape_has_diagnostic_and_no_effects(apps, case):
+    app = apps['A']
+    main = json.loads(app.main.read_text(encoding='utf-8'))
+    selected = main
+    for part in case['path'][:-1]:
+        selected = selected[part]
+    if case.get('delete', False):
+        del selected[case['path'][-1]]
+    else:
+        selected[case['path'][-1]] = case['value']
+    write(app.main, main)
+    before = protected(app)
+    completed = invoke(app, 'infra')
+    assert completed.returncode == 2
+    diagnostic = completed.stderr.decode(errors='replace').strip().splitlines()[-1]
+    for term in case['diagnostic']:
+        assert term in diagnostic
+    assert events(app) == [] and protected(app) == before
+
+
+def test_explicit_relative_cli_base_directory_stays_invalid(apps):
+    app = apps['A']
+    before = protected(app)
+    completed = invoke(app, 'infra', '--config', app.main, '--parameters', app.parameters,
+                       '--base-dir', 'workspace', '--requirements', '["base"]')
+    assert completed.returncode == 2
+    assert b'absolute' in completed.stderr.lower()
+    assert events(app) == [] and protected(app) == before
+
+
 def test_external_failure_keeps_attempted_records_and_stops_later_commands(apps):
     app = apps['A']
     path = app.root / 'infra.json'
@@ -309,6 +414,7 @@ def test_external_failure_keeps_attempted_records_and_stops_later_commands(apps)
     assert completed.returncode == 1, completed.stderr.decode(errors='replace')
     result = json.loads(completed.stdout)
     assert result['status'] == 'failed'
+    assert_runtime(result, app)
     assert [item['id'] for item in result['requirements']] == ['base']
     assert [item['exit_code'] for item in result['requirements'][0]['result']['commands']] == [0, 7]
     assert events(app) == [expected_event(app, 'infra-first'), expected_event(app, 'infra-second')]

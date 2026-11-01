@@ -1,0 +1,21 @@
+[
+  {
+    "selection": "all",
+    "ids": [
+      "decoy",
+      "secondary",
+      "base"
+    ],
+    "tags": [
+      "unselected-mutation",
+      "infra-secondary",
+      "infra-first",
+      "infra-second"
+    ]
+  },
+  {
+    "selection": [],
+    "ids": [],
+    "tags": []
+  }
+]

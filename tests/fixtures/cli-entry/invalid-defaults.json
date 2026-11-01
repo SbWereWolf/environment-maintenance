@@ -1,0 +1,72 @@
+[
+  {
+    "case": "null-invocation",
+    "path": [
+      "invocation"
+    ],
+    "value": null,
+    "diagnostic": [
+      "invocation"
+    ]
+  },
+  {
+    "case": "array-invocation",
+    "path": [
+      "invocation"
+    ],
+    "value": [],
+    "diagnostic": [
+      "invocation"
+    ]
+  },
+  {
+    "case": "parameter-path-type",
+    "path": [
+      "invocation",
+      "parameters"
+    ],
+    "value": [],
+    "diagnostic": [
+      "parameters"
+    ]
+  },
+  {
+    "case": "base-path-type",
+    "path": [
+      "invocation",
+      "base_dir"
+    ],
+    "value": false,
+    "diagnostic": [
+      "base_dir"
+    ]
+  },
+  {
+    "case": "missing-current-operation",
+    "path": [
+      "invocation",
+      "requirements",
+      "infra"
+    ],
+    "delete": true,
+    "diagnostic": [
+      "requirements",
+      "infra"
+    ]
+  },
+  {
+    "case": "selection-type",
+    "path": [
+      "invocation",
+      "requirements",
+      "infra"
+    ],
+    "value": {
+      "id": "base"
+    },
+    "diagnostic": [
+      "requirements",
+      "infra"
+    ]
+  }
+]
