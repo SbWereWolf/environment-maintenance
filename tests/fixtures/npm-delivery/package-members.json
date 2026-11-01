@@ -2,6 +2,7 @@
   "pyproject.toml",
   "README.md",
   "src/environment_maintenance/cli.py",
+  "src/environment_maintenance/invocation.py",
   "src/environment_maintenance/configuration/json_patch.py",
   "src/environment_maintenance/actions/transport.py",
   "docs/installation.md",

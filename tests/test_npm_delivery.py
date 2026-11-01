@@ -12,6 +12,9 @@ import pytest
 from npm_delivery_support import FIXTURES, ROOT, PackageLab, fixture, write_json
 
 
+CANDIDATE_VERSION = fixture('candidate-version.json')['version']
+
+
 @pytest.fixture(scope='module')
 def package():
     lab = PackageLab()
@@ -51,7 +54,7 @@ def assert_json_equal(actual, expected):
 
 
 def assert_entry_identity(identity, prefix):
-    assert identity['version'] == identity['metadata'] == '2.0.0'
+    assert identity['version'] == identity['metadata'] == CANDIDATE_VERSION
     assert type(identity['pid']) is int and identity['pid'] > 0
     assert Path(identity['executable']).is_relative_to(prefix)
     assert Path(identity['prefix']).is_relative_to(prefix)
@@ -85,14 +88,14 @@ def assert_action(action, scenario, label, profile):
 
 def test_candidate_python_metadata_identifies_new_delivery():
     metadata = tomllib.loads((ROOT / 'pyproject.toml').read_text())
-    assert metadata['project']['version'] == '2.0.0', 'Missing agreed 2.0.0 candidate identity'
+    assert metadata['project']['version'] == CANDIDATE_VERSION, 'Missing agreed candidate identity'
 
 
 def test_archive_provides_version_and_short_command(package):
     package.require_package()
     with tarfile.open(package.archive) as archive:
         metadata = json.load(archive.extractfile('package/package.json'))
-        assert metadata['version'] == '2.0.0'
+        assert metadata['version'] == CANDIDATE_VERSION
         assert 'start-app' in metadata['bin']
         assert archive.getmember('package/' + metadata['bin']['start-app']).isfile()
 
@@ -120,7 +123,7 @@ def test_short_entry_from_another_cwd(package, consumer, argument):
     result = package.capture('short-entry', [consumer.entry, argument], package.root, timeout=20)
     assert result.returncode == 0 and result.stderr == b''
     if argument == '--version':
-        assert result.stdout == b'environment-maintenance 2.0.0\n'
+        assert result.stdout == f'environment-maintenance {CANDIDATE_VERSION}\n'.encode()
     else:
         for name in (b'infra', b'deps', b'adjust', b'check', b'run'):
             assert name in result.stdout
@@ -285,5 +288,5 @@ def test_npm_uninstall_and_reinstall_same_archive(package):
     repeated = package.install('lifecycle')
     require(package, repeated)
     version = package.capture('reinstalled-version', [repeated.entry, '--version'], package.root, timeout=20)
-    assert (version.returncode, version.stdout, version.stderr) == (0, b'environment-maintenance 2.0.0\n', b'')
+    assert (version.returncode, version.stdout, version.stderr) == (0, f'environment-maintenance {CANDIDATE_VERSION}\n'.encode(), b'')
     assert hashlib.sha256(package.archive.read_bytes()).hexdigest() == package.archive_digest
