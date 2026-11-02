@@ -1,6 +1,7 @@
 """PK03–PK06: actual npm entries, independent effects and preserved instances."""
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -29,8 +30,8 @@ def ordinary_profile(package, consumer, directory, token='chosen-token-Ω'):
     profile = package.scenario(directory, consumer)
     profile.consumer = consumer
     profile.package_root = consumer.python.parent.parent.parent
-    profile.ordinary = profile.package_root / 'start-app.json'
-    profile.ordinary_values = profile.package_root / 'start-app-values.json'
+    profile.ordinary = directory / 'start-app.json'
+    profile.ordinary_values = directory / 'start-app-values.json'
     profile.data = directory / 'retained-data.txt'
     profile.data.write_text('Retain application data\n', encoding='utf-8')
     profile.data.chmod(0o600)
@@ -65,10 +66,11 @@ def protected(profile):
 
 def invoke(package, profile, operation, form, *arguments, cwd=None, identity=False):
     if form == 'local':
-        entry, selected_cwd = './start-app', profile.consumer.entry.parent
+        entry, selected_cwd = 'start-app', profile.directory
     else:
-        entry, selected_cwd = profile.consumer.entry, cwd or package.root
+        entry, selected_cwd = profile.consumer.entry, cwd or profile.directory
     environment = dict(package.env, PYTHONPATH=str(profile.plugins))
+    environment['PATH'] = str(profile.consumer.entry.parent) + os.pathsep + package.env['PATH']
     if identity:
         environment['NPM_TEST_ENTRY_IDENTITY'] = '1'
     return package.capture('ordinary-' + operation + '-' + form,
@@ -135,6 +137,14 @@ def test_all_five_operations_use_both_real_short_entry_forms(package, consumer, 
                                                           operation, form):
     profile = ordinary_profile(package, consumer, tmp_path / 'inputs')
     before = protected(profile)
+    explicit = ['--config', profile.ordinary, '--parameters', profile.ordinary_values,
+                '--base-dir', profile.serviced]
+    if operation != 'check':
+        explicit += ['--requirements', '["selected"]']
+    control = answer(invoke(package, profile, operation, form, *explicit), operation)
+    assert_effects(control, profile, operation)
+    assert protected(profile) == before
+    profile.events.unlink()
     result = answer(invoke(package, profile, operation, form), operation)
     assert_effects(result, profile, operation)
     labels = ['infra', 'deps', 'check'] if operation == 'check' else [operation]
@@ -151,12 +161,12 @@ def test_relative_parameter_override_is_one_call_across_npm_boundary(package, co
     write_json(override, dict(profile.parameters, token='override-token-Ω'))
     override_before = override.read_bytes(), override.stat().st_mode & 0o777
     before = protected(profile)
-    result = answer(invoke(package, profile, 'deps', 'absolute', '--parameters',
+    result = answer(invoke(package, profile, 'deps', 'absolute', '--config', profile.ordinary, '--parameters',
         'chosen.json', cwd=caller), 'deps')
     assert_effects(result, profile, 'deps', 'override-token-Ω')
     assert protected(profile) == before
     profile.events.unlink()
-    result = answer(invoke(package, profile, 'deps', 'absolute', cwd=caller), 'deps')
+    result = answer(invoke(package, profile, 'deps', 'absolute'), 'deps')
     assert_effects(result, profile, 'deps')
     assert protected(profile) == before
     assert (override.read_bytes(), override.stat().st_mode & 0o777) == override_before
@@ -190,7 +200,7 @@ def test_relative_main_override_anchors_defaults_at_main_without_persisting(pack
     assert [row['id'] for row in result['requirements']] == ['selected']
     assert protected(profile) == before
     profile.events.unlink()
-    result = answer(invoke(package, profile, 'deps', 'absolute', cwd=caller), 'deps')
+    result = answer(invoke(package, profile, 'deps', 'absolute'), 'deps')
     assert_effects(result, profile, 'deps')
     assert protected(profile) == before
     assert {str(path): (path.read_bytes(), path.stat().st_mode & 0o777) for path in extra} == extra_before

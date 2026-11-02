@@ -2,6 +2,7 @@
 import hashlib
 from importlib.metadata import distribution
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -201,10 +202,10 @@ def parameters_with_token(app, target, token):
     write(target, values)
 
 
-def ordinary_again(app, operation, *, cwd=None):
+def ordinary_again(app, operation):
     """Clear only observation output, without resetting any configuration."""
     app.events.unlink(missing_ok=True)
-    assert_operation_effects(app, operation, invoke(app, operation, cwd=cwd))
+    assert_operation_effects(app, operation, invoke(app, operation))
 
 
 def test_relative_config_keeps_caller_anchor_and_main_relative_defaults(apps, tmp_path):
@@ -222,7 +223,7 @@ def test_relative_config_keeps_caller_anchor_and_main_relative_defaults(apps, tm
     success(invoke(app, 'deps', '--config', 'profiles/alternate.json', cwd=caller), 'deps', app)
     assert events(app) == [expected_event(app, 'deps', cwd=workspace, token='main-parameter')]
     assert protected(app, selected) == before
-    ordinary_again(app, 'deps', cwd=caller)
+    ordinary_again(app, 'deps')
     assert protected(app, selected) == before
 
 
@@ -233,10 +234,11 @@ def test_relative_parameter_override_keeps_other_installation_defaults(apps, tmp
     parameters_with_token(app, app.root / 'values/chosen.json', 'installation-decoy')
     selected = [caller / 'values/chosen.json']
     before = protected(app, selected)
-    success(invoke(app, 'deps', '--parameters', 'values/chosen.json', cwd=caller), 'deps', app)
+    success(invoke(app, 'deps', '--config', app.main,
+        '--parameters', 'values/chosen.json', cwd=caller), 'deps', app)
     assert events(app) == [expected_event(app, 'deps', token='caller-parameter')]
     assert protected(app, selected) == before
-    ordinary_again(app, 'deps', cwd=caller)
+    ordinary_again(app, 'deps')
     assert protected(app, selected) == before
 
 
@@ -304,21 +306,73 @@ def test_full_explicit_form_preserves_caller_relative_paths_without_invocation(a
     assert [item['id'] for item in result['requirements']] == ['secondary']
     assert events(app) == [expected_event(app, 'infra-secondary', token='explicit-parameter')]
     assert protected(app, selected) == before
-    ordinary_again(app, 'infra', cwd=caller)
+    ordinary_again(app, 'infra')
     assert protected(app, selected) == before
 
 
 def test_two_absolute_local_entries_keep_other_installation_unchanged(apps, tmp_path):
     a, b = apps['A'], apps['B']
     before_b = protected(b)
-    success(invoke(a, 'run', cwd=tmp_path), 'run', a)
+    success(invoke(a, 'run'), 'run', a)
     assert events(a) == [expected_event(a, 'run')]
     assert events(b) == [] and protected(b) == before_b
     before_a = protected(a)
-    success(invoke(b, 'run', cwd=tmp_path), 'run', b)
+    success(invoke(b, 'run'), 'run', b)
     assert events(b) == [expected_event(b, 'run')]
     assert events(a) == [expected_event(a, 'run')] and protected(a) == before_a
     assert a.module != b.module
+
+
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
+def test_one_package_entry_uses_current_project_not_runtime_prefix(apps, tmp_path, operation):
+    runtime, selected = apps['A'], apps['B']
+    project = tmp_path / 'project with configuration only'
+    project.mkdir()
+    names = ['start-app.json', 'parameters.json', 'infra.json', 'deps.json',
+             'adjust.json', 'check.json', 'run.json']
+    for name in names:
+        shutil.copy2(selected.root / name, project / name)
+    main = json.loads((project / 'start-app.json').read_text())
+    main['invocation']['base_dir'] = str(selected.workspace)
+    write(project / 'start-app.json', main)
+    project_before = {name: (project / name).read_bytes() for name in names}
+    runtime_before, selected_before = protected(runtime), protected(selected)
+    environment = dict(os.environ, PATH=str(runtime.entry.parent) + os.pathsep + os.environ['PATH'])
+    expected = fixture('expected.json')[operation]
+    explicit = ['--config', str(project / 'start-app.json'),
+                '--parameters', str(project / 'parameters.json'),
+                '--base-dir', str(selected.workspace)]
+    if operation != 'check':
+        explicit += ['--requirements', json.dumps(expected['ids'])]
+    control = subprocess.run(['start-app', operation, *explicit], cwd=project,
+        env=environment, capture_output=True, timeout=20)
+    success(control, operation, runtime)
+    assert events(selected) == [expected_event(selected, tag) for tag in expected['tags']]
+    assert events(runtime) == []
+    selected.events.unlink()
+    completed = subprocess.run(['start-app', operation], cwd=project,
+        env=environment, capture_output=True, timeout=20)
+    result = success(completed, operation, runtime)
+    records = result['resources'] if operation == 'check' else result['requirements']
+    assert [row['id'] for row in records] == expected['ids']
+    if operation == 'check':
+        assert [row['id'] for row in result['checks']] == ['consistency']
+    assert events(selected) == [expected_event(selected, tag) for tag in expected['tags']]
+    assert events(runtime) == []
+    assert protected(runtime) == runtime_before and protected(selected) == selected_before
+    assert {name: (project / name).read_bytes() for name in names} == project_before
+    assert sorted(path.name for path in project.iterdir()) == sorted(names)
+
+
+def test_missing_current_project_config_does_not_select_runtime_prefix(apps, tmp_path):
+    runtime = apps['A']
+    project = tmp_path / 'project without its main'
+    project.mkdir()
+    before = protected(runtime)
+    completed = invoke(runtime, 'infra', cwd=project)
+    assert completed.returncode == 2
+    assert str(project / 'start-app.json').encode() in completed.stderr
+    assert events(runtime) == [] and protected(runtime) == before
 
 
 def test_runtime_oracle_distinguishes_engine_from_external_probe_parameters(apps, tmp_path):
@@ -429,6 +483,7 @@ def test_explicit_catalog_ignores_present_ordinary_main(apps, tmp_path, operatio
     app = apps['A']
     item, state, log = stateful_requirement(tmp_path, initial)
     catalog(tmp_path, [item])
+    alternate_main(app, tmp_path / 'start-app.json')
     before = protected(app)
     completed = invoke(app, operation, '--catalog-dir', 'catalog-v2', cwd=tmp_path)
     assert completed.returncode == 0, completed.stderr.decode(errors='replace')

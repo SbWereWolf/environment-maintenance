@@ -45,7 +45,7 @@ def main(argv=None):
         try:
             invocation = resolve_invocation(
                 args.command, args.config, args.parameters, args.base_dir,
-                args.requirements, instance_root=Path(sys.prefix).parent,
+                args.requirements, instance_root=Path.cwd(),
                 read_document=read_json,
             )
         except ValueError as exc:
