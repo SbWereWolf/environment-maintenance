@@ -4,7 +4,7 @@
 
 ## Договор экземпляра
 
-Версия 2.1.0 поставляется самостоятельным пакетом. Стандартный npm устанавливает
+Версия 3.0.0 поставляется самостоятельным пакетом. Стандартный npm устанавливает
 выбранный tgz в отдельный prefix и предоставляет его `bin/start-app`.
 Lifecycle создаёт `.venv` внутри пакета; pip устанавливает Python-проект,
 `jsonpatch` и `jsonpointer`. Исходники, docs/tests/examples и один AI-скилл
@@ -26,8 +26,8 @@ Lifecycle создаёт `.venv` внутри пакета; pip устанавл
 
 Корневой `./start-app` комплекта выбирает `ROOT/.venv` с `-I`.
 Npm-вход выбирает `PACKAGE_ROOT/.venv` с `-P -s -B`, сохраняя cwd и обычный
-явно подготовленный import path. После подготовки используйте локальный вход
-конкретной установки либо его абсолютный путь. Другие экземпляры сохраняются.
+явно подготовленный import path. Оператор предоставляет `PREFIX/bin` через `PATH`.
+Пользователь вызывает пакетную команду из каталога проекта. Другие экземпляры сохраняются.
 [Постоянный профиль](persistent-entry.md#выбор-установки-и-рабочего-файла)
 объясняет точное расположение `start-app.json` для обоих входов.
 
@@ -35,11 +35,11 @@ Npm-вход выбирает `PACKAGE_ROOT/.venv` с `-P -s -B`, сохраня
 
 | Обычный вызов | Полный справочник и инструкция |
 |---|---|
-| `./start-app --version`, `--help` | Версия/справка выбранной установки без действий |
-| `./start-app infra`, `deps` | [Подготовка ресурсов](resource-preparation.md#команды-и-аргументы) |
-| `./start-app adjust` | [Согласование](settings-alignment.md#входы-и-результаты) |
-| `./start-app check` | [Проверки](resource-checking.md#команды-и-аргументы) |
-| `./start-app run` | [Запуск процессов](process-launch.md#входы-и-аргументы) |
+| `start-app --version`, `--help` | Версия/справка выбранной установки без действий |
+| `start-app infra`, `deps` | [Подготовка ресурсов](resource-preparation.md#команды-и-аргументы) |
+| `start-app adjust` | [Согласование](settings-alignment.md#входы-и-результаты) |
+| `start-app check` | [Проверки](resource-checking.md#команды-и-аргументы) |
+| `start-app run` | [Запуск процессов](process-launch.md#входы-и-аргументы) |
 | Явные `check/run --catalog-dir` | [Отдельный каталоговый договор](configuration.md#команды-и-аргументы) |
 
 Пути, значения и выбор ресурсов берутся из постоянного профиля.
@@ -67,7 +67,7 @@ package_root=/absolute/path/to/prefix/lib/node_modules/environment-maintenance
 app_python="$package_root/.venv/bin/python"
 workspace=/absolute/path/to/private-workspace
 prefix=/absolute/path/to/prefix
-archive=/absolute/path/to/environment-maintenance-2.1.0.tgz
+archive=/absolute/path/to/environment-maintenance-3.0.0.tgz
 prerequisite_python=/absolute/path/to/python3
 export package_root app_python workspace
 ```
@@ -96,13 +96,14 @@ npm pack --json --pack-destination /absolute/path/to/candidate
 Передайте архив и его SHA-256. Установка выбранных байтов в отдельный prefix:
 
 ```bash
-ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-2.1.0.tgz
+ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-3.0.0.tgz
 /absolute/path/to/prefix/bin/start-app --version
 npm root --global --prefix /absolute/path/to/prefix
 ```
 
-Ожидаемая версия — `environment-maintenance 2.1.0`. Последняя команда показывает
+Ожидаемая версия — `environment-maintenance 3.0.0`. Последняя команда показывает
 корень npm-модулей; добавьте `environment-maintenance` для каталога пакета.
+Предоставьте `PREFIX/bin` через `PATH` установленного окружения.
 Идентифицируйте реальный source/tree/tgz digest, runtime и результаты проверки.
 Публикация в реестре — отдельное действие, эта инструкция её не выполняет.
 
@@ -115,25 +116,28 @@ npm root --global --prefix /absolute/path/to/prefix
 Следуйте [инструкции постоянного входа](persistent-entry.md#пошаговая-инструкция).
 Приложение или настроенный владелец развёртывания создаёт рабочие main/parameters
 и отдельные документы операций через свой конфиг. Примеры остаются в пакете;
-рабочие копии хранятся вне `.runtime` и Git. Подготовка готового обработчика
-в собственной среде — часть этой однократной настройки.
+рабочие копии хранятся вне `.runtime` и Git. Один и тот же пакетный вход используется во всех
+проектах; их программные обёртки
+не требуются. Подготовка готового обработчика в собственном runtime SDK — часть
+однократной настройки; общий обработчик уже предоставлен примерами пакета.
 
 ### Исполнить пять выбранных операций через короткий вход
 
-В каталоге выбранного локального входа:
+В каталоге проекта с подготовленным `start-app.json`:
 
 ```bash
-./start-app infra
-./start-app deps
-./start-app adjust
-./start-app check
-./start-app run
+start-app infra
+start-app deps
+start-app adjust
+start-app check
+start-app run
 ```
 
 Ожидаются успешные результаты объявленных приложением команд.
 Учебный профиль и его точные события описаны у
 [постоянного входа](persistent-entry.md#пять-обычных-операций).
-Работа из постороннего cwd использует абсолютный вход той же установки.
+Из постороннего cwd укажите main проекта через необязательный `--config`.
+Абсолютный пакетный вход выбирает runtime; обычный main по-прежнему определяется cwd.
 Дополнительные ключи нужны только для осознанных переопределений одного вызова.
 
 ### Прочитать и изменить конфиг через установленную библиотеку
@@ -195,7 +199,7 @@ ENVIRONMENT_MAINTENANCE_PYTHON="$prerequisite_python" npm install --global --pre
 sha256sum "$archive"
 ```
 
-Версия снова2.1.0, digest архива прежний. Аналогично обновление устанавливает
+Версия снова3.0.0, digest архива прежний. Аналогично обновление устанавливает
 новый отдельно выбранный проверенный пакет в свой prefix. Полученные результаты
 и tgz передаются получателю до удаления демонстрационных рабочих материалов.
 Рабочие конфиги/журналы не помещаются в историю версий.

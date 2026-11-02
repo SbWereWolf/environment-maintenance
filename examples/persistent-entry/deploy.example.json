@@ -7,9 +7,9 @@
           "argv": [
             "${copy}",
             "${example_root}/start-app.example.json",
-            "${package_root}/start-app.json"
+            "${project_root}/start-app.json"
           ],
-          "cwd": "${package_root}",
+          "cwd": "${project_root}",
           "env": {},
           "interpreter": {
             "name": "result",
@@ -24,9 +24,9 @@
           "argv": [
             "${copy}",
             "${example_root}/infra.example.json",
-            "${package_root}/infra.json"
+            "${project_root}/infra.json"
           ],
-          "cwd": "${package_root}",
+          "cwd": "${project_root}",
           "env": {},
           "interpreter": {
             "name": "result",
@@ -41,9 +41,9 @@
           "argv": [
             "${copy}",
             "${example_root}/deps.example.json",
-            "${package_root}/deps.json"
+            "${project_root}/deps.json"
           ],
-          "cwd": "${package_root}",
+          "cwd": "${project_root}",
           "env": {},
           "interpreter": {
             "name": "result",
@@ -58,9 +58,9 @@
           "argv": [
             "${copy}",
             "${example_root}/adjust.example.json",
-            "${package_root}/adjust.json"
+            "${project_root}/adjust.json"
           ],
-          "cwd": "${package_root}",
+          "cwd": "${project_root}",
           "env": {},
           "interpreter": {
             "name": "result",
@@ -75,9 +75,9 @@
           "argv": [
             "${copy}",
             "${example_root}/check.example.json",
-            "${package_root}/check.json"
+            "${project_root}/check.json"
           ],
-          "cwd": "${package_root}",
+          "cwd": "${project_root}",
           "env": {},
           "interpreter": {
             "name": "result",
@@ -92,9 +92,9 @@
           "argv": [
             "${copy}",
             "${example_root}/run.example.json",
-            "${package_root}/run.json"
+            "${project_root}/run.json"
           ],
-          "cwd": "${package_root}",
+          "cwd": "${project_root}",
           "env": {},
           "interpreter": {
             "name": "result",
@@ -109,9 +109,9 @@
           "argv": [
             "${copy}",
             "${filled_parameters}",
-            "${package_root}/parameters.json"
+            "${project_root}/parameters.json"
           ],
-          "cwd": "${package_root}",
+          "cwd": "${project_root}",
           "env": {},
           "interpreter": {
             "name": "result",
