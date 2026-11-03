@@ -1,0 +1,18 @@
+{
+  "requirements": [
+    {
+      "id": "connections",
+      "network": {
+        "ports": [{"parameter": "HTTP_PORT", "host": "127.0.0.1", "operator_note": {"preserve": false}}],
+        "addresses": {
+          "BASE_URL": "http://127.0.0.1:${HTTP_PORT}",
+          "CALLBACK_URL": "http://127.0.0.1:${HTTP_PORT}/callback",
+          "HEALTH_URL": "http://127.0.0.1:${HTTP_PORT}/health"
+        },
+        "unknown_network_metadata": {"preserve": [0, false]}
+      },
+      "unknown_requirement_metadata": "preserve"
+    }
+  ],
+  "unknown_document_metadata": {"preserve": true}
+}

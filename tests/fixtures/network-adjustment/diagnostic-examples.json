@@ -1,0 +1,13 @@
+{
+  "valid": [
+    "Не удалось сохранить {path}: Permission denied. Восстановите права на каталог и выполните start-app adjust --parameters \"{path}\".",
+    "{path}: EACCES. После восстановления доступа используйте python -m environment_maintenance adjust --parameters \"{path}\".",
+    "Ошибка сохранения {path}: нет прав на запись. Восстановите доступ и выполните environment-maintenance adjust."
+  ],
+  "invalid": [
+    "adjust: повторите",
+    "{path}: исправьте настройки и выполните start-app adjust.",
+    "Permission denied. Выполните start-app adjust.",
+    "{path}: Permission denied."
+  ]
+}

@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import re
 import socket
 import stat
 import subprocess
@@ -83,7 +84,7 @@ def arguments(s, selection='all'):
 
 def invoke(s, selection='all'):
     env = dict(os.environ, PYTHONPATH=os.pathsep.join((str(ROOT / 'src'),
-        str(ROOT / 'tests/fixtures/settings-alignment'))), PYTHONDONTWRITEBYTECODE='1')
+        str(DATA))), PYTHONDONTWRITEBYTECODE='1')
     process = subprocess.run([sys.executable, '-B', '-m', 'environment_maintenance',
         *arguments(s, selection)], cwd=s.home, env=env, capture_output=True, timeout=15)
     return record_cli(process, s.home)
@@ -150,12 +151,19 @@ def success(payload, s, *, changed=True):
     return port
 
 
-def failure(process, s, code, before, ids=('connections',)):
+def diagnostic(error, contexts, cause):
+    assert isinstance(error, str) and error.strip()
+    assert any(context in error for context in contexts), 'Identify the affected declaration or file'
+    assert any(re.search(pattern, error, re.IGNORECASE)
+               for pattern in fixture('diagnostic-causes.json')[cause]), 'Explain the observed cause'
+    assert re.search(r'(?:\b(?:start-app|environment-maintenance)\s+adjust\b|'
+                     r'-m\s+environment_maintenance\s+adjust\b)', error), 'Give an executable continuation'
+
+
+def failure(process, s, code, before, ids=('connections',), *, contexts, cause):
     payload = response(process, 1)
     error = payload['error']
-    assert isinstance(error, str) and error.strip()
-    assert 'adjust' in error.lower(), 'Failure needs an executable continuation'
-    assert any(word in error.lower() for word in ('провер', 'повтор', 'укаж', 'обнов'))
+    diagnostic(error, contexts, cause)
     expected = fixture('failure.json')
     row = expected['requirements'][0]
     expected['requirements'] = []
@@ -314,7 +322,8 @@ def test_claimed_owner_requires_matching_process_identity_and_listener(scenario,
         else:
             set_owner(s, other.pid, other.start_ticks)
         before = s.values.read_bytes()
-        failure(invoke(s), s, 'ownership_mismatch', before)
+        failure(invoke(s), s, 'ownership_mismatch', before,
+                contexts=('HTTP_PORT', 'connections'), cause=kind)
         http(first)
         http(other)
 
@@ -342,7 +351,8 @@ def test_unreadable_declared_process_evidence_is_not_foreign_allocation(scenario
                 for name in names:
                     patch.setattr(owner, name, denying(getattr(owner, name)))
             process = invoke_here(s)
-        failure(process, s, 'ownership_unavailable', before)
+        failure(process, s, 'ownership_unavailable', before,
+                contexts=('HTTP_PORT', 'connections'), cause='unavailable')
         http(own)
 
 
@@ -369,7 +379,8 @@ def test_later_reservation_failure_preserves_file_and_releases_siblings(scenario
             with monkeypatch.context() as patch:
                 patch.setattr(socket.socket, 'bind', bind)
                 process = invoke_here(s)
-            failure(process, s, 'allocation_failed', before, ids=('http', 'admin'))
+            failure(process, s, 'allocation_failed', before, ids=('http', 'admin'),
+                    contexts=('ADMIN_PORT', 'admin'), cause='allocation')
             assert refused and ports, 'Fault must occur with an actual sibling reservation held'
             assert all(candidate.fileno() == -1 for candidate in held)
             for port in ports:
@@ -412,7 +423,7 @@ def test_atomic_replace_failure_retains_bytes_mode_and_cleans_staging(scenario, 
                 patch.setattr(os, 'replace', refuse)
                 patch.setattr(socket.socket, 'bind', bind)
                 process = invoke_here(s)
-            failure(process, s, 'write_failed', before)
+            failure(process, s, 'write_failed', before, contexts=(str(s.values),), cause='write')
             assert len(candidates) == 1
             temporary, value = candidates[0]
             port = value['HTTP_PORT']
@@ -428,21 +439,24 @@ def test_atomic_replace_failure_retains_bytes_mode_and_cleans_staging(scenario, 
                 candidate.close()
 
 
-@pytest.mark.parametrize('case', fixture('invalid.json'), ids=lambda case: case['id'])
-def test_network_preflight_refuses_known_invalid_fields_without_effects(scenario, monkeypatch, case):
-    s = scenario
-    value = read_values(s) if case['target'] == 'parameters' else fixture('adjust.json')
-    position = value
-    for key in case['path'][:-1]:
-        position = position[key]
-    if case.get('delete'):
-        del position[case['path'][-1]]
-    else:
-        position[case['path'][-1]] = case['value']
-    if case['target'] == 'parameters':
-        write(s.values, value)
-    else:
-        profile(s, value)
+def initial_free_port():
+    # Arrange an observed initial value, never predict the allocator's replacement.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as candidate:
+        candidate.bind(('127.0.0.1', 0))
+        return candidate.getsockname()[1]
+
+
+def legacy_inputs(s):
+    value = fixture('main.json')
+    value['interpreters']['exit'] = dict(module='network_adjustment_interpreter', attribute='exit_result')
+    write(s.main, value)
+    s.inputs[s.main] = s.main.read_bytes()
+    value = read_values(s)
+    value.update(python=sys.executable, probe=str(DATA / 'trace.py'), trace=str(s.trace))
+    write(s.values, value)
+
+
+def preflight(s, monkeypatch, field):
     before = s.values.read_bytes()
     binds, publications = [], []
     original_bind, original_replace = socket.socket.bind, os.replace
@@ -456,18 +470,46 @@ def test_network_preflight_refuses_known_invalid_fields_without_effects(scenario
         return original_replace(source, target)
 
     with monkeypatch.context() as patch:
+        patch.syspath_prepend(str(DATA))
         patch.setattr(socket.socket, 'bind', bind)
         patch.setattr(os, 'replace', replace)
         process = invoke_here(s)
     assert process.returncode == 2 and process.stdout == b''
-    assert b'network' in process.stderr and case['field'].encode() in process.stderr
+    assert b'network' in process.stderr and field.encode() in process.stderr
     assert SECRET.encode() not in process.stderr
     assert binds == [] and publications == []
+    assert not s.trace.exists()
     unchanged(s, before)
+    return process
+
+
+@pytest.mark.parametrize('case', fixture('invalid.json'), ids=lambda case: case['id'])
+def test_network_preflight_refuses_known_invalid_fields_without_effects(scenario, monkeypatch, case):
+    s = scenario
+    if case.get('positive_port'):
+        seed_port(s, initial_free_port())
+    if case.get('with_commands'):
+        legacy_inputs(s)
+    value = read_values(s) if case['target'] == 'parameters' else fixture('adjust.json')
+    if case.get('with_commands'):
+        value['requirements'][0]['commands'] = [fixture('command.json')]
+    position = value
+    for key in case['path'][:-1]:
+        position = position[key]
+    if case.get('delete'):
+        del position[case['path'][-1]]
+    else:
+        position[case['path'][-1]] = case['value']
+    if case['target'] == 'parameters':
+        write(s.values, value)
+    else:
+        profile(s, value)
+    process = preflight(s, monkeypatch, case['field'])
+    assert re.search(case['correction'], process.stderr.decode(), re.IGNORECASE), 'Explain a corrective value or selection'
 
 
 @pytest.mark.parametrize('same_row', [True, False], ids=['same-row', 'mixed-selection'])
-def test_mixed_network_and_commands_refused_before_trace_command(scenario, same_row):
+def test_mixed_network_and_commands_refused_before_trace_command(scenario, monkeypatch, same_row):
     s = scenario
     document = fixture('adjust.json')
     command = fixture('command.json')
@@ -476,20 +518,59 @@ def test_mixed_network_and_commands_refused_before_trace_command(scenario, same_
     else:
         document['requirements'].insert(0, dict(id='legacy', commands=[command]))
     profile(s, document)
-    main_document = fixture('main.json')
-    main_document['interpreters']['exit'] = dict(module='plugins', attribute='exit_result')
-    write(s.main, main_document)
-    s.inputs[s.main] = s.main.read_bytes()
-    value = read_values(s)
-    value.update(python=sys.executable, probe=str(DATA / 'trace.py'), trace=str(s.trace))
-    write(s.values, value)
-    before = s.values.read_bytes()
-    process = invoke(s)
-    assert process.returncode == 2 and process.stdout == b''
-    assert b'network' in process.stderr and b'adjust' in process.stderr
+    legacy_inputs(s)
+    process = preflight(s, monkeypatch, 'adjust')
     assert '--requirements' in process.stderr.decode()
-    assert not s.trace.exists()
-    unchanged(s, before)
+
+
+def test_initial_free_positive_port_kept_while_stale_addresses_repaired(scenario):
+    s = scenario
+    initial = initial_free_port()
+    seed_port(s, initial)
+    assert read_values(s)['BASE_URL'] != f'http://127.0.0.1:{initial}'
+    assert success(response(invoke(s)), s) == initial
+    with owned_server(initial, 'retained-free-port') as server:
+        http(server)
+
+
+def test_terminated_owner_is_mismatch_and_preserves_configuration(scenario):
+    s = scenario
+    with owned_server() as former:
+        seed_port(s, former.port)
+        set_owner(s, former.pid, former.start_ticks)
+    assert former.process.poll() is not None
+    assert not Path(f'/proc/{former.pid}').exists(), 'The fixture needs an absent, reaped PID'
+    before = s.values.read_bytes()
+    failure(invoke(s), s, 'ownership_mismatch', before,
+            contexts=('HTTP_PORT', 'connections'), cause='dead-owner')
+
+
+@pytest.mark.parametrize('kind', ['ports-only', 'new-output'])
+def test_valid_address_shapes_and_unknown_metadata_preserved(scenario, kind):
+    s = scenario
+    document = fixture('valid-adjust.json')
+    if kind == 'ports-only':
+        document['requirements'][0]['network']['addresses'] = {}
+    profile(s, document)
+    write(s.values, fixture('valid-parameters.json'))
+    assert 'HEALTH_URL' not in read_values(s)
+    payload = response(invoke(s))
+    values = read_values(s)
+    port = values['HTTP_PORT']
+    assert type(port) is int and 0 < port <= 65535
+    expected = fixture('valid-parameters.json')
+    expected['HTTP_PORT'] = port
+    if kind == 'new-output':
+        expected.update(BASE_URL=f'http://127.0.0.1:{port}',
+                        CALLBACK_URL=f'http://127.0.0.1:{port}/callback',
+                        HEALTH_URL=f'http://127.0.0.1:{port}/health')
+    same_scalars(values, expected)
+    expected_result = fixture(kind + '-success.json')
+    expected_result['requirements'][0]['result']['network']['ports']['HTTP_PORT'] = port
+    assert payload == expected_result
+    assert payload['requirements'][0]['result']['network']['changed'] is True
+    unchanged(s)
+    can_bind(port)
 
 
 def test_empty_network_selection_has_no_effects(scenario):

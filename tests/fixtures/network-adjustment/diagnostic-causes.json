@@ -1,0 +1,44 @@
+{
+  "write": [
+    "test-owned publication refusal",
+    "permission denied",
+    "eacces",
+    "отказано в доступе",
+    "\\bправ(?:а|о|ам|ами|ах)?\\b"
+  ],
+  "allocation": [
+    "test-owned replacement allocation refusal",
+    "enobufs",
+    "buffer",
+    "буфер"
+  ],
+  "unavailable": [
+    "test-owned evidence refusal",
+    "permission denied",
+    "eacces",
+    "недоступ",
+    "отказано в доступе",
+    "\\bправ(?:а|о|ам|ами|ах)?\\b"
+  ],
+  "wrong-start": [
+    "(?:start_ticks|start time|врем[яе] старта|identity|идентичност).*(?:mismatch|different|не совпад|несовпад|измен)",
+    "(?:mismatch|different|не совпад|несовпад|измен).*(?:start_ticks|start time|врем[яе] старта|identity|идентичност)"
+  ],
+  "pid-without-listener": [
+    "(?:no\\b|not\\b|missing|without|не\\b|нет\\b|отсутств).*(?:listener|socket|слуш|сокет)",
+    "(?:listener|socket|слуш|сокет).*(?:missing|absent|mismatch|не принадлеж|отсутств|не найден)",
+    "not listening|не слушает"
+  ],
+  "dead-owner": [
+    "dead",
+    "terminated",
+    "not found",
+    "no such process",
+    "no such file",
+    "enoent",
+    "не найден",
+    "не существует",
+    "заверш",
+    "отсутств"
+  ]
+}

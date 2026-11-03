@@ -1,14 +1,427 @@
 [
-  {"id": "bool-port", "target": "parameters", "path": ["HTTP_PORT"], "value": true, "field": "HTTP_PORT"},
-  {"id": "negative-port", "target": "parameters", "path": ["HTTP_PORT"], "value": -1, "field": "HTTP_PORT"},
-  {"id": "large-port", "target": "parameters", "path": ["HTTP_PORT"], "value": 65536, "field": "HTTP_PORT"},
-  {"id": "missing-port", "target": "parameters", "path": ["HTTP_PORT"], "delete": true, "field": "HTTP_PORT"},
-  {"id": "hostname", "target": "profile", "path": ["requirements", 0, "network", "ports", 0, "host"], "value": "localhost", "field": "host"},
-  {"id": "null-owner", "target": "profile", "path": ["requirements", 0, "network", "ports", 0, "owner"], "value": null, "field": "owner"},
-  {"id": "incomplete-owner", "target": "profile", "path": ["requirements", 0, "network", "ports", 0, "owner"], "value": {"pid": 1}, "field": "owner"},
-  {"id": "duplicate-port", "target": "profile", "path": ["requirements", 0, "network", "ports"], "value": [{"parameter": "HTTP_PORT", "host": "127.0.0.1"}, {"parameter": "HTTP_PORT", "host": "127.0.0.1"}], "field": "HTTP_PORT"},
-  {"id": "port-output-overlap", "target": "profile", "path": ["requirements", 0, "network", "addresses"], "value": {"HTTP_PORT": "http://127.0.0.1:${HTTP_PORT}"}, "field": "HTTP_PORT"},
-  {"id": "unknown-variable", "target": "profile", "path": ["requirements", 0, "network", "addresses", "BASE_URL"], "value": "http://${MISSING}", "field": "MISSING"},
-  {"id": "derived-variable", "target": "profile", "path": ["requirements", 0, "network", "addresses", "CALLBACK_URL"], "value": "${BASE_URL}/callback", "field": "BASE_URL"},
-  {"id": "bad-template", "target": "profile", "path": ["requirements", 0, "network", "addresses", "BASE_URL"], "value": "http://${", "field": "BASE_URL"}
+  {
+    "id": "bool-port",
+    "target": "parameters",
+    "path": [
+      "HTTP_PORT"
+    ],
+    "value": true,
+    "field": "HTTP_PORT",
+    "correction": "integer|\\bint\\b|целочисл|целым|целое"
+  },
+  {
+    "id": "string-port",
+    "target": "parameters",
+    "path": [
+      "HTTP_PORT"
+    ],
+    "value": "12345",
+    "field": "HTTP_PORT",
+    "correction": "integer|\\bint\\b|целочисл|целым|целое"
+  },
+  {
+    "id": "fractional-port",
+    "target": "parameters",
+    "path": [
+      "HTTP_PORT"
+    ],
+    "value": 12345.5,
+    "field": "HTTP_PORT",
+    "correction": "integer|\\bint\\b|целочисл|целым|целое"
+  },
+  {
+    "id": "negative-port",
+    "target": "parameters",
+    "path": [
+      "HTTP_PORT"
+    ],
+    "value": -1,
+    "field": "HTTP_PORT",
+    "correction": "0.*65535|range|диапазон"
+  },
+  {
+    "id": "large-port",
+    "target": "parameters",
+    "path": [
+      "HTTP_PORT"
+    ],
+    "value": 65536,
+    "field": "HTTP_PORT",
+    "correction": "0.*65535|range|диапазон"
+  },
+  {
+    "id": "missing-port",
+    "target": "parameters",
+    "path": [
+      "HTTP_PORT"
+    ],
+    "delete": true,
+    "field": "HTTP_PORT",
+    "correction": "required|missing|exist|отсутств|существ|обязател"
+  },
+  {
+    "id": "hostname",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "host"
+    ],
+    "value": "localhost",
+    "field": "host",
+    "correction": "IPv4|numeric|числов|127\\.0\\.0\\.1"
+  },
+  {
+    "id": "null-owner",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": null,
+    "positive_port": true,
+    "field": "owner",
+    "correction": "object|pid|start_ticks|объект"
+  },
+  {
+    "id": "incomplete-owner",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 1
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "object|pid|start_ticks|объект"
+  },
+  {
+    "id": "bool-pid",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": true,
+      "start_ticks": "1"
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "integer|positive|\\bint\\b|целочисл|положитель"
+  },
+  {
+    "id": "zero-pid",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 0,
+      "start_ticks": "1"
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "integer|positive|\\bint\\b|целочисл|положитель"
+  },
+  {
+    "id": "string-pid",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": "1",
+      "start_ticks": "1"
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "integer|positive|\\bint\\b|целочисл|положитель"
+  },
+  {
+    "id": "fractional-pid",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 1.5,
+      "start_ticks": "1"
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "integer|positive|\\bint\\b|целочисл|положитель"
+  },
+  {
+    "id": "integer-ticks",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 1,
+      "start_ticks": 1
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "string|decimal|ASCII|canonical|строк|десятич|канонич"
+  },
+  {
+    "id": "empty-ticks",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 1,
+      "start_ticks": ""
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "string|decimal|ASCII|canonical|строк|десятич|канонич"
+  },
+  {
+    "id": "nondecimal-ticks",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 1,
+      "start_ticks": "12x"
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "string|decimal|ASCII|canonical|строк|десятич|канонич"
+  },
+  {
+    "id": "unicode-ticks",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 1,
+      "start_ticks": "١٢"
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "string|decimal|ASCII|canonical|строк|десятич|канонич"
+  },
+  {
+    "id": "leading-zero-ticks",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports",
+      0,
+      "owner"
+    ],
+    "value": {
+      "pid": 1,
+      "start_ticks": "01"
+    },
+    "positive_port": true,
+    "field": "owner",
+    "correction": "string|decimal|ASCII|canonical|строк|десятич|канонич"
+  },
+  {
+    "id": "null-network-with-commands",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network"
+    ],
+    "value": null,
+    "with_commands": true,
+    "field": "network",
+    "correction": "object|объект|--requirements"
+  },
+  {
+    "id": "wrong-network-with-commands",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network"
+    ],
+    "value": [],
+    "with_commands": true,
+    "field": "network",
+    "correction": "object|объект|--requirements"
+  },
+  {
+    "id": "empty-ports",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports"
+    ],
+    "value": [],
+    "field": "ports",
+    "correction": "non.?empty|not empty|at least|непуст|хотя бы"
+  },
+  {
+    "id": "wrong-ports",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports"
+    ],
+    "value": {},
+    "field": "ports",
+    "correction": "array|list|массив|спис"
+  },
+  {
+    "id": "nonstring-recipe",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "addresses",
+      "BASE_URL"
+    ],
+    "value": 42,
+    "field": "BASE_URL",
+    "correction": "string|строк"
+  },
+  {
+    "id": "duplicate-port",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "ports"
+    ],
+    "value": [
+      {
+        "parameter": "HTTP_PORT",
+        "host": "127.0.0.1"
+      },
+      {
+        "parameter": "HTTP_PORT",
+        "host": "127.0.0.1"
+      }
+    ],
+    "field": "HTTP_PORT",
+    "correction": "unique|duplicate|повтор|уник|дублир"
+  },
+  {
+    "id": "port-output-overlap",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "addresses"
+    ],
+    "value": {
+      "HTTP_PORT": "http://127.0.0.1:${HTTP_PORT}"
+    },
+    "field": "HTTP_PORT",
+    "correction": "overlap|duplicate|output|пересеч|совпад|адрес|дублир"
+  },
+  {
+    "id": "unknown-variable",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "addresses",
+      "BASE_URL"
+    ],
+    "value": "http://${MISSING}",
+    "field": "MISSING",
+    "correction": "missing|unknown|exist|неизвест|отсутств|существ"
+  },
+  {
+    "id": "derived-variable",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "addresses",
+      "CALLBACK_URL"
+    ],
+    "value": "${BASE_URL}/callback",
+    "field": "BASE_URL",
+    "correction": "derived|output|reference|производ|выход|ссыл"
+  },
+  {
+    "id": "bad-template",
+    "target": "profile",
+    "path": [
+      "requirements",
+      0,
+      "network",
+      "addresses",
+      "BASE_URL"
+    ],
+    "value": "http://${",
+    "field": "BASE_URL",
+    "correction": "template|syntax|placeholder|шаблон|синтакс"
+  }
 ]
