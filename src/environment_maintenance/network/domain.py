@@ -100,8 +100,6 @@ def plan_network(requirements: list[dict], parameters: dict) -> tuple[NetworkReq
             outputs.add(key)
             if not isinstance(recipe, str):
                 raise ValueError(f"{context}.addresses.{key}: expected string recipe")
-            if key in parameters and not isinstance(parameters[key], str):
-                raise ValueError(f"{context}.addresses.{key}: existing address must be a string")
         plans.append(NetworkRequirement(requirement['id'], tuple(ports), dict(addresses)))
     overlap = port_names & outputs
     if overlap:
@@ -109,6 +107,8 @@ def plan_network(requirements: list[dict], parameters: dict) -> tuple[NetworkReq
     for plan in plans:
         for key, recipe in plan.addresses.items():
             context = f'adjust requirement {plan.id} network.addresses.{key}'
+            if key in parameters and not isinstance(parameters[key], str):
+                raise ValueError(f"{context}: existing address must be a string")
             template = Template(recipe)
             if not template.is_valid():
                 raise ValueError(f"{context}: invalid Template syntax; correct the recipe")
