@@ -1,0 +1,21 @@
+{
+  "operation": "adjust",
+  "status": "failed",
+  "requirements": [
+    {
+      "id": "<selected-id>",
+      "result": {
+        "status": "failed",
+        "commands": [],
+        "error": "<observed-actionable-error>",
+        "network": {
+          "ports": {},
+          "addresses": [],
+          "changed": false,
+          "error_code": "<expected-code>"
+        }
+      }
+    }
+  ],
+  "error": "<observed-actionable-error>"
+}

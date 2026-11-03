@@ -1,0 +1,16 @@
+{
+  "requirements": [
+    {
+      "id": "connections",
+      "network": {
+        "ports": [{"parameter": "HTTP_PORT", "host": "127.0.0.1"}],
+        "addresses": {
+          "BASE_URL": "http://127.0.0.1:${HTTP_PORT}",
+          "CALLBACK_URL": "http://127.0.0.1:${HTTP_PORT}/callback"
+        },
+        "unrelated_metadata": "preserve opaque configuration"
+      },
+      "unrelated_metadata": {"enabled": false}
+    }
+  ]
+}

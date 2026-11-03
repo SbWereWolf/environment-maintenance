@@ -1,0 +1,27 @@
+{
+  "operation": "adjust",
+  "status": "succeeded",
+  "requirements": [
+    {
+      "id": "admin",
+      "result": {
+        "status": "succeeded", "commands": [], "error": null,
+        "network": {
+          "ports": {"ADMIN_PORT": "<observed-port>"},
+          "addresses": ["ADMIN_URL"], "changed": true, "error_code": null
+        }
+      }
+    },
+    {
+      "id": "http",
+      "result": {
+        "status": "succeeded", "commands": [], "error": null,
+        "network": {
+          "ports": {"HTTP_PORT": "<observed-port>"},
+          "addresses": ["BASE_URL", "CALLBACK_URL"], "changed": true, "error_code": null
+        }
+      }
+    }
+  ],
+  "error": null
+}

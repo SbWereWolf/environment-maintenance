@@ -1,0 +1,21 @@
+{
+  "requirements": [
+    {
+      "id": "http",
+      "network": {
+        "ports": [{"parameter": "HTTP_PORT", "host": "127.0.0.1"}],
+        "addresses": {
+          "BASE_URL": "http://127.0.0.1:${HTTP_PORT}",
+          "CALLBACK_URL": "http://127.0.0.1:${HTTP_PORT}/callback"
+        }
+      }
+    },
+    {
+      "id": "admin",
+      "network": {
+        "ports": [{"parameter": "ADMIN_PORT", "host": "127.0.0.1"}],
+        "addresses": {"ADMIN_URL": "http://127.0.0.1:${ADMIN_PORT}/admin"}
+      }
+    }
+  ]
+}

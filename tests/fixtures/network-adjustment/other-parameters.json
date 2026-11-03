@@ -1,0 +1,9 @@
+{
+  "HTTP_PORT": 0,
+  "BASE_URL": "http://other-instance.invalid:0",
+  "CALLBACK_URL": "http://other-instance.invalid:0/callback",
+  "PRIVATE_TOKEN": "other-instance-private-sentinel",
+  "ZERO": 99,
+  "ENABLED": true,
+  "NOTE": "Посторонний экземпляр"
+}

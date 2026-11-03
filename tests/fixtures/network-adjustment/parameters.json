@@ -1,0 +1,9 @@
+{
+  "HTTP_PORT": 0,
+  "BASE_URL": "http://127.0.0.1:0",
+  "CALLBACK_URL": "http://127.0.0.1:0/callback",
+  "PRIVATE_TOKEN": "unrelated-private-sentinel-network-test",
+  "ZERO": 0,
+  "ENABLED": false,
+  "NOTE": "Пример окружения"
+}

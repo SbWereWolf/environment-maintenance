@@ -1,0 +1,6 @@
+{
+  "argv": ["${python}", "-B", "${probe}", "${trace}"],
+  "cwd": ".",
+  "env": {},
+  "interpreter": {"name": "exit", "options": {"accept": [0]}}
+}

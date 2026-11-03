@@ -1,0 +1,9 @@
+{
+  "operations": {"adjust": "adjust.json"},
+  "interpreters": {},
+  "invocation": {
+    "parameters": "default parameters.json",
+    "base_dir": ".",
+    "requirements": {"adjust": "all"}
+  }
+}
