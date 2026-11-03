@@ -13,7 +13,7 @@ instructions](../../../docs/persistent-entry.md#пошаговая-инстру�
 Read the [npm contract and immediate walkthrough
 link](../../../docs/npm-distribution.md#пакетная-поставка-npm)
 and [installation choices](../../../docs/installation.md#npm-поставка).
-The current 3.0.0 source and retained issued 1.0.0/2.0.0/2.1.0 supplies are distinct.
+The current 3.1.0 supply and retained issued 1.0.0/2.0.0/2.1.0/3.0.0 supplies are distinct.
 This skill grants no publication or live-consumer update authority.
 
 ## Install and identify an instance

@@ -12,5 +12,8 @@
   "examples/process-launch/start_console.py",
   "tests/smoke.sh",
   "tests/test_process_launch.py",
-  ".agents/skills/environment-maintenance/SKILL.md"
+  ".agents/skills/environment-maintenance/SKILL.md",
+  "docs/requirements/schema.sql",
+  "docs/requirements/data/0001_em_port_agreement.sql",
+  "docs/requirements/data/0001_em_port_agreement.rollback.sql"
 ]

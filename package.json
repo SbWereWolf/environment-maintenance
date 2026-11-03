@@ -1,6 +1,6 @@
 {
   "name": "environment-maintenance",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Инструмент обслуживания окружения по конфигурации",
   "bin": {
     "start-app": "src/npm-start-app.cjs"
@@ -22,6 +22,7 @@
     "src/**/*.py",
     "src/npm-*.cjs",
     "docs/**/*.md",
+    "docs/**/*.sql",
     "examples/**/*.py",
     "examples/**/*.json",
     "examples/**/*.md",

@@ -4,7 +4,7 @@
 
 ## Договор экземпляра
 
-Версия 3.0.0 поставляется самостоятельным пакетом. Стандартный npm устанавливает
+Версия 3.1.0 поставляется самостоятельным пакетом. Стандартный npm устанавливает
 выбранный tgz в отдельный prefix и предоставляет его `bin/start-app`.
 Lifecycle создаёт `.venv` внутри пакета; pip устанавливает Python-проект,
 `jsonpatch` и `jsonpointer`. Исходники, docs/tests/examples и один AI-скилл
@@ -67,7 +67,7 @@ package_root=/absolute/path/to/prefix/lib/node_modules/environment-maintenance
 app_python="$package_root/.venv/bin/python"
 workspace=/absolute/path/to/private-workspace
 prefix=/absolute/path/to/prefix
-archive=/absolute/path/to/environment-maintenance-3.0.0.tgz
+archive=/absolute/path/to/environment-maintenance-3.1.0.tgz
 prerequisite_python=/absolute/path/to/python3
 export package_root app_python workspace
 ```
@@ -96,12 +96,12 @@ npm pack --json --pack-destination /absolute/path/to/candidate
 Передайте архив и его SHA-256. Установка выбранных байтов в отдельный prefix:
 
 ```bash
-ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-3.0.0.tgz
+ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-3.1.0.tgz
 /absolute/path/to/prefix/bin/start-app --version
 npm root --global --prefix /absolute/path/to/prefix
 ```
 
-Ожидаемая версия — `environment-maintenance 3.0.0`. Последняя команда показывает
+Ожидаемая версия — `environment-maintenance 3.1.0`. Последняя команда показывает
 корень npm-модулей; добавьте `environment-maintenance` для каталога пакета.
 Предоставьте `PREFIX/bin` через `PATH` установленного окружения.
 Идентифицируйте реальный source/tree/tgz digest, runtime и результаты проверки.
@@ -199,7 +199,7 @@ ENVIRONMENT_MAINTENANCE_PYTHON="$prerequisite_python" npm install --global --pre
 sha256sum "$archive"
 ```
 
-Версия снова3.0.0, digest архива прежний. Аналогично обновление устанавливает
+Версия снова3.1.0, digest архива прежний. Аналогично обновление устанавливает
 новый отдельно выбранный проверенный пакет в свой prefix. Полученные результаты
 и tgz передаются получателю до удаления демонстрационных рабочих материалов.
 Рабочие конфиги/журналы не помещаются в историю версий.
