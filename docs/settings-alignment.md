@@ -185,7 +185,7 @@ server = HTTPServer(("127.0.0.1", int(sys.argv[1])),
 print(server.server_port, flush=True)
 server.serve_forever()
 '''
-commands, children = [], []
+commands, children, responses = [], [], []
 
 def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
@@ -212,7 +212,9 @@ def server(port, directory):
 def marker(port):
     with urlopen(f'http://127.0.0.1:{port}/', timeout=5) as response:
         assert response.status == 200
-        return response.read()
+        body = response.read()
+        responses.append(dict(port=port, status=response.status, body=body.decode()))
+        return body
 
 with TemporaryDirectory(prefix='em-network-') as temporary:
     work = Path(temporary)
@@ -282,12 +284,14 @@ with TemporaryDirectory(prefix='em-network-') as temporary:
 assert all(child['reaped'] for child in children)
 print(json.dumps(dict(status='succeeded', occupied=occupied, assigned=assigned,
     parameters=saved, file_mode='0640', inputs_preserved=True,
-    commands=commands, children=children), ensure_ascii=False))
+    commands=commands, children=children, http=responses,
+    owner=network['ports'][0]['owner']), ensure_ascii=False))
 PY
 ```
 
 Ожидаются код `0` и JSON с `status="succeeded"`, разными `occupied`/`assigned`,
 согласованными `parameters`, сохранённым режимом и `reaped=true` обоих серверов.
+Поле `http` содержит фактические HTTP-маркеры, `owner` — наблюдённые PID/start_ticks.
 Массив `commands` сохраняет полные результаты: отказ второй привязки ожидаем,
 три вызова `adjust` успешны. Серверы завершаются, временные файлы удаляются.
 В рабочем проекте вызывайте `run` или свой запуск отдельно после согласования.
