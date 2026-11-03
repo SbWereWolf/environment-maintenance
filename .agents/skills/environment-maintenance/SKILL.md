@@ -1,6 +1,6 @@
 ---
 name: environment-maintenance
-description: Use a selected environment-maintenance instance for persistent short operation commands and public configuration-library operations.
+description: Use a selected environment-maintenance instance for persistent operations, declared network agreement and public configuration-library operations.
 ---
 
 # Environment maintenance
@@ -53,7 +53,7 @@ and [the actual installed-bin walkthrough](../../../docs/npm-distribution.md#п�
 |---|---|
 | Prepare infrastructure | `start-app infra` |
 | Prepare dependencies | `start-app deps` |
-| Align declared settings | `start-app adjust` |
+| Agree declared ports/addresses or run settings commands | `start-app adjust` |
 | Observe resources/settings | `start-app check` |
 | Launch declared processes | `start-app run` |
 
@@ -66,6 +66,16 @@ examples](../../../docs/persistent-entry.md#переопределение-од�
 Projects provide configuration and application CLI tools, without integration wrappers,
 adapters, parsers or dispatchers. Use the same package entry for ERP and Poise.
 Actual consumer readiness must be verified by its delivery owner.
+
+For automatic port/address agreement, use the selected instance's file-backed adjust
+CLI and its actual parameters file. Read the [network declaration](../../../docs/settings-alignment.md#декларация-сетевого-согласования),
+[complete two-server instructions](../../../docs/settings-alignment.md#два-http-сервера),
+[own live process evidence](../../../docs/settings-alignment.md#собственный-работающий-экземпляр)
+and [failure/continuation contract](../../../docs/settings-alignment.md#результат-и-отказ-сетевого-режима).
+Select network and command requirements in separate calls. The dictionary API below
+remains command-only; it does not authorize guessing a file path. Read the canonical
+operator fields and limits rather than copying them into a project wrapper.
+Source capability and actual issued-package availability are separate observations.
 
 Choose all, an ID array or [] using each operation's contract. Main config maps operations
 to separate requirement documents. Commands/templates/plugins belong to the serviced app.

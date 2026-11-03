@@ -1,0 +1,10 @@
+INSERT INTO requirements_meta(revision) VALUES (1);
+INSERT INTO requirements(id, level, status, text) VALUES ('EM-SYS-INSTANCE-ADDRESS-AGREEMENT', 'system', 'future', 'При совместной работе экземпляров сервисов на одном узле конфликт сетевых адресов разрешается с сохранением доступности экземпляров и согласованного состояния их настроек.');
+INSERT INTO requirements(id, level, status, text) VALUES ('EM-APP-FREE-PORT-ALLOCATION', 'application', 'future', 'При занятом объявленном порте согласование окружения автоматически выделяет пригодный свободный порт назначенному экземпляру сервиса.');
+INSERT INTO requirements(id, level, status, text) VALUES ('EM-APP-DEPENDENT-ADDRESS-AGREEMENT', 'application', 'future', 'После согласования окружения порт и зависящие от него адреса в сохранённых настройках назначенного экземпляра согласованы и позволяют обращаться к запущенному экземпляру.');
+INSERT INTO requirements(id, level, status, text) VALUES ('EM-APP-STABLE-INSTANCE-ALLOCATION', 'application', 'future', 'При повторном согласовании пригодное назначение сохраняется, включая порт собственного подтверждённого работающего процесса; другие экземпляры и посторонние настройки сохраняют своё состояние.');
+INSERT INTO requirements(id, level, status, text) VALUES ('EM-APP-ADDRESS-AGREEMENT-FAILURE', 'application', 'future', 'При невозможности выделить порт или сохранить согласованные настройки операция сообщает причину и исполнимое продолжение, сохраняя предыдущее согласованное состояние.');
+INSERT INTO requirement_links(system_id, application_id) VALUES ('EM-SYS-INSTANCE-ADDRESS-AGREEMENT', 'EM-APP-FREE-PORT-ALLOCATION');
+INSERT INTO requirement_links(system_id, application_id) VALUES ('EM-SYS-INSTANCE-ADDRESS-AGREEMENT', 'EM-APP-DEPENDENT-ADDRESS-AGREEMENT');
+INSERT INTO requirement_links(system_id, application_id) VALUES ('EM-SYS-INSTANCE-ADDRESS-AGREEMENT', 'EM-APP-STABLE-INSTANCE-ALLOCATION');
+INSERT INTO requirement_links(system_id, application_id) VALUES ('EM-SYS-INSTANCE-ADDRESS-AGREEMENT', 'EM-APP-ADDRESS-AGREEMENT-FAILURE');
