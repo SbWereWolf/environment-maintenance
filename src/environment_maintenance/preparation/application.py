@@ -21,12 +21,26 @@ def prepare_resources(
     reader: RequirementsReader,
     planner: ActionOperation,
     executor: ActionOperation,
+    network_adjuster: ActionOperation | None = None,
 ) -> dict[str, Any]:
     try:
         requirements = reader(config_path, operation, selection)
         validate_execution_inputs(parameters, base_dir, interpreters)
     except ValueError as exc:
         raise ValueError(f"{operation} configuration: {exc}") from exc
+
+    if operation == 'adjust' and any('network' in item for item in requirements):
+        if any('network' not in item or 'commands' in item for item in requirements):
+            raise ValueError(
+                "adjust network and commands require separate invocations; "
+                "use --requirements to select each group separately"
+            )
+        if network_adjuster is None:
+            raise ValueError(
+                "adjust network requires the file-backed CLI: "
+                "use start-app adjust --parameters with the selected parameters file"
+            )
+        return network_adjuster(requirements, parameters)
 
     for requirement in requirements:
         try:
