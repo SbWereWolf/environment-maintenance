@@ -4,8 +4,10 @@
 
 ## Договор экземпляра
 
-Версия 3.1.0 поставляется самостоятельным пакетом. Стандартный npm устанавливает
-выбранный tgz в отдельный prefix и предоставляет его `bin/start-app`.
+Версия 3.1.0 поставляется самостоятельным пакетом. Приложение устанавливает
+выбранный tgz своей локальной npm-зависимостью и получает
+`node_modules/.bin/start-app`. Отдельная глобальная установка в выбранный prefix
+также поддерживается и предоставляет `bin/start-app`.
 Lifecycle создаёт `.venv` внутри пакета; pip устанавливает Python-проект,
 `jsonpatch` и `jsonpointer`. Исходники, docs/tests/examples и один AI-скилл
 находятся в этом экземпляре. Конфиги и инструменты обслуживаемого приложения
@@ -26,7 +28,8 @@ Lifecycle создаёт `.venv` внутри пакета; pip устанавл
 
 Корневой `./start-app` комплекта выбирает `ROOT/.venv` с `-I`.
 Npm-вход выбирает `PACKAGE_ROOT/.venv` с `-P -s -B`, сохраняя cwd и обычный
-явно подготовленный import path. Оператор предоставляет `PREFIX/bin` через `PATH`.
+явно подготовленный import path. Оператор предоставляет собственный
+`node_modules/.bin` либо выбранный `PREFIX/bin` через `PATH`.
 Пользователь вызывает пакетную команду из каталога проекта. Другие экземпляры сохраняются.
 [Постоянный профиль](persistent-entry.md#выбор-установки-и-рабочего-файла)
 объясняет точное расположение `start-app.json` для обоих входов.
@@ -61,6 +64,9 @@ env/stdin/stdout/stderr и обычные/сигнальные исходы вы
 `app_python` — его `.venv/bin/python`, `workspace` — существующий собственный
 каталог данных; `prefix`, `archive`, `prerequisite_python` нужны для обслуживания
 самой установки. Это контекст примеров API, а не обязательные параметры запуска.
+Для локальной зависимости возьмите `package_root` и `app_python` из
+[собственного npm-проекта](#собственная-зависимость-приложения).
+Следующий блок показывает расположение именно глобального prefix-варианта.
 
 ```bash
 package_root=/absolute/path/to/prefix/lib/node_modules/environment-maintenance
@@ -84,6 +90,85 @@ npm-вход использует собственный установленн�
 фиксируются отдельно.
 
 ## Пошаговая инструкция
+
+### Собственная зависимость приложения
+
+У каждого независимого приложения свой npm-проект инструментов, установленный
+пакет и Python-окружение. Для приложения без корневого npm-проекта подходит
+собственный `.runtime/environment-maintenance`. Это постоянная установленная
+зависимость приложения; каталог задачи или соседний checkout производителя
+не заменяет её. Несколько регистраций одного приложения используют его экземпляр.
+
+Подготовьте выбранный неизменяемый архив и перейдите в приложение:
+
+```bash
+cd /absolute/path/to/application
+tools="$PWD/.runtime/environment-maintenance"
+mkdir -p "$tools/vendor"
+cp /absolute/path/to/issued/environment-maintenance-3.1.0.tgz "$tools/vendor/"
+sha256sum "$tools/vendor/environment-maintenance-3.1.0.tgz"
+cd "$tools"
+cat > package.json <<'JSON'
+{
+  "name": "application-environment-tools",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "environment-maintenance": "file:vendor/environment-maintenance-3.1.0.tgz"
+  }
+}
+JSON
+npm install --package-lock-only --ignore-scripts --offline --no-audit --no-fund
+ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm ci --ignore-scripts=false --foreground-scripts --offline --no-audit --no-fund
+npm ls --depth=0 --json
+./node_modules/.bin/start-app --version
+```
+
+Перед установкой сравните SHA-256 с переданным владельцем выпуска. Для выданного
+архива 3.1.0 это
+`0acef0fd8dca5632c88e3ad555de98341893db713ec9fb20d1bafcd13ec666a5`.
+Сохраните `package.json`, созданный npm `package-lock.json` и выбранный архив
+вместе с зависимостью приложения. Lock фиксирует `version: "3.1.0"`, локальный
+`resolved` и `integrity` архива. Локальный `file:` нужен для выданного tgz;
+публикация этой версии в реестре npm здесь не заявляется. Общий кеш загрузок
+допустим, установленный пакет и его `.venv` принадлежат отдельному приложению.
+
+`--offline` относится к npm. Pip отдельно получает зависимости из выбранного
+индекса либо подготовленных колёс. В проверенной автономной поставке у каждого
+приложения есть собственный `vendor/wheelhouse`; при установке и восстановлении
+передаются `PIP_NO_INDEX=1` и абсолютный `PIP_FIND_LINKS` этого каталога.
+
+Проверьте собственный runtime, сохраняя основной Python приложения:
+
+```bash
+package_root="$tools/node_modules/environment-maintenance"
+app_python="$package_root/.venv/bin/python"
+"$app_python" -I -B -c 'import sys, importlib.metadata, environment_maintenance as em; assert em.__version__ == importlib.metadata.version("environment-maintenance") == "3.1.0"; print(sys.executable, sys.prefix, em.__file__)'
+```
+
+Python, `sys.prefix` и импортированный модуль должны находиться в собственном
+установленном пакете приложения. Для профиля с обработчиком `interpreters`
+подготовьте поставленный пример в этом же SDK:
+
+```bash
+purelib=$("$app_python" -I -B -c 'import sysconfig; print(sysconfig.get_path("purelib"))')
+cp "$package_root/examples/resource-preparation/interpreters.py" "$purelib/interpreters.py"
+```
+
+Рабочие параметры приложения выбирают этот Python, собственный пакетный вход
+и, при использовании, собственный `examples/process-launch/start_console.py`.
+Предоставьте `"$tools/node_modules/.bin"` в PATH выбранного окружения. Абсолютный
+пакетный вход сохраняет выбор `start-app.json` по cwd; пути инструментального
+npm-проекта и обслуживаемого проекта могут различаться.
+
+Для восстановления выполните тот же `npm ci` из инструментального npm-проекта
+с теми же входами и настройками pip. Он восстанавливает только его `node_modules`;
+повторите подготовку дополнительных обработчиков собственного SDK. При обновлении
+сначала установите и проверьте выбранные байты, затем переключайте рабочие
+указатели приложения. Проверьте его реальные вызовы и сохранность других
+приложений. До успешной проверки сохраняйте прежнюю пригодную установку для
+согласованного возврата. Одного изменения пути к общему экземпляру недостаточно
+для поставки независимых зависимостей.
 
 ### Собрать и установить выбранный кандидат
 

@@ -18,6 +18,20 @@ This skill grants no publication or live-consumer update authority.
 
 ## Install and identify an instance
 
+For independent consumers follow the [application-owned dependency
+walkthrough](../../../docs/npm-distribution.md#собственная-зависимость-приложения).
+Each application owns its tooling npm project, package.json, npm-generated lock,
+selected immutable archive and installed node_modules/environment-maintenance/.venv.
+Use its node_modules/.bin/start-app and Python; preserve the application's main runtime.
+Multiple registrations of one application may select that application's same copy.
+An archive/cache may be shared; a shared installed runtime does not deliver independent
+application dependencies. Keep retained installations outside disposable Task roots.
+In the selected tooling project, create the lock with npm install --package-lock-only
+--ignore-scripts, then install/recover with npm ci --ignore-scripts=false and the
+selected prerequisite Python and pip inputs. Restore supplied SDK handlers after ci.
+Verify exact version, lock integrity, actual Python prefix/import path and other
+consumers after a scoped reinstall. Do not infer installed ownership from selectors.
+
 Follow the [complete correct installation
 walkthrough](../../../docs/npm-distribution.md#пошаговая-инструкция).
 Select the source/archive, absolute prerequisite Python and independent prefix first.
@@ -33,7 +47,8 @@ These are command shapes; the walkthrough supplies actual owned paths and checks
 | Remove own instance | `npm uninstall --global --prefix PREFIX environment-maintenance` |
 
 Npm creates the short bin; venv/pip install the own Python core and dependencies.
-Expose the selected PREFIX/bin through PATH. Run start-app OP from the serviced project.
+Expose the own node_modules/.bin or selected PREFIX/bin through PATH.
+Run start-app OP from the serviced project.
 Default main is cwd/start-app.json; the package selects the independent tool runtime.
 For library/examples, obtain package_root
 and app_python through the [common
