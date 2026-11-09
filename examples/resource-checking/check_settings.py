@@ -6,7 +6,7 @@ import sys
 
 from jsonpointer import JsonPointer, JsonPointerException
 
-from environment_maintenance.catalogue import read_json
+from environment_maintenance.configuration.json_file import read_json
 from environment_maintenance.configuration import read_requirements
 
 

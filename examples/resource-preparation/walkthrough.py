@@ -81,14 +81,14 @@ def main():
         assert_result(result, ["packages"], ["dependencies"], workspace)
         print("api deps: separate configuration")
         clear_events(workspace)
-        result = prepare_resources(config, "infra", ["later", "assets", "later"], parameters,
+        result = prepare_resources(config, "infra", ["later", "assets"], parameters,
                                    base_dir=workspace, interpreters=registry)
-        assert_result(result, ["later", "assets", "later"], ["later", "install", "configure", "later"], workspace)
+        assert_result(result, ["later", "assets"], ["later", "install", "configure"], workspace)
         clear_events(workspace)
         result = prepare_resources(config, "infra", [], parameters,
                                    base_dir=workspace, interpreters=registry)
         assert_result(result, [], [], workspace)
-        print("selection: ordered IDs, repeats, empty without effects")
+        print("selection: unique ordered IDs, empty without effects")
         registry["result"] = OpaqueResult()
         result = prepare_resources(config, "deps", "all", parameters,
                                    base_dir=workspace, interpreters=registry)
@@ -115,7 +115,7 @@ def main():
         assert [row["id"] for row in result["requirements"]] == ["assets"]
         commands = result["requirements"][0]["result"]["commands"]
         assert len(commands) == 1 and commands[0]["exit_code"] == 3
-        assert commands[0]["interpretation"]["error"] == "resource is not ready"
+        assert commands[0]["interpretation"]["error"] == "command exit code is not accepted"
         assert base64.b64decode(commands[0]["stdout"]["data"]) == b"\xffinstall\x00\n"
         assert base64.b64decode(commands[0]["stderr"]["data"]) == b"diagnostic:install\n"
         assert_events(workspace, ["install"])

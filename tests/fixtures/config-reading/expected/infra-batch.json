@@ -18,14 +18,5 @@
     "steps": [
       ["not-an-installed-command", "--listen", "${port}"]
     ]
-  },
-  {
-    "id": "queue",
-    "payload": {
-      "name": "orders",
-      "options": {
-        "durable": true
-      }
-    }
   }
 ]

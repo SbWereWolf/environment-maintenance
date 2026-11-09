@@ -1,5 +1,5 @@
 {
-  "requirements": [
+  "applications": [
     {
       "id": "web-one",
       "commands": [
@@ -38,7 +38,9 @@
           "interpreter": {
             "name": "result",
             "options": {
-              "accept": [0]
+              "accept": [
+                0
+              ]
             }
           }
         }
@@ -82,7 +84,9 @@
           "interpreter": {
             "name": "result",
             "options": {
-              "accept": [0]
+              "accept": [
+                0
+              ]
             }
           }
         }

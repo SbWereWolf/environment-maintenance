@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from ..catalogue import read_json
+from ..configuration.json_file import read_json
 from .application import ConfigurationReader, ConfigurationWriter
 
 

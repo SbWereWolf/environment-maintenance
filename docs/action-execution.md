@@ -4,11 +4,11 @@
 
 [Пошаговая инструкция всех возможностей](#пошаговая-инструкция).
 
-API доступен собственному Python npm-поставки 2.1.0.
+API доступен собственному Python npm-поставки 4.0.0.
 [Общий контекст](npm-distribution.md#библиотека-и-поставленные-примеры) объясняет
 выбор runtime и поставленного набора примеров. Примеры с `PYTHONPATH=src`
 явно используют выбранный исходный набор внутри пакета либо development checkout.
-Каталоговый CLI сохраняет [свой договор](configuration.md#команды-и-аргументы).
+[CLI reference](configuration.md#команды-и-аргументы) описывает действующие шесть команд.
 Поверх этого API доступна
 [подготовка ресурсов через API и CLI infra/deps/adjust](resource-preparation.md#подготовка-ресурсов),
 которая выбирает требования из отдельных конфигов и агрегирует их результаты.
@@ -113,6 +113,12 @@ execute_action(action, parameters, *, base_dir, interpreters)
 При отказе самого запуска интерпретатор не вызывается.
 Реальные разные реализации показаны в
 [walkthrough.py](../examples/action-execution/walkthrough.py).
+
+### Стандартный интерпретатор кода завершения
+
+Пакет предоставляет `environment_maintenance.actions.interpreters.ExitCodeInterpreter` и готовый `exit_result`. В main задаются module `environment_maintenance.actions.interpreters` и attribute `exit_result`; команда выбирает это binding по имени и явно передаёт `options.accept`, например `[0]`.
+
+`success` означает вхождение raw exit_code в accept, `value` сохраняет исходный код, `error` равен None либо непустой строке `command exit code is not accepted`. Это общий опциональный обработчик; прикладной анализ и другие value contracts остаются у приложения. Он работает из установленного пакета без examples.
 
 ## Итог исполнения
 

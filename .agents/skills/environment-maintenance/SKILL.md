@@ -1,225 +1,61 @@
 ---
 name: environment-maintenance
-description: Use a selected environment-maintenance instance for persistent operations, declared network agreement and public configuration-library operations.
+description: Use a selected environment-maintenance instance for configured servicing, named run/list/stop and public configuration APIs.
 ---
 
 # Environment maintenance
 
-Use one package-provided entry and its own runtime for application-owned JSON profiles.
-Read the [normal entry contract and immediate instruction
-link](../../../docs/persistent-entry.md#постоянный-вход-выбранной-установки)
-and [complete setup/verification
-instructions](../../../docs/persistent-entry.md#пошаговая-инструкция).
-Read the [npm contract and immediate walkthrough
-link](../../../docs/npm-distribution.md#пакетная-поставка-npm)
-and [installation choices](../../../docs/installation.md#npm-поставка).
-The current 3.1.0 supply and retained issued 1.0.0/2.0.0/2.1.0/3.0.0 supplies are distinct.
-This skill grants no publication or live-consumer update authority.
+Use the selected package entry and its own installed Python. Read the [CLI contract](../../../docs/configuration.md#команды-и-аргументы), [persistent profile](../../../docs/persistent-entry.md#пошаговая-инструкция) and [installation walkthrough](../../../docs/npm-distribution.md#пошаговая-инструкция) for the actual scenario. This instruction describes version4; retained earlier supplies keep their own contracts. Source capability, candidate validation and live installation readiness are separate facts.
 
-## Install and identify an instance
+## Select and restore an instance
 
-For independent consumers follow the [application-owned dependency
-walkthrough](../../../docs/npm-distribution.md#собственная-зависимость-приложения).
-Each application owns its tooling npm project, package.json, npm-generated lock,
-selected immutable archive and installed node_modules/environment-maintenance/.venv.
-Use its node_modules/.bin/start-app and Python; preserve the application's main runtime.
-Multiple registrations of one application may select that application's same copy.
-An archive/cache may be shared; a shared installed runtime does not deliver independent
-application dependencies. Keep retained installations outside disposable Task roots.
-In the selected tooling project, create the lock with npm install --package-lock-only
---ignore-scripts, then install/recover with npm ci --ignore-scripts=false and the
-selected prerequisite Python and pip inputs. Restore supplied SDK handlers after ci.
-Verify exact version, lock integrity, actual Python prefix/import path and other
-consumers after a scoped reinstall. Do not infer installed ownership from selectors.
+Each independent application owns its selected archive/npm manifest/generated lock and installed package/.venv. Use its node_modules/.bin/start-app or selected PREFIX/bin/start-app. Multiple registrations of that application may use its same copy. Retained supply belongs outside disposable Task roots; the package manager restores installed bytes. Do not make a disposable runtime the sole source of required code or configuration.
 
-Follow the [complete correct installation
-walkthrough](../../../docs/npm-distribution.md#пошаговая-инструкция).
-Select the source/archive, absolute prerequisite Python and independent prefix first.
-These are command shapes; the walkthrough supplies actual owned paths and checks:
+Follow [application-owned installation](../../../docs/npm-distribution.md#собственная-зависимость-приложения) and [migration](../../../docs/migration-v4.md#переход-конфигурации) before updating a selected instance. The configured external environment-maintenance owner performs persistent preparation where required by the project. This skill grants no publication, integration or live-upgrade authority. Keep application Python/dependencies distinct from the maintenance runtime.
 
-| Purpose | Command |
-|---|---|
-| Build selected source | `npm pack --json --pack-destination DIR` |
-| Install selected bytes | `ENVIRONMENT_MAINTENANCE_PYTHON=PYTHON npm install --global --prefix PREFIX --ignore-scripts=false ARCHIVE` |
-| Locate installed materials | `npm root --global --prefix PREFIX` |
-| Read version | `start-app --version` |
-| Read all argument help | `start-app --help` |
-| Remove own instance | `npm uninstall --global --prefix PREFIX environment-maintenance` |
+Identify exact version/prefix/module paths and archive/lock bytes. npm entry preserves caller cwd and chooses its own Python; root source entry uses its neighbouring installed .venv. Main defaults to CWD/start-app.json. From another cwd select --config explicitly. See the [override contract](../../../docs/persistent-entry.md#переопределение-одного-вызова).
 
-Npm creates the short bin; venv/pip install the own Python core and dependencies.
-Expose the own node_modules/.bin or selected PREFIX/bin through PATH.
-Run start-app OP from the serviced project.
-Default main is cwd/start-app.json; the package selects the independent tool runtime.
-For library/examples, obtain package_root
-and app_python through the [common
-setup](../../../docs/npm-distribution.md#библиотека-и-поставленные-примеры).
-Packaged source examples and actual npm bin observations are distinct; identify which ran.
-The root ./start-app selects its neighbouring installed .venv with -I.
+## Service declared resources
 
-## Run configured operations
-
-Read the [preparation owner and immediate
-instructions](../../../docs/resource-preparation.md#подготовка-ресурсов),
-[all shared CLI arguments](../../../docs/resource-preparation.md#команды-и-аргументы),
-[checking arguments](../../../docs/resource-checking.md#команды-и-аргументы)
-and [the actual installed-bin walkthrough](../../../docs/npm-distribution.md#пошаговая-инструкция).
-
-| Purpose | Command shape |
-|---|---|
-| Prepare infrastructure | `start-app infra` |
-| Prepare dependencies | `start-app deps` |
-| Agree declared ports/addresses or run settings commands | `start-app adjust` |
-| Observe resources/settings | `start-app check` |
-| Launch declared processes | `start-app run` |
-
-These are complete ordinary calls after one-time operator setup. Paths, parameters,
-IDs and order belong to the permanent main/operation files. An absolute package entry
-keeps cwd-based project selection; use --config to select a project from another cwd.
-Optional overrides apply only to that call; see the
-[path/override reference and immediate
-examples](../../../docs/persistent-entry.md#переопределение-одного-вызова).
-Projects provide configuration and application CLI tools, without integration wrappers,
-adapters, parsers or dispatchers. Use the same package entry for ERP and Poise.
-Actual consumer readiness must be verified by its delivery owner.
-
-For automatic port/address agreement, use the selected instance's file-backed adjust
-CLI and its actual parameters file. Read the [network declaration](../../../docs/settings-alignment.md#декларация-сетевого-согласования),
-[complete two-server instructions](../../../docs/settings-alignment.md#два-http-сервера),
-[own live process evidence](../../../docs/settings-alignment.md#собственный-работающий-экземпляр)
-and [failure/continuation contract](../../../docs/settings-alignment.md#результат-и-отказ-сетевого-режима).
-Select network and command requirements in separate calls. The dictionary API below
-remains command-only; it does not authorize guessing a file path. Read the canonical
-operator fields and limits rather than copying them into a project wrapper.
-Source capability and actual issued-package availability are separate observations.
-
-Choose all, an ID array or [] using each operation's contract. Main config maps operations
-to separate requirement documents. Commands/templates/plugins belong to the serviced app.
-Invoke preparation, adjustment, checking and launch explicitly. Run launches only its selection.
-Caller cwd/argv/env/stdin/full streams and ordinary/signal outcomes are preserved.
-Inspect complete partial results before intentional continuation; the external tool owns repair.
-Use the [installation diagnostic
-procedure](../../../docs/npm-distribution.md#диагностика-и-правильное-продолжение)
-for missing runtime or package-manager failures.
-
-## Read requirement configuration
-
-Read the [public read contract and immediate instruction
-link](../../../docs/configuration-reading.md#библиотека-чтения)
-and [every correct read example](../../../docs/configuration-reading.md#пошаговая-инструкция).
-Using the selected own Python and the documented example context:
-
-```python
-from environment_maintenance import list_requirement_ids, read_requirements
-config = "examples/configuration-reading/app.example.json"
-identifiers = list_requirement_ids(config, "infra")
-selected = read_requirements(config, "infra", ["redis"])
-complete = read_requirements(config, "infra", "all")
-```
-
-Listing returns IDs only. Batch reads return complete objects in the requested order.
-Read the current operation mapping rather than assuming fixed config filenames.
-
-## Change configuration
-
-Read the [public write contract and immediate instruction
-link](../../../docs/configuration-editing.md#библиотека-записи)
-and [instructions covering every
-operation](../../../docs/configuration-editing.md#пошаговая-инструкция).
-Use an owned writable copy of the demonstrated main/operation files:
-
-```python
-from environment_maintenance import (
-    add_requirement, update_requirement, delete_requirement, clear_requirements,
-)
-add_requirement(config, "infra", {"id": "demo", "commands": []})
-update_requirement(config, "infra", "demo", [{"op": "add", "path": "/label", "value": "Demo"}])
-delete_requirement(config, "infra", "demo")
-clear_requirements(config, "infra")
-```
-
-Writes preserve other data and return None; confirm with read_requirements.
-Clear explicitly empties only the selected list. Commands remain data until execution.
-Follow the documented patch subset, pointer semantics and
-[diagnostics](../../../docs/configuration-editing.md#диагностика-и-повторный-вызов).
-
-## Plan and execute actions
-
-Read the [action API and immediate
-walkthrough](../../../docs/action-execution.md#библиотека-исполнения),
-[complete functions/arguments](../../../docs/action-execution.md#публичные-функции-и-аргументы)
-and [interpreter interface](../../../docs/action-execution.md#интерфейс-интерпретатора).
-For actual supplied action/parameters/objects:
-
-```text
-plan_action(action, parameters, base_dir=work, interpreters=registry)
-execute_action(action, parameters, base_dir=work, interpreters=registry)
-```
-
-Plan has no process/interpreter effects. Execution preserves bytes and stops on failure.
-Standard Template handles scalar substitutions; configured names/options select injected
-interpreter objects. CLI module/attribute uses the documented explicit plugin import path.
-
-## Prepare, align and check through the library
-
-Read [preparation and its immediate
-instruction](../../../docs/resource-preparation.md#подготовка-ресурсов),
-[alignment and its immediate instruction](../../../docs/settings-alignment.md#согласование-настроек)
-and [checking and its immediate instruction](../../../docs/resource-checking.md#проверка-окружения).
-Their references describe all arguments, config fields, result data and external tools.
-
-```text
-prepare_resources(config, "infra", "all", values, base_dir=work, interpreters=registry)
-prepare_resources(config, "deps", ["packages"], values, base_dir=work, interpreters=registry)
-prepare_resources(config, "adjust", "all", values, base_dir=work, interpreters=registry)
-check_resources(config, values, base_dir=work, interpreters=registry)
-prepare_resources(config, "run", "all", values, base_dir=work, interpreters=registry)
-```
-
-All declared selected plans precede effects. Check runs presence, provided availability
-and additional conditions, continuing independent checks. Inspect not_configured/not_attempted.
-Library keeps bytes/opaque values; CLI uses JSON/base64 for full command streams.
-
-## Launch visible processes and supplied tools
-
-Read the [launch contract and immediate
-instruction](../../../docs/process-launch.md#запуск-процессов),
-[all CLI arguments](../../../docs/process-launch.md#входы-и-аргументы),
-[all external starter arguments](../../../docs/process-launch.md#внешний-инструмент)
-and [the four actual scenarios](../../../docs/process-launch.md#пошаговая-инструкция).
-
-```text
-python examples/process-launch/start_console.py --stdout-log FILE --stderr-log OTHER_FILE -- COMMAND ARG...
-```
-
-Choose the actual terminal/display/ports in owned configs. Submitted/PID/EOF prove transfer,
-not worker readiness. Each visible console owns its PTY; stop each independently.
-Two immediate-command append logs and worker PTY output are different observations.
-Use the [alignment tool argument
-reference](../../../docs/settings-alignment.md#отдельный-инструмент-согласования)
-and [check tool argument reference](../../../docs/resource-checking.md#внешний-инструмент-примера)
-when invoking those supplied examples directly; their complete executable commands are linked there.
-
-## Catalogue operations
-
-Read the [complete catalogue argument reference and immediate
-instruction](../../../docs/configuration.md#команды-и-аргументы).
-In the installed example context:
+Read [preparation](../../../docs/resource-preparation.md#подготовка-ресурсов), [adjust](../../../docs/settings-alignment.md#согласование-настроек) or [check](../../../docs/resource-checking.md#проверка-окружения) as needed.
 
 ```bash
-./start-app check --catalog-dir "$package_root/examples/catalog-v2"
-./start-app run --catalog-dir "$package_root/examples/catalog-v2" --dry-run
-./start-app run --catalog-dir "$package_root/examples/catalog-v2"
+start-app infra
+start-app deps
+start-app adjust
+start-app check
 ```
 
-The reference defines repeatable --values/--set and catalogue action limits/results.
-Catalogue run services resources; configured run launches its selected processes.
+These ordinary calls use application-owned operation documents/parameters. Infra/deps/adjust default to all; select unique IDs with --requirements where applicable. CLI missing IDs warn/skip; repeated selection or source IDs reject the whole request before effects. The strict read SDK rejects unknown IDs. Check has its own full-resource policy. Unknown CLI arguments warn/skip, so an obsolete flag does not provide preview or suppress effects.
 
-## Extend the serviced app
+For network adjust read the [declaration](../../../docs/settings-alignment.md#декларация-сетевого-согласования), [two-server instructions](../../../docs/settings-alignment.md#два-http-сервера) and [failure contract](../../../docs/settings-alignment.md#результат-и-отказ-сетевого-режима). Select network and command requirements in separate calls; the dictionary preparation API does not invent an output-file path.
 
-When existing tools cannot provide required behavior, develop the serviced app's own
-external tool using [public read/CRUD
-integration](../../../docs/configuration-editing.md#собственный-внешний-инструмент)
-and [the action/interpreter
-boundary](../../../docs/action-execution.md#собственный-внешний-инструмент).
-Keep infrastructure-specific policy there. Canonical Russian documentation owns details;
-this single skill routes to the appropriate complete instructions.
+## Run, list and stop applications
+
+Read the [complete run/stop contract](../../../docs/process-launch.md#запуск-процессов) and [owned process walkthrough](../../../docs/process-launch.md#пошаговая-инструкция).
+
+```text
+start-app run list
+start-app run --env ENV --app APP
+start-app run list --env ENV
+start-app stop list --env ENV
+start-app stop --env ENV --app APP
+```
+
+Run without ENV generates UUID; without APP selects all applications. Existing nonempty ENV accepts one new APP, not full relaunch or duplicate registration. APP all is literal. Run list with missing ENV returns no available IDs. Stop without arguments lists records; stop all addresses all readable ENV; selecting APP requires ENV. Stop needs no application main/parameters and uses saved PGID in the same OS-temp registry.
+
+Only run documents use applications; other operations use requirements. Default selection no longer comes from invocation.requirements. Production last-command submission uses the installed maintenance Python:
+
+```text
+MAINTENANCE_PYTHON -I -B -m environment_maintenance.running.console --stdout-log OUT --stderr-log ERR -- COMMAND ARG...
+```
+
+The module creates a session/group and returns raw submitted/pgid. The optional standard interpreter is environment_maintenance.actions.interpreters:exit_result with explicit accept codes. Application-specific commands, options, interpreters and value contracts remain application-owned; do not move ERP/Poise behavior into the package to fix an import. Production bindings do not load/copy examples as implementation.
+
+Read complete partial results. Received PGID remains visible on save/interpreter failure; later independent APP continue. There is no automatic health/retry/process rollback. Stop sends SIGTERM, removes successful/ESRCH mappings and retains failed targets. Preserve other records. Use [manual recovery](../../../docs/migration-v4.md#ручное-восстановление) for write/cleanup failure, missing records or uncertain effects; never guess PGID or purge the shared temp directory.
+
+## Public read, CRUD and command APIs
+
+Read the [read contract](../../../docs/configuration-reading.md#библиотека-чтения), [CRUD](../../../docs/configuration-editing.md#библиотека-записи), [actions](../../../docs/action-execution.md#библиотека-исполнения) and their linked walkthroughs for actual arguments. Use the selected own Python. List returns IDs, batch/all reads return full copied objects; writes preserve other data and return None. Stored commands remain data until explicitly executed.
+
+plan_action/execute_action and prepare_resources/check_resources retain their explicit base_dir/interpreters contracts, full bytes and opaque Python values. CLI transport has its own JSON/base64 boundary. Generic run chain execution through the library does not manage named CLI registry state. Keep permanent procedures in canonical Russian documentation; this skill routes to those owners.

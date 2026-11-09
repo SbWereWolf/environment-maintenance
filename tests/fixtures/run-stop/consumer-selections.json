@@ -1,0 +1,24 @@
+{
+  "erp": {
+    "infra": ["environment", "base"],
+    "deps": ["environment-maintenance", "install", "applications"],
+    "adjust": ["connections", "units"],
+    "check": ["configuration", "toolchain", "entry-files", "ports"]
+  },
+  "poise-op": {
+    "infra": ["target-repository", "state-root", "runtime-directory", "task-directory", "sprint-directory", "worktree-directory", "requirements-directory", "telemetry-directory", "poise-project-config", "poise-task-database", "requirements-migration-tools", "poise-requirements-database", "poise-telemetry-database"],
+    "deps": ["python-runtime", "git-executable", "poise-python-dependencies"],
+    "adjust": ["configured-project-adjustment"],
+    "check": []
+  },
+  "stride": {
+    "infra": ["target-repository", "state-root", "runtime-directory", "task-directory", "sprint-directory", "worktree-directory", "requirements-directory", "telemetry-directory", "poise-project-config", "poise-task-database", "requirements-migration-tools", "poise-requirements-database", "poise-telemetry-database"],
+    "deps": ["python-runtime", "git-executable", "poise-python-dependencies"],
+    "check": []
+  },
+  "workspace-recover": {
+    "infra": ["runtime-directory"],
+    "deps": ["node-runtime"],
+    "check": ["application-runtime"]
+  }
+}

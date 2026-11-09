@@ -10,6 +10,10 @@
 | [0001_em_port_agreement.rollback.sql](data/0001_em_port_agreement.rollback.sql) | Согласованный обратный шаг именно этих начальных данных |
 | [0002_em_local_dependencies.sql](data/0002_em_local_dependencies.sql) | Независимые зависимости приложений: одно System-требование, четыре Application-требования, четыре связи и revision 2 |
 | [0002_em_local_dependencies.rollback.sql](data/0002_em_local_dependencies.rollback.sql) | Обратный шаг второй миграции с сохранением начальных данных |
+| [0003_em_application_processes.sql](data/0003_em_application_processes.sql) | Именованные операции приложений: одно System, четыре Application, четыре связи, revision3 |
+| [0003_em_application_processes.rollback.sql](data/0003_em_application_processes.rollback.sql) | Обратный шаг третьей миграции с сохранением предыдущих данных |
+
+Третья миграция связывает объявленное обслуживание, запуск по окружениям, учёт/остановку групп и инструкции. Её seed сущности имеют status future; это source материала требований, а не автоматическая приёмка реализованной возможности. Рабочая база на этапе документации не изменяется.
 
 Начальные сущности описывают разрешение конфликта сетевых адресов, подбор порта,
 согласование зависимых адресов, стабильность назначения и сохранность при отказе.

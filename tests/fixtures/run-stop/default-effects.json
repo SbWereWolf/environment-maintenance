@@ -1,0 +1,30 @@
+[
+  [
+    "infra",
+    [
+      "alpha",
+      "beta"
+    ]
+  ],
+  [
+    "deps",
+    [
+      "vendor"
+    ]
+  ],
+  [
+    "adjust",
+    [
+      "align"
+    ]
+  ],
+  [
+    "check",
+    [
+      "presence-alpha",
+      "presence-beta",
+      "presence-vendor",
+      "extra"
+    ]
+  ]
+]

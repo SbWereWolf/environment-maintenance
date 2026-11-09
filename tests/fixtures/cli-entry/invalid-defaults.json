@@ -40,33 +40,5 @@
     "diagnostic": [
       "base_dir"
     ]
-  },
-  {
-    "case": "missing-current-operation",
-    "path": [
-      "invocation",
-      "requirements",
-      "infra"
-    ],
-    "delete": true,
-    "diagnostic": [
-      "requirements",
-      "infra"
-    ]
-  },
-  {
-    "case": "selection-type",
-    "path": [
-      "invocation",
-      "requirements",
-      "infra"
-    ],
-    "value": {
-      "id": "base"
-    },
-    "diagnostic": [
-      "requirements",
-      "infra"
-    ]
   }
 ]

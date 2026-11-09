@@ -4,14 +4,14 @@
 
 [Пошаговая инструкция всех операций](#пошаговая-инструкция).
 
-Интерфейс доступен собственному Python npm-поставки 2.1.0. Зависимости
+Интерфейс доступен собственному Python npm-поставки 4.0.0. Зависимости
 устанавливает её pip. [Общий контекст примеров](npm-distribution.md#библиотека-и-поставленные-примеры)
 позволяет использовать поставленные исходники и примеры внутри того же экземпляра.
 Ни установка кандидата, ни вызовы API не обновляют другие экземпляры 1.0.0.
 
 Библиотека изменяет конфиги внешних инструментов. Содержимое команд является
 непрозрачными данными: сохранение команд не выполняет их и не рендерит placeholders.
-Действующий [CLI обслуживания каталога](configuration.md#команды-и-аргументы)
+Действующий [CLI обслуживания и запуска](configuration.md#команды-и-аргументы)
 и реализованная [библиотека исполнения](action-execution.md#библиотека-исполнения)
 имеют отдельные договоры. [Инструкция исполнителя](action-execution.md#пошаговая-инструкция)
 показывает явный вызов после чтения данных; сама запись команд их не запускает.
@@ -35,7 +35,7 @@
 
 - `config_path`: строка либо `pathlib.Path` главного JSON-файла.
 - `operation`: имя из `operations` главного файла. Для `infra`, `deps` и любого
-  другого объявленного имени применяется одна схема и один механизм выбора.
+  другого объявленного имени используется массив requirements; только имя run выбирает applications. Механизм выбора/изменения общий.
 - `requirement`: полный JSON-совместимый `dict`, включая непустой уникальный
   строковый `id`; остальные поля принадлежат внешнему инструменту.
 - `identifier`: существующий строковый ID изменяемого или удаляемого объекта.
@@ -82,7 +82,7 @@
 Добавление, изменение, удаление и очистка сохраняют все данные за пределами
 запроса, включая дополнительные поля документа и неизвестные поля требований.
 Порядок оставшихся требований и элементов массивов сохраняется. Очистка оставляет
-пустой `requirements`, а не удаляет документ; повторная очистка допустима.
+пустой выбранный массив (`applications` для run, `requirements` для остальных), а не удаляет документ; повторная очистка допустима.
 JSON `null`, удалённое поле, `false` и `0` сохраняют свои различные значения.
 
 Сохранность выбранного JSON означает сохранность данных, а не форматирования
@@ -238,6 +238,36 @@ PY
 
 Ожидается строка `pointers: ...`, код 0. Новый ID становится адресом последующих
 вызовов; пустой ключ и корень были двумя разными адресами.
+
+### Приложения run
+
+Для operation run те же функции изменяют applications и сохраняют прочие поля. С подготовленными workspace/app_python:
+
+```bash
+"$app_python" -I -B - <<'PY'
+import json
+import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from environment_maintenance import (add_requirement, update_requirement,
+    delete_requirement, clear_requirements, list_requirement_ids, read_requirements)
+with TemporaryDirectory(dir=os.environ['workspace']) as directory:
+    root = Path(directory)
+    main, run = root / 'main.json', root / 'run.json'
+    main.write_text(json.dumps({'operations': {'run': 'run.json'}}))
+    run.write_text(json.dumps({'applications': [], 'metadata': {'keep': True}}))
+    add_requirement(main, 'run', {'id': 'demo', 'commands': []})
+    update_requirement(main, 'run', 'demo', [{'op': 'add', 'path': '/label', 'value': 'Demo'}])
+    assert list_requirement_ids(main, 'run') == ['demo']
+    assert read_requirements(main, 'run', ['demo'])[0]['label'] == 'Demo'
+    delete_requirement(main, 'run', 'demo')
+    clear_requirements(main, 'run')
+    assert json.loads(run.read_text()) == {'applications': [], 'metadata': {'keep': True}}
+    print('run CRUD: preserved metadata, empty applications')
+PY
+```
+
+Команды здесь являются данными, процессов нет. Неизвестный ID и повтор selection SDK отвергает до эффектов по [read contract](configuration-reading.md#публичный-договор).
 
 ## Диагностика и повторный вызов
 

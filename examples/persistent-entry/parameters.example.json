@@ -3,5 +3,8 @@
   "probe": "/absolute/path/to/package/examples/resource-preparation/probe.py",
   "events": "/absolute/path/to/application-data/entry-events.jsonl",
   "token": "demo value",
-  "state": "ready"
+  "state": "ready",
+  "starter": "/absolute/path/to/package/examples/process-launch/start_console.py",
+  "stdout_log": "/absolute/path/to/application-data/run.stdout",
+  "stderr_log": "/absolute/path/to/application-data/run.stderr"
 }

@@ -1,340 +1,168 @@
 # Запуск процессов
 
-[Пошаговая инструкция всех возможностей](#пошаговая-инструкция).
+[Пошаговая инструкция](#пошаговая-инструкция).
 
-Поставка 2.1.0 выполняет выбранные действия запуска через тот же
-читатель конфигурации, стандартный `string.Template` и исполнитель, что
-`infra`/`deps`/`adjust`. `run` только запускает выбранные команды. Подготовку,
-проверку ресурсов и согласование настроек оператор вызывает отдельно.
-
-Короткий npm-вход `./start-app run` вызывает тот же CLI своим runtime.
-[Npm-инструкция](npm-distribution.md#пошаговая-инструкция) проверяет этот bin;
-примеры ниже явно вызывают `python -m` с выбранными source/plugin paths.
-Для них можно использовать [поставленный набор](npm-distribution.md#библиотека-и-поставленные-примеры)
-внутри npm-экземпляра либо подготовленный development checkout.
-Корневой `./start-app` использует свою `.venv` и `-I`; это иной способ выбора
-входа, чем npm bin с явным plugin PYTHONPATH. Старый экземпляр 1.0.0 сохраняется.
+CLI run передаёт выбранные команды и регистрирует их PGID по ENV/APP. Stop отправляет SIGTERM сохранённым группам. Команды, терминал, параметры и готовность сервиса принадлежат приложению; передача запуска сама не доказывает его готовность.
 
 ## Входы и аргументы
 
-[Пошаговые вызовы](#пошаговая-инструкция).
+Полный [справочник форм](configuration.md#именованные-run-и-stop) содержит четыре run формы и stop/list/all. Run без ENV создаёт UUID; без APP выбирает все applications. ENV должна быть непустым shell-safe именем, отличным от `all`; используйте буквы/цифры, `_`, `-`, `.`, например `dev-1`. APP — буквальный ID, включая `all`.
 
-Обычный вход — `./start-app run` с [постоянным профилем](persistent-entry.md#поля-постоянного-профиля).
-Полностью явный технический вызов выбранного исходного checkout остаётся доступен:
+`run list` возвращает IDs конфигурации без effects. С ENV — только ещё не зарегистрированные IDs найденной среды; для отсутствующей ENV ответ пустой и found=false. Список не создаёт ENV. Полный run занятой непустой ENV отвергается. `--app` позволяет добавить один ещё не зарегистрированный APP, сохранив остальные. Дубликат уже зарегистрированного APP отвергается.
 
-```text
-python -m environment_maintenance run --config MAIN --parameters VALUES --base-dir ABS --requirements SELECTION
-```
-
-| Необязательный ключ | Переопределение текущего вызова |
-|---|---|
-| `--config MAIN` | Главный UTF-8 JSON с `operations` и `interpreters` |
-| `--parameters VALUES` | Один JSON-объект явных скалярных значений |
-| `--base-dir ABS` | Абсолютная база для относительных cwd команд |
-| `--requirements SELECTION` | `all` либо JSON-массив IDs, включая `[]` |
-| `-h`, `--help` | Справка без запуска |
-| `--version` | Версия выбранных исходников/пакета без запуска |
-
-`MAIN` и `VALUES` разрешаются относительно caller cwd. Путь документа операции
-разрешается относительно главного файла. Относительный `commands[].cwd` считается
-от `ABS`. `all` сохраняет порядок документа; массив сохраняет выбранный порядок
-и повторы. Пустой массив даёт успех без команд при корректных общих входах.
-Полные правила выборки принадлежат [чтению конфигурации](configuration-reading.md#публичный-договор).
-
-Прежний явный `run --catalog-dir` имеет отдельный
-[каталоговый договор](configuration.md#команды-и-аргументы). Для configured `run`
-значения берутся из постоянного профиля и необязательных ключей таблицы;
-для catalogue используются его собственные аргументы.
-Явный --catalog-dir выбирает каталог; обычный вызов выбирает постоянный профиль.
-
-Публичный API — существующая функция с `operation="run"`:
-
-```python
-prepare_resources(config_path, "run", selection, parameters,
-                  base_dir=base_dir, interpreters=interpreters)
-```
-
-Её [шесть аргументов и результаты](resource-preparation.md#библиотечный-вход)
-сохраняют общий договор. API передаёт готовые объекты обработчиков и возвращает
-полные bytes/непрозрачные значения; CLI загружает объявленные готовые объекты,
-проверяет обычную JSON-представимость и кодирует raw-потоки в base64.
+Run принимает необязательные config/parameters/base-dir из [профиля](persistent-entry.md#поля-постоянного-профиля). Stop не читает эти файлы: без аргументов выводит реестр, с ENV останавливает её группы, с ENV/APP — одну, `stop all` — все читаемые среды. Выбор APP для stop требует ENV.
 
 ## Конфигурация
 
-Примеры: [главный файл](../examples/process-launch/app.example.json),
-[требования запуска](../examples/process-launch/run.example.json),
-[значения](../examples/process-launch/parameters.example.json).
-Сначала материализуйте их по инструкции ниже; рабочий `app.json` читает `run.json`.
+Документ `operations.run` содержит `applications`, массив объектов с уникальным непустым `id` и `commands`. Другие операции сохраняют `requirements`. Все выбранные цепочки проходят preflight до резервирования/процессов. Неизвестный CLI APP предупреждается/пропускается; пустой план возвращает адрес и удаляет пустой итоговый файл.
 
-`operations.run` выбирает документ требований. Каждый объект имеет уникальный `id`
-и непустой массив `commands`. Поля `argv`, `cwd`, `env`, `interpreter.name/options`
-и однократная подстановка `${name}` описаны в
-[общем договоре команд](action-execution.md#поля-команды). `env` — полное окружение
-внешней команды; нужные переменные задаются явно. Renderer — стандартный
-`string.Template`, shell между элементами argv не появляется.
+Команда задаёт argv/cwd/env/interpreter по [общему договору](action-execution.md#поля-команды). Последняя достигнутая команда полной цепочки должна вернуть в сыром stdout JSON `{"status":"submitted","pgid":23456}` с положительным integer PGID, не boolean/строкой. Это PGID именно переданной группы. Интерпретатор отдельно определяет предметный успех; полученный PGID сохраняется и при его отказе. Неполная цепочка не даёт PGID последней объявленной команды.
 
-`interpreters.result` в главном файле выбирает существующий модуль `interpreters`
-и готовый объект `exit_result` из
-[учебного поставщика](../examples/resource-preparation/interpreters.py).
-Он принимает `options.accept=[0]`; обычный Python import path должен включать
-его каталог. Это проверка результата непосредственного инструмента, а не HTTP-health.
-Другие объекты подключаются через тот же
-[интерфейс обработчика](action-execution.md#интерфейс-интерпретатора).
-
-Все значения файла параметров — скаляры:
-
-| Поле примера | Назначение |
-|---|---|
-| `python` | Абсолютный путь выбранного Python |
-| `starter` | Абсолютный путь принятого внешнего `start_console.py` |
-| `terminal` | Исполняемый терминал, здесь выбранный Zutty |
-| `font`, `font_path` | Установленный шрифт и каталог для выбранного терминала |
-| `content_dir` | Каталог обезличенных файлов примера для HTTP |
-| `display` | Доступный X11 display |
-| `bind_address` | Адрес двух серверов, здесь loopback `127.0.0.1` |
-| `first_port`, `second_port` | Два выбранных свободных разных порта |
-| `first_stdout`, `first_stderr` | Разные файлы диагностики первого терминала |
-| `second_stdout`, `second_stderr` | Разные файлы диагностики второго терминала |
-
-В примере log names относительны к рабочему cwd команды, то есть `--base-dir`.
-Пути, терминал и порты являются данными примера, а не встроенными значениями ядра.
-Рабочие заполненные конфиги принадлежат оператору и исключены из Git;
-обезличенные `*.example.json` отслеживаются.
+Ошибки одной APP не запускают оставшийся хвост её цепочки, остальные APP продолжаются. Health, retry и rollback процессов не добавляются. Библиотечный `prepare_resources(..., 'run', selection, ...)` остаётся исполнителем цепочек; регистрацию именованных запусков предоставляет CLI run.
 
 ## Внешний инструмент
 
-[Пошаговая инструкция внешнего инструмента](#пошаговая-инструкция).
+Рабочий launcher находится в установленном пакете:
 
-`examples/process-launch/start_console.py` — отдельная внешняя команда из
-исходной поставки; ядро её не импортирует. При прямом вызове:
-
-```text
-python start_console.py --stdout-log FILE --stderr-log OTHER_FILE -- COMMAND ARG...
+```bash
+"$maintenance_python" -I -B -m environment_maintenance.running.console \
+  --stdout-log /absolute/path/to/own/stdout.log \
+  --stderr-log /absolute/path/to/own/stderr.log -- COMMAND ARG
 ```
 
-| Аргумент | Назначение |
+| Вход | Договор |
 |---|---|
-| `--stdout-log FILE` | Обязательный файл полного stdout непосредственной команды |
-| `--stderr-log OTHER_FILE` | Обязательный другой файл полного stderr |
-| `--` и `COMMAND ARG...` | Непустой argv выбранного исполняемого инструмента |
-| `-h`, `--help` | Справка без открытия логов/процесса |
+| `maintenance_python` | Python выбранной установки EM; Python payload приложения может быть другим |
+| `--stdout-log`, `--stderr-log` | Обязательные разные пути; parent directories подготовлены владельцем |
+| `-- COMMAND ARG...` | Явный executable и argv без shell-пересборки |
 
-Инструмент наследует выбранные caller cwd/env. Он открывает два binary append-файла,
-передаёт argv в `Popen` с `stdin=DEVNULL` и новой сессией, закрывает свои handles
-и возвращает управление, не ожидая долгоживущего ребёнка. Child пишет в файлы,
-а не удерживает capture pipes caller: завершающийся launcher даёт EOF.
-Родительские каталоги логов предоставляет вызывающий.
+Launcher открывает два файла в append, запускает Popen с новой сессией и DEVNULL stdin, затем выводит submitted/pgid. Exit0 означает передачу, exit1 — OSError, неправильные аргументы — exit2. Результат не зависит от того, успела ли команда завершиться. Он не проверяет здоровье сервиса. Example `start_console.py` только делегирует этому модулю.
 
-Успех — exit0, пустой stderr и один JSON+LF с полями
-`status="submitted"`, `pid=положительный int`. PID принадлежит непосредственному
-`COMMAND`, обычно терминалу, а не его HTTP-worker. Это подтверждение передачи
-запуска; фактическую готовность сервиса подтверждают отдельные условия/запросы.
+Для видимого окна payload выбирает установленный терминал и передаёт ему команду приложения. Сохраняются её argv/cwd/env. Логи немедленной команды и вывод приложения внутри PTY терминала — разные наблюдения.
 
-Exit1 означает ошибку открытия файла или spawn: stdout пуст, stderr содержит
-доступную причину. Exit2 относится к форме аргументов, в том числе одинаковым
-дословным log paths, и предшествует open/spawn. Старые разные log bytes сохраняются;
-при частичной ошибке другой новый log может быть пустым или отсутствующим.
-Пара файлов не является общей транзакцией. Filesystem aliases не анализируются.
+## Реестр окружений
 
-Диагностические stdout/stderr терминала и интерактивный вывод worker в его PTY —
-разные данные. HTTP-запросы и сообщения сервера видны в консоли. Log file может
-остаться пустым, если непосредственная команда ничего туда не вывела. Повторное
-исполнение дописывает только фактически полученные новые bytes, сохраняя старые.
+OS temp определяется штатным tempfile, в том числе явно выбранным TMPDIR. Общий каталог — `environment-maintenance`, новый файл — `env-ENV.json`. Две установки с тем же OS temp видят один реестр.
+
+```json
+{"format-version":1,"environment-title":"dev-1","applications":{"web":{"pgid":23456}}}
+```
+
+Имя среды читается из payload, фактический путь используется для записи/удаления. `format-version` сохраняется, но не служит проверкой равенства1; требуется читаемая известная структура. Перед APP создаётся пустая запись: только проверка доступности/новое exclusive создание выполняются под коротким flock. Lock снимается до команд при любом исходе. Append/removal не получают дополнительную lock.
+
+Ошибка начальной записи/close удаляет только собственный новый файл. При отказавшем cleanup остаётся правдивая ошибка с обеими причинами. Ошибка open не даёт владения чужим файлом. [Ручное восстановление](migration-v4.md#ручное-восстановление) сохраняет остальные данные.
 
 ## Результат и продолжение
 
-Все выбранные цепочки планируются до первого эффекта. При неуспехе сохраняются
-только попытанные требования/команды, их invocation, raw-потоки, exit code,
-interpretation и контекст причины; хвост не запускается. Ранее переданная
-консоль продолжает работать и остаётся под управлением пользователя.
+Run JSON содержит operation/status/environment/file/file_exists/planned/received_pgids/applications/errors. Каждая APP имеет id, фактический pgid либо null и полный result команд; [raw streams](action-execution.md#итог-исполнения) кодируются в base64. Полученный PGID остаётся в ответе, даже если его сохранение не удалось. Пустой файл после обработки удаляется.
 
-CLI возвращает один JSON+LF: exit0/`succeeded` или exit1/`failed` с доступной
-частичной работой; stderr команды находится внутри записи результата.
-Raw stdout/stderr представлены как `{"encoding":"base64","data":"..."}`.
-Ошибка явных входов/плана/загрузки обработчика даёт exit2, пустой stdout и
-диагностику stderr до команд. Полная форма результата —
-[общая форма подготовки](resource-preparation.md#результат-и-диагностика).
+Stop JSON содержит stopped/errors; сигнал посылается один раз. ESRCH тихо удаляет stale mapping, ошибка сигнала сохраняет его; остальные цели продолжаются. Удаление последнего APP удаляет файл. Ошибки чтения/записи возвращаются явно, читаемые другие ENV обрабатываются. При отсутствии отправленных сигналов message дословно «Ничего не остановлено.». Успех stop подтверждает отправку SIGTERM, а не ожидание завершения процесса.
 
-Для продолжения прочитайте причину, полные записи и фактическое состояние уже
-переданных процессов. Владелец внешнего инструмента исправляет входы/среду и
-выбирает следующее действие. Запуск команды и управление её временем жизни
-разделены: пользователь завершает каждую видимую консоль самостоятельно.
+Exit0 означает успешный результат, exit1 — runtime/storage отказ, входная ошибка — exit2. Сначала изучите полный результат; затем осознанно продолжайте конкретную APP или [восстановление](migration-v4.md#ручное-восстановление).
 
 ## Пошаговая инструкция
 
-Условия этого примера: Bash/Linux/POSIX, доступный X11 `DISPLAY`, `/usr/bin/zutty`,
-DejaVuSansMono в `/usr/share/fonts/truetype/dejavu` и подготовленный Python
-с зависимостями приложения. Проверенная среда — Ubuntu WSL2/Python3.12.3.
-Другие терминалы/ОС требуют собственных выбранных команд и проверки, а не
-выводятся из Python metadata. HTTP-сервер — стандартный модуль Python.
-
-Откройте корень выбранных исходников. Задайте `app_python` абсолютным путём
-подготовленного интерпретатора. Выберите два свободных разных порта; ниже
-это `44181` и `44182`. Последующие сценарии выполняются последовательно,
-с закрытием своих предыдущих серверов перед следующим запуском.
-
 ### Подготовить собственные рабочие файлы
 
+Выберите installed `package_root`/`app_python` по [общему контексту](npm-distribution.md#библиотека-и-поставленные-примеры), отдельный пустой `workspace`, доступный DISPLAY, Zutty/DejaVuSansMono и два свободных порта. Это явные prerequisites примера. Для его собственного реестра:
+
 ```bash
-: "${app_python:?Задайте абсолютный путь подготовленного Python}"
-: "${DISPLAY:?Выберите доступный X11 display}"
-source_root="$(pwd -P)"
-terminal=/usr/bin/zutty
 first_port=44181
 second_port=44182
-mkdir -p "$source_root/build"
-workspace="$(mktemp -d "$source_root/build/process-launch-demo.XXXXXX")"
-cp examples/process-launch/app.example.json "$workspace/app.json"
-cp examples/process-launch/run.example.json "$workspace/run.json"
-cp examples/process-launch/parameters.example.json "$workspace/parameters.json"
-export PYTHONPATH="$source_root/src:$source_root/examples/resource-preparation"
-"$app_python" -B - "$workspace" "$source_root" "$app_python" "$terminal" "$DISPLAY" "$first_port" "$second_port" <<'PY'
+mkdir -p "$workspace/os-temp"
+export TMPDIR="$workspace/os-temp"
+"$app_python" -I -B - "$package_root" "$workspace" "$DISPLAY" "$first_port" "$second_port" <<'PY'
 import json
 from pathlib import Path
 import sys
-work, source, python, terminal, display, first, second = sys.argv[1:]
-path = Path(work) / 'parameters.json'
-values = json.loads(path.read_text())
-values.update(python=python, terminal=terminal, display=display,
-              starter=str(Path(source) / 'examples/process-launch/start_console.py'),
-              content_dir=str(Path(source) / 'examples/process-launch'),
-              first_port=int(first), second_port=int(second))
-path.write_text(json.dumps(values, indent=2) + '\n')
-print(work)
+package, work = map(Path, sys.argv[1:3])
+display, first, second = sys.argv[3:]
+source = package / 'examples/process-launch'
+main = json.loads((source / 'app.example.json').read_text())
+main['interpreters']['result']['module'] = 'environment_maintenance.actions.interpreters'
+main['invocation'] = dict(parameters='parameters.json', base_dir='.')
+(work / 'start-app.json').write_text(json.dumps(main))
+run = json.loads((source / 'run.example.json').read_text())
+for row in run['applications']:
+    command = row['commands'][-1]
+    command['argv'] = ['${maintenance_python}', '-I', '-B', '-m',
+        'environment_maintenance.running.console', *command['argv'][3:]]
+(work / 'run.json').write_text(json.dumps(run))
+values = json.loads((source / 'parameters.example.json').read_text())
+values.update(python=sys.executable, maintenance_python=sys.executable,
+    display=display, content_dir=str(source), first_port=int(first), second_port=int(second),
+    first_stdout=str(work / 'one.stdout'), first_stderr=str(work / 'one.stderr'),
+    second_stdout=str(work / 'two.stdout'), second_stderr=str(work / 'two.stderr'))
+(work / 'parameters.json').write_text(json.dumps(values))
 PY
 ```
 
-Рабочий каталог напечатан; все три файла находятся внутри уже игнорируемого
-`build`. Отслеживаемые шаблоны сохранены. Перед запуском доступны выбранные
-пути/шрифт/display и свободны оба порта. Нужные изменения значений делайте
-в своих рабочих файлах, согласованно с выбранными переменными оболочки.
+Выбранные порты должны быть свободны. Production launch получает параметры от своего владельца; при необходимости [сетевое согласование](settings-alignment.md#автоматический-подбор-портов) вызывается отдельно.
 
 ### CLI: запустить обе консоли
 
+Добавьте выбранный package bin в PATH. Из workspace:
+
 ```bash
-"$app_python" -B -m environment_maintenance run \
-  --config "$workspace/app.json" --parameters "$workspace/parameters.json" \
-  --base-dir "$workspace" --requirements all > "$workspace/cli-result.json"
-"$app_python" -B - "$workspace/cli-result.json" <<'PY'
-import base64
-import json
-from pathlib import Path
-import sys
-value = json.loads(Path(sys.argv[1]).read_text())
-assert value['status'] == 'succeeded'
-assert [row['id'] for row in value['requirements']] == ['web-one', 'web-two']
-for row in value['requirements']:
-    raw = row['result']['commands'][0]['stdout']
-    submitted = json.loads(base64.b64decode(raw['data'], validate=True))
-    print(row['id'], submitted['status'], submitted['pid'])
-PY
+start-app run list
+start-app run --env consoles --app web-one
+start-app run --env consoles --app web-two
+start-app run list --env consoles
+start-app stop list --env consoles
 ```
 
-Caller завершается при живых консолях; напечатаны два `submitted` с разными
-фактическими PID. Дождитесь сообщения `Serving HTTP` в каждом окне. Это отдельное
-наблюдение готовности, а не обещание результата launcher. Затем проверьте оба:
+Видны два собственных окна. Каждый run возвращает один PGID, последний run list пуст: оба APP зарегистрированы. Следующий блок отдельно наблюдает HTTP-сервисы, не добавляя health gate в продукт:
 
 ```bash
-"$app_python" -B - "$workspace" "$source_root" first_port second_port <<'PY'
-import json
-from pathlib import Path
+"$app_python" -I -B - "$first_port" "$second_port" <<'PY'
 import sys
+import time
+from urllib.error import URLError
 from urllib.request import urlopen
-work, source, *names = sys.argv[1:]
-values = json.loads((Path(work) / 'parameters.json').read_text())
-expected = (Path(source) / 'examples/process-launch/README.md').read_bytes()
-for name in names:
-    url = f"http://{values['bind_address']}:{values[name]}/README.md"
-    with urlopen(url, timeout=3) as response:
-        assert response.status == 200 and response.read() == expected
-    print(name, 'HTTP200; expected example bytes')
+for port in sys.argv[1:]:
+    for attempt in range(50):
+        try:
+            with urlopen('http://127.0.0.1:' + port, timeout=1) as reply:
+                assert reply.status == 200
+                assert reply.read()
+            print('HTTP ready:', port)
+            break
+        except URLError:
+            if attempt == 49:
+                raise
+            time.sleep(.1)
 PY
+start-app stop --env consoles --app web-one
+start-app stop --env consoles
+start-app stop list --env consoles
 ```
 
-В окне `ENV2-example-web-one` нажмите Ctrl+C. Окно второго процесса остаётся
-рабочим. Для нового HTTP-запроса соседу повторите тот же фрагмент с одним
-последним аргументом `second_port` вместо пары `first_port second_port`.
-Он снова даёт `HTTP200; expected example bytes`. Завершите второй сервер
-его собственным Ctrl+C. Перед следующим сценарием оба порта освобождены.
+После stop своей группы соответствующий сервер завершается; остановка первого сохраняет второй до его отдельной остановки. Последний список не содержит ENV. Собственные рабочие файлы/logs можно удалить после проверки closure. Другие ENV/реестр OS temp не очищаются.
 
 ### API: запустить выбранное подмножество
 
-```bash
-"$app_python" -B - "$workspace" <<'PY'
-import json
-from pathlib import Path
-import sys
-from environment_maintenance import prepare_resources
-from interpreters import exit_result
-work = Path(sys.argv[1])
-values = json.loads((work / 'parameters.json').read_text())
-result = prepare_resources(work / 'app.json', 'run', ['web-two'], values,
-                           base_dir=work, interpreters={'result': exit_result})
-assert result['status'] == 'succeeded'
-assert [row['id'] for row in result['requirements']] == ['web-two']
-assert type(result['requirements'][0]['result']['commands'][0]['stdout']) is bytes
-print(result)
-PY
-```
-
-Возвращён полный Python-результат с bytes, запускается только `web-two`.
-После `Serving HTTP` выполните предыдущую HTTP-проверку только `second_port`.
-Завершите эту консоль Ctrl+C. Порядок массива IDs управляет выборкой; `all`
-берёт порядок документа, как в CLI-сценарии.
+Для библиотечных chains используйте [публичный prepare_resources](resource-preparation.md#библиотечный-вход) с operation run, выбранными IDs и явными parameters/base_dir/interpreters. Он возвращает полные bytes/opaque values и не создаёт именованный CLI registry. Когда нужен stop по ENV/APP, используйте описанный CLI путь.
 
 ### CLI: выполнить пустую выборку
 
-```bash
-"$app_python" -B -m environment_maintenance run \
-  --config "$workspace/app.json" --parameters "$workspace/parameters.json" \
-  --base-dir "$workspace" --requirements '[]' > "$workspace/empty-result.json"
-"$app_python" -B -m json.tool "$workspace/empty-result.json"
-```
-
-Ожидаются exit0, `status="succeeded"`, `requirements=[]`, `error=null`;
-новой консоли нет. Общие входы и объявленные обработчики остаются корректными.
+Пустой applications document или отсутствующий запрошенный APP дают planned0; пустой итоговый файл удаляется. Для обычного полного запуска заполните applications и опустите APP. У SDK выбор `[]` остаётся явной пустой chain selection.
 
 ### Прямой вызов внешнего инструмента
 
+С подготовленным writable workspace:
+
 ```bash
-direct_result="$(mktemp "$workspace/direct-result.XXXXXX.json")"
-"$app_python" -B "$source_root/examples/process-launch/start_console.py" \
-  --stdout-log "$workspace/direct.stdout.log" \
-  --stderr-log "$workspace/direct.stderr.log" -- \
-  "$terminal" -font DejaVuSansMono -fontpath /usr/share/fonts/truetype/dejavu \
-  -title ENV2-example-direct -e "$app_python" -B -m http.server "$second_port" \
-  --bind 127.0.0.1 --directory "$source_root/examples/process-launch" > "$direct_result"
-cat "$direct_result"
+"$app_python" -I -B -m environment_maintenance.running.console \
+  --stdout-log "$workspace/direct.stdout" --stderr-log "$workspace/direct.stderr" \
+  -- /usr/bin/printf 'direct example\n'
 ```
 
-Ожидается один JSON с `submitted` и actual terminal PID, exit0/EOF caller.
-После `Serving HTTP` проверьте `second_port` предыдущим HTTP-фрагментом и
-закройте консоль её Ctrl+C. Повторите блок прямого вызова после освобождения
-порта: результат сохранится в новом файле, а два log paths останутся теми же.
-Старые bytes логов сохраняются как префиксы; добавляется только действительная
-новая диагностика терминала. Оба файла могут оставаться пустыми при отсутствии
-вывода. HTTP-ответы/консольные сообщения не выдаются за bytes этих логов.
-Проверьте второй прямой запуск и завершите его собственной консолью.
+Submitted PGID относится к короткой команде printf; она может уже завершиться. Файл stdout получает её байты, stderr пуст. Прямой launcher не регистрирует ENV: регистрацию выполняет вызывающий CLI run.
 
 ### Условия достоверного наблюдения
 
-Видимые окна/PTY, submitted PID, HTTP-готовность и независимый stop наблюдаются
-отдельно. Для автоматического точного ввода нужен контроль входных событий
-своих окон: собственный private display сам по себе не доказывает исключительность
-ввода. Дополнительные события ограничивают доказательство такого опыта;
-их источник устанавливается по данным, а не приписывается пользователю или ОС.
-Продукт не обещает исключать ввод пользователя. Работайте со своими окнами
-и завершайте свои процессы; исходные данные/полные результаты сохраняйте
-до очистки рабочих файлов. В проверках проекта используется собственный
-видимый Xephyr; обычный пользователь выбирает доступную ему реальную среду.
+Фактические PGID/registry/logs, наличие собственных окон, HTTP и закрытие процессов — разные наблюдения. Прикладывайте их в нужном объёме. Встроенный launcher не проверяет оконную готовность или endpoint и не ждёт закрытия консоли.
 
 ## Собственный внешний инструмент
 
-Когда готовых средств недостаточно, разработайте инструмент обслуживаемого
-приложения. Получайте [IDs и пакет объектов/all](configuration-reading.md#публичный-договор),
-меняйте [один объект/удаление/очистку через CRUD](configuration-editing.md#библиотека-записи),
-объявляйте команды и подключайте выбранный
-[ResultInterpreter](action-execution.md#интерфейс-интерпретатора).
-Полные аргументы/правильные примеры каждой операции принадлежат этим руководствам.
-Общий исполнитель остаётся общим; правило запуска/диагностики конкретного
-приложения принадлежит вашему внешнему инструменту и его конфигурации.
+Приложение предоставляет свои launch commands/cwd/env и сменный интерпретатор. Для стандартной передачи группы используйте module launcher и [общий exit interpreter](action-execution.md#интерфейс-интерпретатора). Сложный прикладной анализ остаётся у приложения; пакет не импортирует ERP/Poise и не копирует core из examples.

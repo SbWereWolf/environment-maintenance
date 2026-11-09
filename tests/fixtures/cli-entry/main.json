@@ -14,23 +14,7 @@
   },
   "invocation": {
     "parameters": "parameters.json",
-    "base_dir": "workspace",
-    "requirements": {
-      "infra": [
-        "base",
-        "secondary"
-      ],
-      "deps": [
-        "packages"
-      ],
-      "adjust": [
-        "align-a",
-        "align-b"
-      ],
-      "run": [
-        "launch"
-      ]
-    }
+    "base_dir": "workspace"
   },
   "operator_metadata": {
     "retain": [

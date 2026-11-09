@@ -33,7 +33,16 @@ class ConfigurationReader:
         _, document = read_operation_configuration(
             self._read_document, config_path, operation
         )
-        return Requirements(document)
+        try:
+            return Requirements(document, "applications" if operation == "run" else "requirements")
+        except ValueError as exc:
+            raise ValueError(f"{operation} configuration {config_path}: {exc}") from exc
+
+    def read_for_execution(self, config_path, operation, selection):
+        try:
+            return self._requirements(config_path, operation).select_available(selection)
+        except ValueError as exc:
+            raise ValueError(f"{operation} configuration {config_path}: {exc}") from exc
 
     def list_ids(self, config_path: str | Path, operation: str) -> list[str]:
         return self._requirements(config_path, operation).identifiers()
@@ -69,7 +78,7 @@ class ConfigurationWriter:
             path, document = read_operation_configuration(
                 self._read_document, config_path, operation
             )
-            result = transformation(Requirements(document))
+            result = transformation(Requirements(document, "applications" if operation == "run" else "requirements"))
             self._write_document(path, result.document())
         except ValueError as exc:
             raise ValueError(f"{operation} configuration {path}: {exc}") from exc

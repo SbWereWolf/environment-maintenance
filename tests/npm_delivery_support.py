@@ -53,7 +53,7 @@ def stop_group(group):
 class PackageLab:
     def __init__(self):
         base = Path(os.environ['ENV2_PACKAGE_TEST_ROOT']).absolute()
-        assert not base.is_relative_to(ROOT.parents[2]), 'Consumer resources must be outside source checkout'
+        assert not base.is_relative_to(ROOT), 'Consumer resources must be outside source checkout'
         base.mkdir(parents=True, exist_ok=True)
         self.root = Path(tempfile.mkdtemp(prefix='npm-delivery-', dir=base))
         self.logs = self.root / 'captures'

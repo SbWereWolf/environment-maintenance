@@ -4,10 +4,10 @@ from pathlib import Path
 import shlex
 import sys
 
-from ..catalogue import read_json
+from ..configuration.json_file import read_json
 from ..actions import execute_action
 from ..actions.transport import load_interpreters, plan_for_json_transport, validate_json_data
-from ..configuration import read_requirements
+from ..configuration.execution import read_for_execution
 from .application import prepare_resources
 from .presentation import encode_result
 
@@ -52,7 +52,9 @@ def run_preparation(
 
         result = prepare_resources(config_path, operation, selection, parameters,
                                    base_dir=base_dir, interpreters=interpreters,
-                                   reader=read_requirements, planner=plan_for_json_transport,
+                                   reader=lambda config, op, selected: read_for_execution(config, op, selected,
+                                       lambda message: print(message, file=sys.stderr)),
+                                   planner=plan_for_json_transport,
                                    executor=execute_action, network_adjuster=network_adjuster)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

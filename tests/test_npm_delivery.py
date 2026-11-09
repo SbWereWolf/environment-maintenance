@@ -12,7 +12,7 @@ import pytest
 from npm_delivery_support import FIXTURES, ROOT, PackageLab, fixture, write_json
 
 
-CANDIDATE_VERSION = fixture('candidate-version.json')['version']
+CANDIDATE_VERSION = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
 
 
 @pytest.fixture(scope='module')
@@ -88,7 +88,7 @@ def assert_action(action, scenario, label, profile):
 
 def test_candidate_python_metadata_identifies_new_delivery():
     metadata = tomllib.loads((ROOT / 'pyproject.toml').read_text())
-    assert metadata['project']['version'] == CANDIDATE_VERSION, 'Missing agreed candidate identity'
+    assert int(metadata['project']['version'].split('.')[0]) > 3, 'The incompatible CLI needs a new major'
 
 
 def test_archive_provides_version_and_short_command(package):

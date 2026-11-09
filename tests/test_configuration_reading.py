@@ -46,8 +46,13 @@ def test_ids_only_in_declared_order(config):
     assert ids(config) == ["database", "queue"]
 
 
-def test_batch_preserves_requested_order_repetitions_and_full_objects(config):
-    assert read(config, ["queue", "database", "queue"]) == expected("infra-batch.json")
+def test_batch_preserves_requested_order_and_full_objects(config):
+    assert read(config, ["queue", "database"]) == expected("infra-batch.json")
+
+
+def test_repeated_selected_id_is_rejected(config):
+    with pytest.raises(ValueError, match="queue"):
+        read(config, ["queue", "database", "queue"])
 
 
 def test_batch_can_select_a_proper_subset(config):

@@ -1,0 +1,70 @@
+{
+  "erp": {
+    "planning-workspace-web": {
+      "argv_tail": ["${node}", "${entry}", "run-process", "planning-workspace-web", "--repository-root", "${instance}"],
+      "cwd": "${instance}",
+      "env": {"PATH": "${path}", "DISPLAY": "${display}"},
+      "options": {"--stdout-log": "${console_log_directory}/planning-workspace-web.stdout", "--stderr-log": "${console_log_directory}/planning-workspace-web.stderr"}
+    },
+    "system-admin-web": {
+      "argv_tail": ["${node}", "${entry}", "run-process", "system-admin-web", "--repository-root", "${instance}"],
+      "cwd": "${instance}",
+      "env": {"PATH": "${path}", "DISPLAY": "${display}"},
+      "options": {"--stdout-log": "${console_log_directory}/system-admin-web.stdout", "--stderr-log": "${console_log_directory}/system-admin-web.stderr"}
+    },
+    "document-ui-vite": {
+      "argv_tail": ["${node}", "${entry}", "run-process", "document-ui-vite", "--repository-root", "${instance}"],
+      "cwd": "${instance}",
+      "env": {"PATH": "${path}", "DISPLAY": "${display}"},
+      "options": {"--stdout-log": "${console_log_directory}/document-ui-vite.stdout", "--stderr-log": "${console_log_directory}/document-ui-vite.stderr"}
+    },
+    "calculation-service-worker": {
+      "argv_tail": ["${node}", "${entry}", "run-process", "calculation-service-worker", "--repository-root", "${instance}"],
+      "cwd": "${instance}",
+      "env": {"PATH": "${path}", "DISPLAY": "${display}"},
+      "options": {"--stdout-log": "${console_log_directory}/calculation-service-worker.stdout", "--stderr-log": "${console_log_directory}/calculation-service-worker.stderr"}
+    },
+    "planning-workspace-worker": {
+      "argv_tail": ["${node}", "${entry}", "run-process", "planning-workspace-worker", "--repository-root", "${instance}"],
+      "cwd": "${instance}",
+      "env": {"PATH": "${path}", "DISPLAY": "${display}"},
+      "options": {"--stdout-log": "${console_log_directory}/planning-workspace-worker.stdout", "--stderr-log": "${console_log_directory}/planning-workspace-worker.stderr"}
+    },
+    "planning-workspace-events-worker": {
+      "argv_tail": ["${node}", "${entry}", "run-process", "planning-workspace-events-worker", "--repository-root", "${instance}"],
+      "cwd": "${instance}",
+      "env": {"PATH": "${path}", "DISPLAY": "${display}"},
+      "options": {"--stdout-log": "${console_log_directory}/planning-workspace-events-worker.stdout", "--stderr-log": "${console_log_directory}/planning-workspace-events-worker.stderr"}
+    },
+    "planning-workspace-export-scheduler": {
+      "argv_tail": ["${node}", "${entry}", "run-process", "planning-workspace-export-scheduler", "--repository-root", "${instance}"],
+      "cwd": "${instance}",
+      "env": {"PATH": "${path}", "DISPLAY": "${display}"},
+      "options": {"--stdout-log": "${console_log_directory}/planning-workspace-export-scheduler.stdout", "--stderr-log": "${console_log_directory}/planning-workspace-export-scheduler.stderr"}
+    }
+  },
+  "poise-op": {
+    "selected-poise-cli": {
+      "argv_tail": ["${python}", "-P", "-s", "-B", "-m", "poise", "project", "list", "--settings", "${profile_root}/setup.json"],
+      "cwd": "${repository}",
+      "env": {"PYTHONPATH": "${runtime_module_path}", "PYTHONDONTWRITEBYTECODE": "1", "LANG": "C.UTF-8"},
+      "options": {}
+    }
+  },
+  "stride": {
+    "selected-poise-cli": {
+      "argv_tail": ["${python}", "-P", "-s", "-B", "-m", "poise", "project", "list", "--settings", "${profile_root}/setup.json"],
+      "cwd": "${repository}",
+      "env": {"PYTHONPATH": "${runtime_module_path}", "PYTHONDONTWRITEBYTECODE": "1", "LANG": "C.UTF-8"},
+      "options": {}
+    }
+  },
+  "workspace-recover": {
+    "application-runtime": {
+      "argv_tail": ["${node}", "${repository}/bin/workspace-recover.mjs", "--help"],
+      "cwd": "${repository}",
+      "env": {"PATH": "${path}", "PYTHONPATH": "${module_path}", "LANG": "C.UTF-8"},
+      "options": {}
+    }
+  }
+}

@@ -207,12 +207,12 @@ def test_library_prepares_corresponding_document_and_complete_result(scenario, o
 
 @pytest.mark.parametrize('selection,ids,tags', [
     (['beta'], ['beta'], ['beta-install']),
-    (['beta', 'alpha', 'beta'], ['beta', 'alpha', 'beta'],
-     ['beta-install', 'alpha-install', 'alpha-configure', 'beta-install']),
+    (['beta', 'alpha'], ['beta', 'alpha'],
+     ['beta-install', 'alpha-install', 'alpha-configure']),
     (['all'], ['all'], ['literal-all']),
     ([], [], []),
 ])
-def test_library_preserves_selection_order_repetitions_and_literal_all(scenario, selection, ids, tags):
+def test_library_preserves_selection_order_and_literal_all(scenario, selection, ids, tags):
     result = invoke(scenario, selection=selection)
     assert_success(scenario, result, 'infra', ids, tags)
 
@@ -379,7 +379,7 @@ def test_cli_real_entry_prepares_selected_document_from_foreign_cwd(scenario, op
 
 
 @pytest.mark.parametrize('selection,ids,tags', [([], [], []), (['all'], ['all'], ['literal-all']),
-    (['beta', 'alpha', 'beta'], ['beta', 'alpha', 'beta'], ['beta-install', 'alpha-install', 'alpha-configure', 'beta-install'])])
+    (['beta', 'alpha'], ['beta', 'alpha'], ['beta-install', 'alpha-install', 'alpha-configure'])])
 def test_cli_transports_selection_without_reinterpreting_it(scenario, selection, ids, tags):
     result = cli_result(run_cli(scenario, selection=selection), 0)
     assert_success(scenario, result, 'infra', ids, tags, encoded=True)
@@ -496,7 +496,7 @@ def test_cli_loading_errors_precede_external_effects(scenario, field, value, tok
 
 
 @pytest.mark.parametrize('case,token', [
-    ('missing-file', 'app.json'), ('bad-json', 'values.json'), ('unknown-id', 'missing-id'),
+    ('missing-file', 'app.json'), ('bad-json', 'values.json'),
     ('relative-base', 'base'), ('bad-selection', 'requirements'), ('missing-argument', '--config'),
     ('bad-parameter', 'token'), ('late-template', 'missing_value'),
 ])

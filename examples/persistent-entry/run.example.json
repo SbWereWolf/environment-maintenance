@@ -1,10 +1,17 @@
 {
-  "requirements": [
+  "applications": [
     {
       "id": "launcher",
       "commands": [
         {
           "argv": [
+            "${python}",
+            "${starter}",
+            "--stdout-log",
+            "${stdout_log}",
+            "--stderr-log",
+            "${stderr_log}",
+            "--",
             "${python}",
             "${probe}",
             "${events}",

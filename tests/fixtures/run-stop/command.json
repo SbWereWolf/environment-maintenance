@@ -1,0 +1,6 @@
+{
+  "argv": ["${python}", "${probe}", "${root}", "A", "launch"],
+  "cwd": ".",
+  "env": {"TMPDIR": "${tmp}", "DISPLAY": "${display}", "HOME": "${home}", "PROBE_TOKEN": "${token}"},
+  "interpreter": {"name": "exit", "options": {"accept": [0]}}
+}

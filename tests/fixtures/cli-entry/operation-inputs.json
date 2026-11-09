@@ -1,11 +1,12 @@
 {
   "infra": [
     {
-      "id": "decoy",
+      "id": "base",
       "tags": [
-        "unselected-mutation"
+        "infra-first",
+        "infra-second"
       ],
-      "presence": "presence-decoy"
+      "presence": "presence-base"
     },
     {
       "id": "secondary",
@@ -14,14 +15,6 @@
       ],
       "presence": "presence-secondary",
       "availability": "availability-secondary"
-    },
-    {
-      "id": "base",
-      "tags": [
-        "infra-first",
-        "infra-second"
-      ],
-      "presence": "presence-base"
     }
   ],
   "deps": [
@@ -35,15 +28,15 @@
   ],
   "adjust": [
     {
-      "id": "align-b",
-      "tags": [
-        "adjust-b"
-      ]
-    },
-    {
       "id": "align-a",
       "tags": [
         "adjust-a"
+      ]
+    },
+    {
+      "id": "align-b",
+      "tags": [
+        "adjust-b"
       ]
     }
   ],

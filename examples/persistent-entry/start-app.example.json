@@ -14,20 +14,6 @@
   },
   "invocation": {
     "parameters": "parameters.json",
-    "base_dir": ".",
-    "requirements": {
-      "infra": [
-        "assets"
-      ],
-      "deps": [
-        "packages"
-      ],
-      "adjust": [
-        "alignment"
-      ],
-      "run": [
-        "launcher"
-      ]
-    }
+    "base_dir": "."
   }
 }

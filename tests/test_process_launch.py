@@ -41,7 +41,7 @@ def probe(s, label, *, code=0, interpreter='result', accept=(0,)):
 
 
 def save_run(s, rows):
-    write_json(s.run, dict(requirements=rows))
+    write_json(s.run, dict(applications=rows))
 
 
 def requirement(identifier, *commands):
@@ -92,20 +92,6 @@ def invoke(s, selection='all', **changes):
         parameters=s.parameters, base_dir=s.root, interpreters=s.registry)
     arguments.update(changes)
     return public_api.prepare_resources(**arguments)
-
-
-def cli(s, selection='all', *, omit=None, extra=(), config=None):
-    pairs = [('--config', str(s.main if config is None else config)),
-        ('--parameters', str(s.values)), ('--base-dir', str(s.root)),
-        ('--requirements', selection if selection == 'all' else json.dumps(selection))]
-    argv = [sys.executable, '-B', '-m', 'environment_maintenance', 'run']
-    for flag, value in pairs:
-        if flag != omit:
-            argv += [flag, value]
-    result = subprocess.run([*argv, *extra], cwd=s.foreign, capture_output=True, timeout=15,
-        env=dict(os.environ, PYTHONPATH=os.pathsep.join((str(ROOT / 'src'), str(s.plugins)))))
-    retain(s, 'cli', [*argv, *extra], result)
-    return result
 
 
 def retain(s, label, argv, result):
@@ -166,12 +152,6 @@ def usage_cause(result):
     return result.stderr.rsplit(b'error:', 1)[1]
 
 
-def assert_missing_selected_plugin(result):
-    assert result.returncode == 2 and result.stdout == b''
-    assert result.stderr.startswith(b'interpreter result missing_selected_launch_plugin:exit_result: ')
-    assert b"No module named 'missing_selected_launch_plugin'" in result.stderr
-
-
 def tool(s, argv, *, log_names=('tool.stdout', 'tool.stderr'), extra=()):
     assert TOOL.is_file(), 'Missing required external console launch tool'
     args = ['--stdout-log', log_names[0], '--stderr-log', log_names[1], *extra, '--', *argv]
@@ -184,9 +164,9 @@ def tool(s, argv, *, log_names=('tool.stdout', 'tool.stderr'), extra=()):
 
 def submitted(result):
     value = cli_json(result)
-    assert set(value) == {'status', 'pid'} and value['status'] == 'submitted'
-    assert type(value['pid']) is int and value['pid'] > 0
-    return value['pid']
+    assert set(value) == {'status', 'pgid'} and value['status'] == 'submitted'
+    assert type(value['pgid']) is int and value['pgid'] > 0
+    return value['pgid']
 
 
 def probe_argv(s, label, code=0):
@@ -194,25 +174,11 @@ def probe_argv(s, label, code=0):
         str(FIXTURES / 'stdout.hex'), str(FIXTURES / 'stderr.hex'), str(code)]
 
 
-def launch(s, label):
-    argv = [sys.executable, '-B', str(TOOL), '--stdout-log', str(s.root / (label + '.stdout')),
-            '--stderr-log', str(s.root / (label + '.stderr')), '--']
-    argv += terminal_argv(sys.executable, FIXTURES / 'worker.py', s.root, label)
-    return command(argv, env=dict(DISPLAY=os.environ['DISPLAY'], LAUNCH_TOKEN='${token}'))
-
-
 def assert_binary_record(record, *, encoded=False, code=0, error=None):
     assert raw(record, 'stdout', encoded) == payload('stdout')
     assert raw(record, 'stderr', encoded) == payload('stderr')
     assert type(record['exit_code']) is int and record['exit_code'] == code
     assert record['error'] == error
-
-
-def assert_rejected_second_command(result, record, *, encoded=False):
-    assert_binary_record(record, encoded=encoded, code=9,
-                         error='interpreter result: selected exit rejected')
-    assert record['interpretation'] == dict(success=False, value=9, error='selected exit rejected')
-    assert result['error'] == 'run requirement two: interpreter result: selected exit rejected'
 
 
 def assert_logs(s, prefixes, repetitions=1):
@@ -235,58 +201,6 @@ def test_run_api_full_context_bytes_and_opaque(scenario):
     assert trace(s)[0]['token'] == 'chosen launch token'
 
 
-def test_explicit_legacy_catalogue_run_keeps_its_contract(scenario):
-    from v2_helpers import catalog, stateful_requirement
-    s = scenario
-    item, state, log = stateful_requirement(s.root, 'missing')
-    selected = catalog(s.root, [item])
-    result = subprocess.run([sys.executable, '-B', '-m', 'environment_maintenance',
-        'run', '--catalog-dir', str(selected)], cwd=s.foreign, capture_output=True,
-        env=dict(os.environ, PYTHONPATH=str(ROOT / 'src')), timeout=10)
-    value = cli_json(result)
-    assert value['schema'] == 'environment-maintenance/result/v2'
-    assert value['status'] == 'ready'
-    assert state.read_text() == 'satisfied'
-    assert log.read_text().splitlines() == ['check', 'install', 'check']
-
-
-@pytest.mark.parametrize('selection,expected', [('all', ['one', 'two']),
-    (['two'], ['two']), (['two', 'one'], ['two', 'one']), ([], [])])
-def test_run_selection_and_chain_order(scenario, selection, expected):
-    s = scenario
-    result = cli_json(cli(s, selection))
-    aggregate(result, expected)
-    assert [row['label'] for row in trace(s)] == expected
-    for row in result['requirements']:
-        assert_binary_record(row['result']['commands'][0], encoded=True)
-    if not expected:
-        no_effects(s)
-
-
-@pytest.mark.parametrize('flag', ['--config', '--parameters', '--base-dir', '--requirements'])
-def test_run_requires_each_explicit_working_argument(scenario, flag):
-    result = cli(scenario, omit=flag)
-    assert flag.encode() in usage_cause(result)
-    no_effects(scenario)
-
-
-def test_run_source_conflict_precedes_input_reading(scenario):
-    missing = scenario.root / 'unreadable-config'
-    result = cli(scenario, config=missing, extra=['--catalog-dir', str(missing)])
-    cause = usage_cause(result)
-    assert b'--config' in cause and b'--catalog-dir' in cause
-    assert b'No such file' not in result.stderr
-    no_effects(scenario)
-
-
-@pytest.mark.parametrize('extra,flag', [(['--values', 'unused'], '--values'),
-    (['--set', 'key=value'], '--set'), (['--dry-run'], '--dry-run')])
-def test_run_source_rejects_catalogue_only_flags(scenario, extra, flag):
-    result = cli(scenario, extra=extra)
-    assert flag.encode() in usage_cause(result)
-    no_effects(scenario)
-
-
 @pytest.mark.parametrize('defect', ['template', 'interpreter', 'command'])
 def test_run_preflights_late_commands_before_any_effect(scenario, defect):
     s = scenario
@@ -304,7 +218,7 @@ def test_run_preflights_late_commands_before_any_effect(scenario, defect):
     no_effects(s)
 
 
-@pytest.mark.parametrize('defect', ['base', 'parameters', 'plugin'])
+@pytest.mark.parametrize('defect', ['base', 'parameters'])
 def test_run_empty_selection_still_validates_common_inputs(scenario, defect):
     s = scenario
     arguments = {}
@@ -312,28 +226,19 @@ def test_run_empty_selection_still_validates_common_inputs(scenario, defect):
         arguments['base_dir'] = 'relative-base'
     elif defect == 'parameters':
         arguments['parameters'] = []
-    else:
-        doc = json.loads(s.main.read_text())
-        doc['interpreters']['result']['module'] = 'missing_selected_launch_plugin'
-        write_json(s.main, doc)
-        result = cli(s, [])
-        assert_missing_selected_plugin(result)
-        no_effects(s)
-        return
     with pytest.raises(ValueError) as caught:
         invoke(s, [], **arguments)
     assert str(caught.value)
     no_effects(s)
 
 
-@pytest.mark.parametrize('encoded', [False, True])
-def test_run_full_binary_and_selected_nonzero_interpreter(scenario, encoded):
+def test_run_full_binary_and_selected_nonzero_interpreter(scenario):
     s = scenario
     save_run(s, [requirement('one', probe(s, 'one', code=7, accept=(7,)))])
-    result = cli_json(cli(s)) if encoded else invoke(s)
+    result = invoke(s)
     aggregate(result, ['one'])
     record = result['requirements'][0]['result']['commands'][0]
-    assert_binary_record(record, encoded=encoded, code=7)
+    assert_binary_record(record, code=7)
     assert record['interpretation'] == dict(success=True, value=7, error=None)
 
 
@@ -430,35 +335,6 @@ def test_console_tool_requires_explicit_log_paths_and_command(scenario, argument
     assert all(path.name.startswith('evidence-') for path in scenario.root.iterdir())
 
 
-def test_run_two_visible_consoles_return_eof_and_stop_independently(scenario, consoles):
-    s = scenario
-    save_run(s, [requirement('one', launch(s, 'one'), probe(s, 'after-one')),
-                 requirement('two', launch(s, 'two'), probe(s, 'after-two'))])
-    completed = cli(s)
-    result = cli_json(completed)
-    aggregate(result, ['one', 'two'])
-    rows = [s.lab.ready(label) for label in ('one', 'two')]
-    assert rows[0]['window'] != rows[1]['window'] and rows[0]['tty'] != rows[1]['tty']
-    for label, row, requirement_row in zip(('one', 'two'), rows, result['requirements'], strict=True):
-        s.lab.screenshot(label)
-        records = requirement_row['result']['commands']
-        assert len(records) == 2
-        answer = json.loads(raw(records[0], 'stdout', True))
-        assert set(answer) == {'status', 'pid'} and answer['status'] == 'submitted'
-        assert type(answer['pid']) is int and answer['pid'] == row['parent']
-        assert raw(records[0], 'stderr', True) == b''
-        assert records[0]['exit_code'] == 0 and records[0]['error'] is None
-        assert_binary_record(records[1], encoded=True)
-        assert row['cwd'] == str(s.root) and row['token'] == 'chosen launch token'
-        s.lab.reply(label, '314')
-    consoles()
-    assert [row['label'] for row in trace(s)] == ['after-one', 'after-two']
-    s.lab.stop('one')
-    assert not (s.root / 'two.stopped.json').exists()
-    s.lab.reply('two', '271')
-    s.lab.stop('two')
-
-
 def test_console_tool_returns_with_live_visible_worker_and_exact_terminal_pid(scenario, consoles):
     s = scenario
     pid = submitted(tool(s, terminal_argv(sys.executable, FIXTURES / 'worker.py', s.root, 'direct')))
@@ -468,22 +344,3 @@ def test_console_tool_returns_with_live_visible_worker_and_exact_terminal_pid(sc
     s.lab.reply('direct', '314')
     consoles()
     s.lab.stop('direct')
-
-
-def test_run_late_failure_keeps_first_console_and_never_launches_tail(scenario, consoles):
-    s = scenario
-    save_run(s, [requirement('one', launch(s, 'one')),
-        requirement('two', probe(s, 'failure', code=9), launch(s, 'forbidden')),
-        requirement('three', probe(s, 'tail'))])
-    result = cli_json(cli(s), 1)
-    aggregate(result, ['one', 'two'], status='failed')
-    record = result['requirements'][1]['result']['commands'][0]
-    assert_rejected_second_command(result, record, encoded=True)
-    assert len(result['requirements'][1]['result']['commands']) == 1
-    assert [row['label'] for row in trace(s)] == ['failure']
-    assert not (s.root / 'forbidden.ready.json').exists()
-    s.lab.ready('one')
-    s.lab.screenshot('one')
-    s.lab.reply('one', '271')
-    consoles()
-    s.lab.stop('one')

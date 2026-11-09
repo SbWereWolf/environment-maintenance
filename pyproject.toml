@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "environment-maintenance"
-version = "3.1.0"
-description = "Independent catalog/v2 environment maintenance runner"
+version = "4.0.0"
+description = "Configured environment maintenance and named application groups"
 requires-python = ">=3.11"
 dependencies = [
     "jsonpatch>=1.36",
@@ -21,7 +21,6 @@ dev = [
 ]
 
 [project.scripts]
-environment-maintenance = "environment_maintenance.cli:main"
 start-app = "environment_maintenance.cli:main"
 
 [tool.setuptools.packages.find]

@@ -12,7 +12,6 @@ from types import SimpleNamespace
 import pytest
 
 from environment_maintenance import prepare_resources
-from v2_helpers import catalog, stateful_requirement
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -95,7 +94,7 @@ def reset_profile(app):
                 if 'availability' in resource:
                     row['checks']['availability'] = dict(commands=[command(resource['availability'])])
             requirements.append(row)
-        write(app.root / (operation + '.json'), dict(requirements=requirements))
+        write(app.root / (operation + '.json'), {('applications' if operation == 'run' else 'requirements'): requirements})
 
 
 @pytest.fixture
@@ -166,7 +165,7 @@ def assert_operation_effects(app, operation, completed):
     assert events(app) == [expected_event(app, tag) for tag in expected['tags']]
 
 
-@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check'])
 def test_flagless_operation_uses_declared_values_and_exact_effects(apps, operation):
     app = apps['A']
     before = protected(app)
@@ -174,7 +173,7 @@ def test_flagless_operation_uses_declared_values_and_exact_effects(apps, operati
     assert protected(app) == before
 
 
-@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check'])
 def test_fixture_full_explicit_control_is_executable(apps, operation):
     """Separate setup/control PASS from missing flagless behavior RED."""
     app = apps['A']
@@ -268,19 +267,6 @@ def test_selection_override_retains_parameter_and_base_defaults(apps):
 
 
 @pytest.mark.parametrize('case', fixture('selection-cases.json'), ids=['all', 'empty'])
-def test_configured_all_and_empty_selection_are_explicit_values(apps, case):
-    app = apps['A']
-    main = json.loads(app.main.read_text(encoding='utf-8'))
-    main['invocation']['requirements']['infra'] = case['selection']
-    write(app.main, main)
-    before = protected(app)
-    result = success(invoke(app, 'infra'), 'infra', app)
-    assert [item['id'] for item in result['requirements']] == case['ids']
-    assert events(app) == [expected_event(app, tag) for tag in case['tags']]
-    assert protected(app) == before
-
-
-@pytest.mark.parametrize('case', fixture('selection-cases.json'), ids=['all', 'empty'])
 def test_all_and_empty_selection_overrides_apply_only_to_one_call(apps, case):
     app = apps['A']
     selection = 'all' if case['selection'] == 'all' else json.dumps(case['selection'])
@@ -313,17 +299,17 @@ def test_full_explicit_form_preserves_caller_relative_paths_without_invocation(a
 def test_two_absolute_local_entries_keep_other_installation_unchanged(apps, tmp_path):
     a, b = apps['A'], apps['B']
     before_b = protected(b)
-    success(invoke(a, 'run'), 'run', a)
-    assert events(a) == [expected_event(a, 'run')]
+    success(invoke(a, 'deps'), 'deps', a)
+    assert events(a) == [expected_event(a, 'deps')]
     assert events(b) == [] and protected(b) == before_b
     before_a = protected(a)
-    success(invoke(b, 'run'), 'run', b)
-    assert events(b) == [expected_event(b, 'run')]
-    assert events(a) == [expected_event(a, 'run')] and protected(a) == before_a
+    success(invoke(b, 'deps'), 'deps', b)
+    assert events(b) == [expected_event(b, 'deps')]
+    assert events(a) == [expected_event(a, 'deps')] and protected(a) == before_a
     assert a.module != b.module
 
 
-@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check'])
 def test_one_package_entry_uses_current_project_not_runtime_prefix(apps, tmp_path, operation):
     runtime, selected = apps['A'], apps['B']
     project = tmp_path / 'project with configuration only'
@@ -379,9 +365,9 @@ def test_runtime_oracle_distinguishes_engine_from_external_probe_parameters(apps
     """A/configB is valid, but its observed engine must not be mistaken for B."""
     a, b = apps['A'], apps['B']
     before_a, before_b = protected(a), protected(b)
-    result = success(invoke(a, 'run', '--config', b.main, '--parameters', b.parameters,
-        '--base-dir', b.workspace, '--requirements', '["launch"]', cwd=tmp_path), 'run', a)
-    assert events(b) == [expected_event(b, 'run')] and events(a) == []
+    result = success(invoke(a, 'deps', '--config', b.main, '--parameters', b.parameters,
+        '--base-dir', b.workspace, '--requirements', '["packages"]', cwd=tmp_path), 'deps', a)
+    assert events(b) == [expected_event(b, 'deps')] and events(a) == []
     with pytest.raises(AssertionError):
         assert_runtime(result, b)
     assert protected(a) == before_a and protected(b) == before_b
@@ -413,7 +399,7 @@ def test_unavailable_main_has_named_diagnostic_and_no_effects(apps, kind):
     assert events(app) == []
 
 
-@pytest.mark.parametrize('field', ['parameters', 'base_dir', 'requirements'])
+@pytest.mark.parametrize('field', ['parameters', 'base_dir'])
 def test_missing_needed_invocation_setting_is_not_an_implicit_default(apps, field):
     app = apps['A']
     main = json.loads(app.main.read_text(encoding='utf-8'))
@@ -472,23 +458,3 @@ def test_external_failure_keeps_attempted_records_and_stops_later_commands(apps)
     assert [item['id'] for item in result['requirements']] == ['base']
     assert [item['exit_code'] for item in result['requirements'][0]['result']['commands']] == [0, 7]
     assert events(app) == [expected_event(app, 'infra-first'), expected_event(app, 'infra-second')]
-
-
-@pytest.mark.parametrize('operation,initial,log_expected', [
-    ('check', 'satisfied', ['check']),
-    ('run', 'missing', ['check', 'install', 'check']),
-])
-def test_explicit_catalog_ignores_present_ordinary_main(apps, tmp_path, operation,
-                                                     initial, log_expected):
-    app = apps['A']
-    item, state, log = stateful_requirement(tmp_path, initial)
-    catalog(tmp_path, [item])
-    alternate_main(app, tmp_path / 'start-app.json')
-    before = protected(app)
-    completed = invoke(app, operation, '--catalog-dir', 'catalog-v2', cwd=tmp_path)
-    assert completed.returncode == 0, completed.stderr.decode(errors='replace')
-    result = json.loads(completed.stdout)
-    assert result['status'] == 'ready' and result['exit_code'] == 0
-    assert log.read_text(encoding='utf-8').splitlines() == log_expected
-    assert state.read_text(encoding='utf-8') == 'satisfied'
-    assert events(app) == [] and protected(app) == before

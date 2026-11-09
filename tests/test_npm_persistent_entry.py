@@ -8,6 +8,8 @@ import pytest
 
 from npm_delivery_support import PackageLab, fixture, write_json
 from test_npm_delivery import assert_action, assert_json_equal
+from run_stop_support import Lab, FIXTURES as RUN_FIXTURES, application, write
+from npm_delivery_support import living_group
 
 
 @pytest.fixture(scope='module')
@@ -39,8 +41,7 @@ def ordinary_profile(package, consumer, directory, token='chosen-token-Ω'):
     write_json(profile.ordinary_values, values)
     main = fixture('main.json')
     main['operations'] = {operation: str(path) for operation, path in profile.documents.items()}
-    main['invocation'] = dict(parameters='start-app-values.json', base_dir=str(profile.serviced),
-        requirements={operation: ['selected'] for operation in ('infra', 'deps', 'adjust', 'run')})
+    main['invocation'] = dict(parameters='start-app-values.json', base_dir=str(profile.serviced))
     write_json(profile.ordinary, main)
     profile.ordinary.chmod(0o640)
     profile.ordinary_values.chmod(0o640)
@@ -131,9 +132,9 @@ def assert_engine(result, profile):
                        for path in identity['modules'].values())
 
 
-@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check'])
 @pytest.mark.parametrize('form', ['local', 'absolute'])
-def test_all_five_operations_use_both_real_short_entry_forms(package, consumer, tmp_path,
+def test_servicing_operations_use_both_real_short_entry_forms(package, consumer, tmp_path,
                                                           operation, form):
     profile = ordinary_profile(package, consumer, tmp_path / 'inputs')
     before = protected(profile)
@@ -213,15 +214,15 @@ def test_two_real_npm_instances_select_own_engine_and_preserve_other(package, co
     b = ordinary_profile(package, second, tmp_path / 'B', token='B-token-Ω')
     before_b = protected(b)
     before_a = protected(a)
-    result = answer(invoke(package, a, 'run', 'absolute', identity=True), 'run')
+    result = answer(invoke(package, a, 'deps', 'absolute', identity=True), 'deps')
     assert_engine(result, a)
-    assert_effects(result, a, 'run', 'A-token-Ω')
+    assert_effects(result, a, 'deps', 'A-token-Ω')
     assert not b.events.exists() and protected(b) == before_b
     assert protected(a) == before_a
     a_events_before_b = a.events.read_bytes()
-    result = answer(invoke(package, b, 'run', 'local', identity=True), 'run')
+    result = answer(invoke(package, b, 'deps', 'local', identity=True), 'deps')
     assert_engine(result, b)
-    assert_effects(result, b, 'run', 'B-token-Ω')
+    assert_effects(result, b, 'deps', 'B-token-Ω')
     assert protected(a) == before_a and protected(b) == before_b
     assert a.events.read_bytes() == a_events_before_b
     assert a.modules != b.modules
@@ -236,3 +237,69 @@ def test_missing_ordinary_main_has_installation_diagnostic_and_no_effects(packag
     assert result.returncode == 2 and str(profile.ordinary).encode() in result.stderr
     assert result.stdout == b''
     assert not profile.events.exists() and protected(profile) == before
+
+
+@pytest.mark.parametrize('form', ['local', 'absolute'])
+def test_installed_run_list_stop_share_real_groups_and_caller_configuration(package, consumer,
+                                                                          tmp_path, form):
+    lab = Lab(tmp_path)
+    try:
+        values = json.loads(lab.values.read_text())
+        values['python'] = str(consumer.python)
+        write(lab.values, values)
+        lab.run_rows([application('A'), application('B')])
+        environment = dict(package.env, TMPDIR=str(lab.tmp), PYTHONPATH=str(RUN_FIXTURES))
+        environment['PATH'] = str(consumer.entry.parent) + os.pathsep + package.env['PATH']
+        entry = 'start-app' if form == 'local' else consumer.entry
+        identity = package.capture('installed-runtime-identity', [consumer.python, '-I', '-B',
+            '-c', 'import environment_maintenance; print(environment_maintenance.__file__)'], lab.root)
+        assert identity.returncode == 0 and identity.stderr == b''
+        assert Path(identity.stdout.decode().strip()).is_relative_to(consumer.prefix)
+        initial = {p: p.read_bytes() for p in lab.root.glob('*.json')}
+        result = lab.answer('run', '--env', 'npm-E', '--app', 'A', entry=entry, env=environment)
+        group = lab.started('A')['pgid']
+        assert result['received_pgids'] == result['planned'] == 1
+        assert result['applications'][0]['pgid'] == group and living_group(group)
+        pending = lab.answer('run', 'list', '--env', 'npm-E', entry=entry, env=environment)
+        assert pending['applications'] == ['B']
+        final = lab.answer('stop', '--env', 'npm-E', '--app', 'A', entry=entry, env=environment)
+        assert final['stopped'] == [{'environment': 'npm-E', 'id': 'A', 'pgid': group}]
+        assert final['errors'] == []
+        lab.dead(group)
+        assert not lab.state_path('npm-E').exists()
+        assert all(p.read_bytes() == before for p, before in initial.items())
+    finally:
+        lab.close()
+
+
+def test_two_installed_entries_share_one_temp_registry(package, consumer, tmp_path):
+    second = package.install('shared-registry')
+    package.require_consumer(second)
+    assert second.python != consumer.python
+    lab = Lab(tmp_path)
+    try:
+        environment = dict(package.env, TMPDIR=str(lab.tmp), PYTHONPATH=str(RUN_FIXTURES))
+        values = json.loads(lab.values.read_text())
+        values['python'] = str(consumer.python)
+        write(lab.values, values)
+        first = lab.answer('run', '--env', 'shared', '--app', 'A',
+                           entry=consumer.entry, env=environment)
+        a = lab.started('A')['pgid']
+        values['python'] = str(second.python)
+        write(lab.values, values)
+        added = lab.answer('run', '--config', lab.main, '--parameters', lab.values,
+            '--base-dir', lab.root, '--env', 'shared', '--app', 'B',
+            entry=second.entry, env=environment, cwd=lab.base)
+        b = lab.started('B')['pgid']
+        assert first['file'] == added['file'] == str(lab.state_path('shared'))
+        assert lab.state('shared')['applications'] == {'A': {'pgid': a}, 'B': {'pgid': b}}
+        result = lab.answer('stop', '--env', 'shared', '--app', 'A',
+                            entry=second.entry, env=environment, cwd=lab.base)
+        assert result['stopped'] == [{'environment': 'shared', 'id': 'A', 'pgid': a}]
+        lab.dead(a)
+        assert living_group(b) and lab.state('shared')['applications'] == {'B': {'pgid': b}}
+        lab.answer('stop', 'all', entry=consumer.entry, env=environment)
+        lab.dead(b)
+        assert not lab.state_path('shared').exists()
+    finally:
+        lab.close()

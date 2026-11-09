@@ -2,15 +2,13 @@
   {
     "selection": "all",
     "ids": [
-      "decoy",
-      "secondary",
-      "base"
+      "base",
+      "secondary"
     ],
     "tags": [
-      "unselected-mutation",
-      "infra-secondary",
       "infra-first",
-      "infra-second"
+      "infra-second",
+      "infra-secondary"
     ]
   },
   {

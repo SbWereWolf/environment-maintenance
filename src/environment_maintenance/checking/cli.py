@@ -5,7 +5,7 @@ import sys
 
 from ..actions import execute_action
 from ..actions.transport import load_interpreters, plan_for_json_transport
-from ..catalogue import read_json
+from ..configuration.json_file import read_json
 from ..configuration import read_requirements
 from .application import check_resources
 from .presentation import encode_result

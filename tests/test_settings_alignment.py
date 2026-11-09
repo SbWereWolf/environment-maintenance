@@ -276,9 +276,9 @@ def test_adjust_preflights_selected_json_metadata_and_accepts_finite_control(sce
     ('--set', 'queue=ignored'),
     ('--dry-run',),
 ])
-def test_adjust_reports_foreign_flag_before_effects(scenario, arguments):
+def test_adjust_warns_about_foreign_flag_and_runs_effects(scenario, arguments):
     process = run_cli(scenario, extra=arguments)
-    assert process.returncode == 2 and process.stdout == b''
-    cause = process.stderr.decode().splitlines()[-1]
-    assert arguments[0] in cause and 'adjust' in cause, process.stderr.decode()
-    no_effects(scenario)
+    assert process.returncode == 0, process.stderr
+    assert arguments[0].encode() in process.stderr
+    success(scenario, json.loads(process.stdout), ['note', 'queue-agreement', 'tail'],
+            'trace-all.json', encoded=True)
