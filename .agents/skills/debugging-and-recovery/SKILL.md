@@ -1,0 +1,96 @@
+---
+name: debugging-and-recovery
+description: Diagnose root causes of unexpected behavior and recover authorized work from saved evidence without blind retries or competing observers.
+version: 1.1.0
+---
+
+# Debugging and recovery
+
+When investigating unexpected behavior, follow the canonical
+[diagnosis and recovery
+contract](../../../docs/governance/development-rules.md#диагностика-и-восстановление).
+
+For a Poise refusal blocking authorized work, also apply
+[harness-recovery](../harness-recovery/SKILL.md). Its
+[canonical recovery
+contract](../../../docs/governance/development-rules.md#сбой-harness-и-ручной-обход)
+owns incident classification, manual correction and repair-draft decisions.
+
+## Inputs
+
+Expected and actual behavior, reproducing input and conditions, and exact source/runtime/configuration identity. For operation recovery, also obtain the failed operation and its stable identity, terminal result or confirmed loss of its owner, saved complete logs/artifacts, current Task/stage and worktree, required outcome and selected Poise project configuration. Obtain managed context through [poise-workflow](../poise/SKILL.md) and the [existing batch reads](../../../docs/workflows/batch-work.md#пакетное-чтение), not reconstructed lifecycle state.
+
+## Root-cause diagnosis
+
+1. State the expected and actual results, exact input, execution
+   conditions, and source/runtime/configuration identity. Separate
+   observations from assumptions.
+2. Reproduce the failure; inspect the error, stack trace, recent code,
+   dependency, and configuration changes. For intermittent failures,
+   record failing and passing conditions; one passing run does not
+   disprove the defect.
+3. Trace the invalid value or state backward from the symptom to its
+   source. At relevant component boundaries, inspect inputs, outputs,
+   state, and configuration propagation without exposing secrets. Add
+   temporary diagnostics only where existing evidence cannot
+   distinguish the suspected causes; collect related signals as needed
+   for that question.
+4. Compare with a working example in the owning context, including its
+   inputs, dependencies, state, and environment. Treat differences as
+   hypothesis candidates, not proof or a reason to copy code blindly.
+5. State one falsifiable hypothesis and its confirming/rejecting
+   observation before the experiment. Change one condition at a time.
+   Diagnostic code/configuration changes are experiments, not accepted
+   fixes; symptom disappearance alone does not establish the cause.
+   Reject unsuccessful changes before testing a new hypothesis, while
+   preserving unrelated work and checking effects before any rollback.
+6. Before a code fix, obtain a regression check that fails for the
+   observed defect. Correct the confirmed cause in its owning layer,
+   then verify the original scenario and affected checks. Configuration
+   or dependency recovery uses direct before/after evidence; do not
+   invent a code test when no code behavior changed.
+
+For asynchronous application/test failures, prefer framework-supported
+bounded waits for the actual event or state over arbitrary sleeps.
+When time itself is under test, use the supported clock/timing controls.
+Remove task-owned temporary diagnostics after investigation and retain
+their evidence. Keep each step proportional to the failure; do not add
+validation at every layer without a distinct contract responsibility.
+
+## Operation recovery
+
+1. Let the owning runner be the sole continuous observer while a registered operation is active. Do not tail its log, count output lines/tests, inspect its process tree, start another monitor or rerun it to ask whether it is alive. Use only its documented cancellation control when cancellation is authorized. Diagnose after a terminal failure, timeout/stall/cancellation, or evidence that the owner disappeared without a terminal record.
+2. Read complete saved evidence in bounded batches: terminal status, relevant log spans, progress/artifact record, runtime/source identity and the owner's configured limits. Follow subsequent spans to the end rather than treating a truncated preview as the full log. Inspect processes or external state only after the active-owner boundary is resolved.
+3. Establish the last completed step and whether a side effect may have committed. For database, queue, filesystem, remote request or publication operations, use the authoritative operation/transaction/build identity and actual state. Prove whether continuation is idempotent before retrying; a client error does not prove the server did nothing.
+4. Apply the root-cause method to the failing operation. Narrow diagnostic commands, inputs or boundaries only through supported routes; a filtered diagnostic run never replaces a required complete named test package or final verification.
+5. Preserve runner-owned C033 timing policy. Do not hard-code skill timeouts or increase a limit without evidence of useful progress and authorization through its owner. A progress-supported diagnostic rerun is not a new successful maximum until it passes. Current Poise verification-method contracts do not declare per-method timeouts; do not reintroduce one through this skill. Infrastructure-probe limits remain owned by their current runner/configuration.
+6. Classify a missing binary, service, credential, configuration or runtime precisely. Fix a non-destructive in-scope development dependency through its normal owner when permitted; otherwise record the exact missing input, blocked stage and setup required. Never silently substitute host tooling, a sample configuration or a different runtime. Do not repeat discovery for a capability already proved unavailable.
+7. For a post-merge regression, first recover the previously verified code and evidence through the owning recovery/integration mechanism, compare that code with the actual requirements, then isolate the new difference. Never reset another worktree or lose unique work to obtain a clean-looking result.
+8. Use N01 generic public phase recovery only when the installed API implements it. Use the
+   currently documented [work/rework
+   operations](../../../docs/workflows/batch-work.md#rework-при-нерассмотренных-исправлениях)
+   otherwise, respecting pending resolution inspection. Do not alter managed state merely to bypass
+   a gate. When the public owner cannot recover a proven defect, use only an authorized, audited
+   correction under the canonical harness recovery contract; preserve history, evidence and foreign
+   ownership.
+9. Run the smallest diagnostic or regression check justified by the changed cause, then the maintained smoke where required. A deterministic failure needs a changed cause before rerun. A flaky pass alone is not validation; preserve the failing signal and repair or formally track the unrelated defect without silently passing its blocked obligation.
+
+## Output
+
+Save symptom/command, terminal identity, last completed step, side-effect state, inspected evidence, hypothesis, diagnostic change, actual result, justified retry/recovery and regression evidence through the existing Task/evidence/artifact owners. Distinguish recovered execution from unverified behavior. Release or transfer through public handoff; a blocker is not successful validation, and a conversation note is not durable state.
+
+## Checkpoint recovery
+
+Determine which store owns the failed operation using the current [storage matrix](../../../docs/architecture/storage-lifecycle.md#владельцы-и-версии). Follow only the [limited ownership upgrade](../../../docs/architecture/storage-lifecycle.md#ограниченный-переход-task-db-12-в-13) for known v12 Task data, and preserve external databases using the [explicit path mapping](../../../docs/architecture/storage-lifecycle.md#явные-пути-и-переносимая-поставка). A Task-only backup is not a full repository backup.
+
+For lost execution environments use [checkpoint and recovery](../../../docs/workflows/checkpoint-recovery.md#контрольная-точка-и-восстановление). Read the saved state and inspect existing attachments before repeating work or requesting an upload. Restore into a new directory; never use a rejected branch or an email summary as source code.
+
+## Orphaned claims after a cloud crash
+
+An unknown old owner is not a permanent blocker. Use the existing
+[after-crash recovery](../../../docs/workflows/crash-ownership-recovery.md):
+inspect the selected Task IDs, retain the generated recovery_template, record the
+actual user decision and stopped-writer confirmation, then revoke claims atomically.
+Never infer death from silence, fabricate SessionEnd, or impersonate a saved caller.
+Resume with a genuine new session; retain pending outcomes for their existing owners.
+Use ordinary authorized restart only when the Task itself needs revision.
