@@ -1,5 +1,16 @@
 In Russian for humans, in English for AI
 
+## Inter-agent communication
+
+Do not read other participants' chats or poll their status.
+Message another participant only to hand over a fully completed step of
+your assigned role, with saved materials sufficient for the next role.
+Confirm the required handoff and ownership release, send one handoff
+notice, then stop and end the turn. Resume role work only after receiving
+an incoming handoff addressed to you. Separate progress reports, questions,
+clarifications, acknowledgements, amendments and corrections are forbidden.
+This rule applies under any work plan and does not change its graph or steps.
+
 ## Shared Task execution rules
 
 Follow [the shared Task contract](docs/workflows/task-execution-contract.md#назначение).
