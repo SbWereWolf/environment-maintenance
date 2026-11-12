@@ -1,0 +1,8 @@
+[
+  {"id":"non-object","resources":"web","field":"resources"},
+  {"id":"boolean-port","resources":{"host":"127.0.0.1","port":true},"field":"port"},
+  {"id":"zero-port","resources":{"host":"127.0.0.1","port":0},"field":"port"},
+  {"id":"large-port","resources":{"host":"127.0.0.1","port":65536},"field":"port"},
+  {"id":"text-port","resources":{"host":"127.0.0.1","port":"wrong"},"field":"port"},
+  {"id":"missing-parameter","resources":{"host":"${absent_host}","port":48731},"field":"absent_host"}
+]

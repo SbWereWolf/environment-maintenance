@@ -1,1 +1,1 @@
-{"operation":"run-list","status":"succeeded","environment":null,"applications":["A","B","C"],"errors":[]}
+{"operation":"run-list","status":"succeeded","environment":null,"applications":{"A":{"pgid":null},"B":{"pgid":null},"C":{"pgid":null}},"errors":[]}

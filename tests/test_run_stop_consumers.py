@@ -169,7 +169,7 @@ def test_actual_maintenance_forwarder_preserves_new_argv_and_result(subjects, tm
             "--base-dir", lab.root, pythonpath=pythonpath)
         assert result.returncode == 0, result.stderr
         actual = json.loads(result.stdout)
-        assert actual["operation"] == "run-list" and actual["applications"] == ["A", "B", "C"]
+        assert actual["operation"] == "run-list" and actual["applications"] == {"A": {"pgid": None}, "B": {"pgid": None}, "C": {"pgid": None}}
         assert lab.labels() == [] and not lab.store.exists()
     finally:
         lab.close()

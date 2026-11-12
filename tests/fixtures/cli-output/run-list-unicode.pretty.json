@@ -2,7 +2,7 @@
   "operation": "run-list",
   "status": "succeeded",
   "environment": "\u041a\u043e\u0434-1",
-  "applications": [],
+  "applications": {},
   "errors": [],
   "found": false
 }

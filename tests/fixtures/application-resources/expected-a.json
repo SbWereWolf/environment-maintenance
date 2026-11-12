@@ -1,0 +1,14 @@
+{
+  "operation": "run-list",
+  "status": "succeeded",
+  "environment": null,
+  "applications": {
+    "web": {"pgid": null, "host": "127.0.0.1", "port": 48731},
+    "worker-a": {"pgid": null, "queue": {"driver": "database", "database": "${test_root}/очереди A Ω/source-a.sqlite", "table": "jobs", "name": "shared"}},
+    "worker-b": {"pgid": null, "queue": {"driver": "database", "database": "${test_root}/очереди A Ω/source-b.sqlite", "table": "jobs", "name": "shared"}},
+    "worker-c": {"pgid": null, "queue": {"driver": "database", "database": "${test_root}/очереди A Ω/source-a.sqlite", "table": "jobs", "name": "other"}},
+    "scheduler": {"pgid": null, "scheduler": {"application": "planning-workspace", "command": "schedule:work"}},
+    "plain": {"pgid": null}
+  },
+  "errors": []
+}

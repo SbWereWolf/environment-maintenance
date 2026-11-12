@@ -1,0 +1,7 @@
+{
+  "web": {"host": "${web_host}", "port": "${web_port}"},
+  "worker-a": {"queue": {"driver": "database", "database": "${queue_root}/source-a.sqlite", "table": "jobs", "name": "shared"}},
+  "worker-b": {"queue": {"driver": "database", "database": "${queue_root}/source-b.sqlite", "table": "jobs", "name": "shared"}},
+  "worker-c": {"queue": {"driver": "database", "database": "${queue_root}/source-a.sqlite", "table": "jobs", "name": "other"}},
+  "scheduler": {"scheduler": {"application": "${scheduler_application}", "command": "schedule:work"}}
+}

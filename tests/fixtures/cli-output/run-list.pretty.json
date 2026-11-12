@@ -2,10 +2,16 @@
   "operation": "run-list",
   "status": "succeeded",
   "environment": null,
-  "applications": [
-    "A",
-    "B",
-    "C"
-  ],
+  "applications": {
+    "A": {
+      "pgid": null
+    },
+    "B": {
+      "pgid": null
+    },
+    "C": {
+      "pgid": null
+    }
+  },
   "errors": []
 }

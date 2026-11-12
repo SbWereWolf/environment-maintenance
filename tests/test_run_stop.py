@@ -54,7 +54,7 @@ def test_run_list_stop_roundtrip(lab):
     result = lab.answer('run', '--env', 'smoke-E', '--app', 'A')
     group = lab.started('A')['pgid']
     assert result['applications'][0]['pgid'] == group and living_group(group)
-    assert lab.answer('run', 'list', '--env', 'smoke-E')['applications'] == ['B', 'C']
+    assert lab.answer('run', 'list', '--env', 'smoke-E')['applications'] == {'B': {'pgid': None}, 'C': {'pgid': None}}
     final = lab.answer('stop', '--env', 'smoke-E')
     assert stopped(final) == {('smoke-E', 'A', group)} and final['errors'] == []
     lab.dead(group)
@@ -120,15 +120,15 @@ def test_append_preserves_earlier_apps_and_rejects_duplicate_and_full_run(lab):
 
 def test_run_list_is_read_only_and_missing_env_does_not_become_all(lab):
     result = lab.answer("run", "list")
-    assert result["operation"] == "run-list" and result["applications"] == ["A", "B", "C"]
+    assert result["operation"] == "run-list" and result["applications"] == {"A": {"pgid": None}, "B": {"pgid": None}, "C": {"pgid": None}}
     assert not lab.store.exists() and lab.labels() == []
     absent = lab.answer("run", "list", "--env", "missing")
-    assert absent["found"] is False and absent["applications"] == []
+    assert absent["found"] is False and absent["applications"] == {}
     assert "missing" in json.dumps(absent) and not lab.store.exists()
     lab.answer("run", "--env", "E", "--app", "A")
     before = lab.state_path("E").read_bytes()
     pending = lab.answer("run", "list", "--env", "E")
-    assert pending["found"] is True and pending["applications"] == ["B", "C"]
+    assert pending["found"] is True and pending["applications"] == {"B": {"pgid": None}, "C": {"pgid": None}}
     assert lab.state_path("E").read_bytes() == before and lab.labels() == ["A"]
 
 
