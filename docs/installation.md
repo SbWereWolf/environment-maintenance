@@ -4,7 +4,7 @@
 
 ## Npm-поставка
 
-Приложение выбирает конкретный tgz4.0.0 своей npm-зависимостью с package.json, npm-generated lock и собственным installed runtime. Глобальный prefix также поддерживается. Каждое независимое приложение выбирает и обновляет экземпляр отдельно; несколько регистраций одного приложения могут использовать его копию.
+Приложение выбирает конкретный tgz4.1.0 своей npm-зависимостью с package.json, npm-generated lock и собственным installed runtime. Глобальный prefix также поддерживается. Каждое независимое приложение выбирает и обновляет экземпляр отдельно; несколько регистраций одного приложения могут использовать его копию.
 
 ## Условия
 
@@ -14,7 +14,7 @@ Python и `.venv` пакета принадлежат инструменту. Py
 
 ## Установка из исходников
 
-Выберите точные исходники4.0.0 и собственный каталог установки. Из их корня:
+Выберите точные исходники4.1.0 и собственный каталог установки. Из их корня:
 
 ```bash
 python3 -m venv --copies .venv
@@ -31,7 +31,7 @@ python3 -m venv --copies .venv
 
 ```bash
 /absolute/path/to/venv/bin/python -m pip install \
-  /absolute/path/to/environment_maintenance-4.0.0-py3-none-any.whl
+  /absolute/path/to/environment_maintenance-4.1.0-py3-none-any.whl
 /absolute/path/to/venv/bin/start-app --version
 ```
 

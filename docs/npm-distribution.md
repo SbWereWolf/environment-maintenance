@@ -4,7 +4,7 @@
 
 ## Договор экземпляра
 
-Версия 4.0.0 поставляется самостоятельным пакетом. Приложение устанавливает
+Версия 4.1.0 поставляется самостоятельным пакетом. Приложение устанавливает
 выбранный tgz своей локальной npm-зависимостью и получает
 `node_modules/.bin/start-app`. Отдельная глобальная установка в выбранный prefix
 также поддерживается и предоставляет `bin/start-app`.
@@ -51,6 +51,8 @@ Npm-вход выбирает `PACKAGE_ROOT/.venv` с `-P -s -B`, сохраня
 Полностью явная прежняя форма сохраняется. Npm-вход передаёт полные argv,
 env/stdin/stdout/stderr и обычные/сигнальные исходы выбранного CLI.
 
+[Общая опция `--output`](configuration.md#формат-json) выбирает компактный или форматированный JSON ответа. [Предупреждения аргументов](configuration.md#предупреждения-аргументов) выводятся в stderr сразу после разбора; неверный формат не отменяет допустимую операцию. Npm-вход сохраняет этот договор CLI.
+
 Команды вызываются отдельно: `run` исполняет только объявленный запуск,
 `check` — объявленные наблюдения. Команды, цепочки, шаблоны `string.Template`
 и интерпретаторы принадлежат приложению; один читатель разрешает его документы.
@@ -73,7 +75,7 @@ package_root=/absolute/path/to/prefix/lib/node_modules/environment-maintenance
 app_python="$package_root/.venv/bin/python"
 workspace=/absolute/path/to/private-workspace
 prefix=/absolute/path/to/prefix
-archive=/absolute/path/to/environment-maintenance-4.0.0.tgz
+archive=/absolute/path/to/environment-maintenance-4.1.0.tgz
 prerequisite_python=/absolute/path/to/python3
 export package_root app_python workspace
 ```
@@ -105,8 +107,8 @@ Installed node_modules/venv восстанавливаются из этой sup
 cd /absolute/path/to/application
 tools="$PWD/.tools/environment-maintenance"
 mkdir -p "$tools/vendor"
-cp /absolute/path/to/issued/environment-maintenance-4.0.0.tgz "$tools/vendor/"
-sha256sum "$tools/vendor/environment-maintenance-4.0.0.tgz"
+cp /absolute/path/to/issued/environment-maintenance-4.1.0.tgz "$tools/vendor/"
+sha256sum "$tools/vendor/environment-maintenance-4.1.0.tgz"
 cd "$tools"
 cat > package.json <<'JSON'
 {
@@ -114,7 +116,7 @@ cat > package.json <<'JSON'
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "environment-maintenance": "file:vendor/environment-maintenance-4.0.0.tgz"
+    "environment-maintenance": "file:vendor/environment-maintenance-4.1.0.tgz"
   }
 }
 JSON
@@ -126,7 +128,7 @@ npm ls --depth=0 --json
 
 Перед установкой сравните SHA-256 с переданным владельцем выпуска. Digest относится к конкретному архиву и хранится в отдельной квитанции, а не внутри описываемого архива.
 Сохраните `package.json`, созданный npm `package-lock.json` и выбранный архив
-вместе с зависимостью приложения. Lock фиксирует `version: "4.0.0"`, локальный
+вместе с зависимостью приложения. Lock фиксирует `version: "4.1.0"`, локальный
 `resolved` и `integrity` архива. Локальный `file:` нужен для выданного tgz;
 публикация этой версии в реестре npm здесь не заявляется. Общий кеш загрузок
 допустим, установленный пакет и его `.venv` принадлежат отдельному приложению.
@@ -140,7 +142,7 @@ npm ls --depth=0 --json
 ```bash
 package_root="$tools/node_modules/environment-maintenance"
 app_python="$package_root/.venv/bin/python"
-"$app_python" -I -B -c 'import sys, importlib.metadata, environment_maintenance as em; assert em.__version__ == importlib.metadata.version("environment-maintenance") == "4.0.0"; print(sys.executable, sys.prefix, em.__file__)'
+"$app_python" -I -B -c 'import sys, importlib.metadata, environment_maintenance as em; assert em.__version__ == importlib.metadata.version("environment-maintenance") == "4.1.0"; print(sys.executable, sys.prefix, em.__file__)'
 ```
 
 Python, sys.prefix и импортированный модуль должны находиться в собственном installed пакете приложения. Для обычного exit-code результата связывайте module `environment_maintenance.actions.interpreters` и attribute `exit_result` с явным options.accept. Production launcher — этот Python с `-I -B -m environment_maintenance.running.console`; Python payload приложения может быть другим. [Полный договор](process-launch.md#внешний-инструмент).
@@ -167,12 +169,12 @@ npm pack --json --pack-destination /absolute/path/to/candidate
 Передайте архив и его SHA-256. Установка выбранных байтов в отдельный prefix:
 
 ```bash
-ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-4.0.0.tgz
+ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-4.1.0.tgz
 /absolute/path/to/prefix/bin/start-app --version
 npm root --global --prefix /absolute/path/to/prefix
 ```
 
-Ожидаемая версия — `environment-maintenance 4.0.0`. Последняя команда показывает
+Ожидаемая версия — `environment-maintenance 4.1.0`. Последняя команда показывает
 корень npm-модулей; добавьте `environment-maintenance` для каталога пакета.
 Предоставьте `PREFIX/bin` через `PATH` установленного окружения.
 Идентифицируйте реальный source/tree/tgz digest, runtime и результаты проверки.
@@ -271,7 +273,7 @@ ENVIRONMENT_MAINTENANCE_PYTHON="$prerequisite_python" npm install --global --pre
 sha256sum "$archive"
 ```
 
-Версия снова4.0.0, digest архива прежний. Аналогично обновление устанавливает
+Версия снова4.1.0, digest архива прежний. Аналогично обновление устанавливает
 новый отдельно выбранный проверенный пакет в свой prefix. Полученные результаты
 и tgz передаются получателю до удаления демонстрационных рабочих материалов.
 Рабочие конфиги/журналы не помещаются в историю версий.

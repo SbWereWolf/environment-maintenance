@@ -9,11 +9,15 @@
 | Owner | Ответственность |
 |---|---|
 | `configuration` | Operations mapping, ordered unique selection, CRUD, JSON reader/atomic writer |
-| `invocation`, `cli` | Пути/defaults, шесть команд, аргументы и композиция |
+| `cli` | Стандартный argparse для всех аргументов, ранние предупреждения и композиция шести команд |
+| `invocation` | Пути/defaults и декодирование CLI selection с общей проверкой формы/уникальности из `configuration` |
+| `output` | Чистое форматирование уже закодированного JSON: pretty/one-line без IO и решений об исполнении |
 | `actions` | Plan/execute, ResultInterpreter, полный transport, optional exit-code interpreter |
 | `preparation`, `checking`, `network` | Подготовка, presence/availability, командное/сетевое согласование |
 | `running` | Именованные use cases, raw submitted PGID, presentation, SIGTERM и module launcher |
 | `registry` | Payload, shared OS temp, exclusive empty creation под коротким flock, публикация/удаление |
+
+Представление результатов и exit status остаются у CLI-входов операций; они передают готовые данные в `output`, затем печатают результат. [Общий договор формата и предупреждений](configuration.md#формат-json) принадлежит CLI.
 
 [Run/list/stop](process-launch.md#запуск-процессов) использует прежний ActionExecutor. Файловая граница не владеет командами приложения. `environment_maintenance.running.console` имеет одну реализацию; example делегирует. [Seed источники](requirements/README.md) не являются runtime dependency.
 
@@ -21,7 +25,7 @@
 
 Обычная Task выбирает адресные tests по изменённой границе; full/release suite принадлежит отдельной проверке выпуска. Сохраняйте source/tree, argv/cwd, полные streams/exit, actual package digest и closure собственных ресурсов.
 
-Владельцы случаев: `test_run_stop`, `test_cli_contract`, `test_run_stop_consumers`, `test_runtime_components`, `test_reservation_failure`; SDK/servicing/network/npm controls выбираются адресно. Перед npm checks подготовьте свои `ENV2_PACKAGE_TEST_ROOT`, `ENV2_PACKAGE_WHEELHOUSE` с настоящими build/runtime wheels и абсолютный `ENVIRONMENT_MAINTENANCE_PYTHON`. Это arrangement тестов, не настройки продукта.
+Формат/аргументы/порядок диагностик проверяет `tests/test_cli_output.py`, настоящую npm-установку и её CLI — `tests/test_cli_output_package.py`. Затронутые прежние договоры покрывают `test_run_stop`, `test_cli_contract`, `test_run_stop_consumers`, `test_runtime_components`, `test_reservation_failure`; SDK/servicing/network/npm controls выбираются адресно. Перед npm checks подготовьте свои `ENV2_PACKAGE_TEST_ROOT`, `ENV2_PACKAGE_WHEELHOUSE` с настоящими build/runtime wheels и абсолютный `ENVIRONMENT_MAINTENANCE_PYTHON`. Это arrangement тестов, не настройки продукта.
 
 После всех применимых исправлений/refactoring/docs и адресных checks:
 
@@ -47,7 +51,7 @@ PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
 
 ## Локальный npm-кандидат
 
-После изменения docs/skill нужен свежий [pack/install](npm-distribution.md#пошаговая-инструкция): текущие source/docs/examples/tests и ровно один skill. Существующие `test_archive_contains_owned_material_bytes` и `test_installed_core_libraries_and_metadata_belong_to_instance` наблюдают actual архив/установку; installed run/list/stop проверяется своими npm entry cases. Старый tgz не является новым proof.
+После изменения docs/skill нужен свежий [pack/install](npm-distribution.md#пошаговая-инструкция): текущие source/docs/examples/tests и ровно один skill. Существующие `test_archive_contains_owned_material_bytes` и `test_installed_core_libraries_and_metadata_belong_to_instance` наблюдают actual архив/установку; installed run/list/stop проверяется своими npm entry cases. Старый tgz не является новым proof. После изменения документации повторите адресные проверки на точном новом commit и сравните изменённые Markdown-файлы с байтами внутри свежего архива; записывайте digest именно этого архива.
 
 ## Сборка и поставка
 
