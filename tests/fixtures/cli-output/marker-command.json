@@ -1,0 +1,18 @@
+{
+  "invocation": {
+    "argv": ["${python}", "${probe}", "${root}", "${label}", "marker"],
+    "cwd": "${root}",
+    "env": {
+      "TMPDIR": "${tmp}",
+      "DISPLAY": "${display}",
+      "HOME": "${home}",
+      "PROBE_TOKEN": "chosen-token-Ω"
+    }
+  },
+  "interpreter": {"name": "exit", "options": {"accept": [0]}},
+  "exit_code": 0,
+  "stdout": {"encoding": "base64", "data": "V0FSTklORyBmaXh0dXJl/wAK"},
+  "stderr": {"encoding": "base64", "data": "Zml4dHVyZSBkaWFnbm9zdGljAAo="},
+  "interpretation": {"success": true, "value": 0, "error": null},
+  "error": null
+}

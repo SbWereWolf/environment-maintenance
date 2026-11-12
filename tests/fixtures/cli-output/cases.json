@@ -1,0 +1,403 @@
+{
+  "F02": [
+    {
+      "id": "root-pretty-list",
+      "argv": [
+        "--output",
+        "pretty",
+        "run",
+        "list"
+      ],
+      "format": "pretty",
+      "model": "run-list"
+    },
+    {
+      "id": "root-line-list",
+      "argv": [
+        "--output",
+        "one-line",
+        "run",
+        "list"
+      ],
+      "format": "one-line",
+      "model": "run-list"
+    },
+    {
+      "id": "root-preserved",
+      "argv": [
+        "--output",
+        "pretty",
+        "check"
+      ],
+      "format": "pretty",
+      "model": "check"
+    },
+    {
+      "id": "local-overrides-root",
+      "argv": [
+        "--output",
+        "pretty",
+        "check",
+        "--output",
+        "one-line"
+      ],
+      "format": "one-line",
+      "model": "check"
+    },
+    {
+      "id": "action-overrides-root",
+      "argv": [
+        "--output",
+        "one-line",
+        "run",
+        "list",
+        "--output",
+        "pretty"
+      ],
+      "format": "pretty",
+      "model": "run-list"
+    },
+    {
+      "id": "bare-before-option",
+      "argv": [
+        "check",
+        "--output",
+        "--config",
+        "${main}",
+        "--parameters",
+        "${values}",
+        "--base-dir",
+        "${root}"
+      ],
+      "format": "pretty",
+      "model": "check"
+    },
+    {
+      "id": "stop-all-action",
+      "argv": [
+        "stop",
+        "all",
+        "--output",
+        "pretty"
+      ],
+      "format": "pretty",
+      "model": "stop-empty"
+    },
+    {
+      "id": "equals-value",
+      "argv": [
+        "run",
+        "list",
+        "--output=pretty"
+      ],
+      "format": "pretty",
+      "model": "run-list"
+    },
+    {
+      "id": "last-explicit-wins",
+      "argv": [
+        "run",
+        "list",
+        "--output",
+        "pretty",
+        "--output",
+        "one-line"
+      ],
+      "format": "one-line",
+      "model": "run-list"
+    },
+    {
+      "id": "unicode-following-option",
+      "argv": [
+        "run",
+        "list",
+        "--output",
+        "pretty",
+        "--env",
+        "Код-1"
+      ],
+      "format": "pretty",
+      "model": "run-list-unicode"
+    }
+  ],
+  "F03": [
+    {
+      "id": "bad-local-preserves-selection",
+      "argv": [
+        "infra",
+        "--requirements",
+        "[\"beta\"]",
+        "--output",
+        "wide"
+      ],
+      "format": "one-line",
+      "effects": [
+        "beta"
+      ]
+    },
+    {
+      "id": "bad-root-preserves-list",
+      "argv": [
+        "--output",
+        "wide",
+        "run",
+        "list"
+      ],
+      "format": "one-line",
+      "model": "run-list"
+    },
+    {
+      "id": "earlier-bad-still-warns",
+      "argv": [
+        "run",
+        "list",
+        "--output",
+        "wide",
+        "--output",
+        "pretty"
+      ],
+      "format": "pretty",
+      "model": "run-list"
+    },
+    {
+      "id": "last-bad-falls-back",
+      "argv": [
+        "run",
+        "list",
+        "--output",
+        "pretty",
+        "--output",
+        "wide"
+      ],
+      "format": "one-line",
+      "model": "run-list"
+    }
+  ],
+  "F04": [
+    {
+      "id": "no-command",
+      "argv": []
+    },
+    {
+      "id": "unknown-command",
+      "argv": [
+        "not-an-operation"
+      ]
+    },
+    {
+      "id": "root-value-consumes-command",
+      "argv": [
+        "--output",
+        "check"
+      ]
+    },
+    {
+      "id": "missing-config-value",
+      "argv": [
+        "infra",
+        "--config"
+      ]
+    },
+    {
+      "id": "missing-app-value",
+      "argv": [
+        "run",
+        "--app"
+      ]
+    },
+    {
+      "id": "app-without-environment",
+      "argv": [
+        "stop",
+        "--app",
+        "A"
+      ]
+    },
+    {
+      "id": "selection-malformed-json",
+      "argv": [
+        "infra",
+        "--requirements",
+        "[broken"
+      ]
+    },
+    {
+      "id": "selection-object",
+      "argv": [
+        "infra",
+        "--requirements",
+        "{\"id\":\"alpha\"}"
+      ]
+    },
+    {
+      "id": "selection-nonstring-item",
+      "argv": [
+        "infra",
+        "--requirements",
+        "[\"alpha\",1]"
+      ]
+    },
+    {
+      "id": "reserved-environment",
+      "argv": [
+        "run",
+        "--env",
+        "all"
+      ]
+    },
+    {
+      "id": "unsafe-environment",
+      "argv": [
+        "stop",
+        "--env",
+        "bad name"
+      ]
+    }
+  ],
+  "F05": [
+    {
+      "argv": [
+        "infra",
+        "--requirements",
+        "[\"beta\"]",
+        "--output",
+        "wide"
+      ],
+      "expected": "warning precedes INVOCATION_BOUNDARY marker; exit0; exactly beta effect."
+    },
+    {
+      "argv": [
+        "infra",
+        "--requirements",
+        "[broken"
+      ],
+      "expected": "warning, exit2, no INVOCATION_BOUNDARY marker and no effects."
+    },
+    {
+      "argv": [
+        "infra",
+        "--requirements",
+        "[\"beta\",\"beta\"]"
+      ],
+      "expected": "warning with beta and duplicate-remedy context, exit2, no INVOCATION_BOUNDARY marker and no effects."
+    },
+    {
+      "argv": [
+        "infra",
+        "--config"
+      ],
+      "expected": "warning, exit2, no INVOCATION_BOUNDARY marker and no effects."
+    }
+  ],
+  "F06": [
+    {
+      "id": "servicing-streams",
+      "action": "infra --requirements [\"beta\"] --output",
+      "expected": "exit0; requirement IDs=[beta]; events=[beta]; decoded action stdout/stderr equal the literal hex profile; full command context and original file bytes preserved."
+    },
+    {
+      "id": "checking-streams",
+      "action": "check --output",
+      "expected": "exit0; events=[presence-alpha,presence-beta,presence-vendor,extra]; resource IDs=[alpha,beta,vendor], check IDs=[extra]; presence/check raw bytes preserved; availability remains not_configured with null result/reason."
+    },
+    {
+      "id": "run-and-selected-stop",
+      "action": "run --env OUTPUT --app B --output, then stop --env OUTPUT --app B --output",
+      "expected": "Only B starts; independent B.started.json and living_group identify its PGID; registry contains exactly B. Results carry that exact own PGID and selected IDs. Stop actually ends that group, confirms fixture SIGTERM handshake and removes only the owned empty environment; no A/C worker."
+    },
+    {
+      "id": "servicing-failure",
+      "action": "infra with one selected fail-mode command and --output pretty",
+      "expected": "exit1; JSON status failed; attempted command exit7 and literal failure stderr retained; no success fabricated and no parser warning for an operational failure."
+    },
+    {
+      "id": "run-failure",
+      "action": "run --env FAILED --app A --output pretty with fail-mode launch",
+      "expected": "exit1; failed JSON and attempted command exit7/raw stderr retained; no registered PGID or live worker; owned empty reservation removed."
+    },
+    {
+      "id": "run-input-json",
+      "action": "run --env INPUT --config known-missing-path --parameters VALUES --base-dir ROOT --output pretty",
+      "expected": "exit2; pretty JSON failed with INPUT environment, no applications, no PGID and actual input cause; diagnostic on stderr without a fabricated parser-warning category for the syntactically valid missing path; zero effects."
+    },
+    {
+      "id": "check-input-stderr",
+      "action": "check --config known-missing-path --parameters VALUES --base-dir ROOT --output pretty",
+      "expected": "exit2; stdout stays empty; actual missing-file input cause on stderr; no JSON envelope invented and zero effects."
+    }
+  ],
+  "F07": [
+    {
+      "argv": [
+        "--help"
+      ],
+      "expected": "exit0 text, lists --output and admitted pretty/one-line without JSON or effects."
+    },
+    {
+      "argv": [
+        "check",
+        "--output",
+        "--help"
+      ],
+      "expected": "exit0 command-help text lists --output and values; no config/executor access or JSON result."
+    },
+    {
+      "argv": [
+        "run",
+        "--output",
+        "pretty",
+        "--version"
+      ],
+      "expected": "exit0 normal environment-maintenance version text, not JSON; no effects. Version identity comes from the already existing metadata-consistency control, not a new release-version oracle."
+    }
+  ],
+  "F08": [
+    {
+      "argv": [
+        "run",
+        "list"
+      ],
+      "format": "one-line",
+      "warning": false
+    },
+    {
+      "argv": [
+        "run",
+        "list",
+        "--output"
+      ],
+      "format": "pretty",
+      "warning": false
+    },
+    {
+      "argv": [
+        "run",
+        "list",
+        "--output",
+        "pretty"
+      ],
+      "format": "pretty",
+      "warning": false
+    },
+    {
+      "argv": [
+        "run",
+        "list",
+        "--output",
+        "one-line"
+      ],
+      "format": "one-line",
+      "warning": false
+    },
+    {
+      "argv": [
+        "run",
+        "list",
+        "--output",
+        "wide"
+      ],
+      "format": "one-line",
+      "warning": true
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "operation": "run",
+  "status": "succeeded",
+  "environment": "FMT",
+  "file": "${owned_registry}/env-FMT.json",
+  "file_exists": false,
+  "planned": 0,
+  "received_pgids": 0,
+  "applications": [],
+  "errors": []
+}
