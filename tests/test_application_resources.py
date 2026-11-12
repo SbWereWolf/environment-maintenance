@@ -1,6 +1,7 @@
 """S1-S7: real CLI, independent resource literals and owned process facts."""
 import json
 import socket
+from types import SimpleNamespace
 
 import pytest
 
@@ -179,7 +180,46 @@ def test_invalid_resources_are_input_errors_without_effects(lab, case, operation
     completed = lab.call(*argv)
     assert completed.returncode == 2, "RESOURCE_INPUT_ERROR: invalid declaration accepted"
     assert b"web" in completed.stderr and case["field"].encode() in completed.stderr
+    if operation == "list":
+        assert completed.stdout == b"", "RESOURCE_LIST_ERROR_STDOUT: stderr-only failure"
+    else:
+        assert completed.stdout, "RESOURCE_RUN_ERROR_STDOUT: missing failed JSON"
+        payload = json.loads(completed.stdout)
+        assert isinstance(payload, dict), "RESOURCE_RUN_ERROR_JSON: expected object"
+        for key, expected in resource_fixture("invalid-run-contract.json").items():
+            assert payload[key] == expected, f"RESOURCE_RUN_ERROR_JSON: {key}"
+        assert type(payload["received_pgids"]) is int
+        assert payload["file_exists"] is False
+        assert payload["file"] == str(lab.state_path("bad"))
+        assert isinstance(payload["errors"], list) and payload["errors"]
+        assert any(isinstance(error, dict) and isinstance(error.get("error"), str)
+                   and "web" in error["error"] and case["field"] in error["error"]
+                   for error in payload["errors"]), "RESOURCE_RUN_ERROR_JSON: resource diagnostic"
     assert_read_only(lab, before)
+
+
+@pytest.mark.parametrize("operation,variant,accepted", [
+    ("list", "empty", True), ("run", "valid", True),
+    ("list", "junk", False), ("run", "empty", False),
+    ("run", "success", False), ("run", "empty-errors", False),
+])
+def test_input_error_oracle_rejects_wrong_stdout(lab, monkeypatch, operation, variant, accepted):
+    """Control the repaired S5 oracle with explicit observations, not product output."""
+    response = resource_fixture("invalid-run-valid-response.json")
+    response["file"] = str(lab.state_path("bad"))
+    if variant == "success":
+        response["status"] = "succeeded"
+    if variant == "empty-errors":
+        response["errors"] = []
+    stdout = b"" if variant == "empty" else b"junk" if variant == "junk" else json.dumps(response).encode()
+    observation = SimpleNamespace(returncode=2, stdout=stdout, stderr=b"web port invalid\n")
+    monkeypatch.setattr(lab, "call", lambda *args, **kwargs: observation)
+    case = resource_fixture("invalid.json")[2]
+    if accepted:
+        test_invalid_resources_are_input_errors_without_effects(lab, case, operation)
+    else:
+        with pytest.raises(AssertionError):
+            test_invalid_resources_are_input_errors_without_effects(lab, case, operation)
 
 
 @pytest.mark.parametrize("operation", ["run-list", "stop-list"])

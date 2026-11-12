@@ -1,0 +1,10 @@
+{
+  "operation": "run",
+  "status": "failed",
+  "environment": "bad",
+  "file_exists": false,
+  "planned": 1,
+  "received_pgids": 0,
+  "applications": [],
+  "errors": [{"environment": "bad", "error": "web port invalid"}]
+}

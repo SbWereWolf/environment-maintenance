@@ -1,0 +1,8 @@
+{
+  "operation": "run",
+  "status": "failed",
+  "environment": "bad",
+  "file_exists": false,
+  "received_pgids": 0,
+  "applications": []
+}
