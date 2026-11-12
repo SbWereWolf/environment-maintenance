@@ -15,7 +15,8 @@
 | `actions` | Plan/execute, ResultInterpreter, полный transport, optional exit-code interpreter |
 | `preparation`, `checking`, `network` | Подготовка, presence/availability, командное/сетевое согласование |
 | `running` | Именованные use cases, raw submitted PGID, presentation, SIGTERM и module launcher |
-| `registry` | Payload, shared OS temp, exclusive empty creation под коротким flock, публикация/удаление |
+| `application_resources` | Чистое разрешение декларации ресурсов/шаблонов, проверка формы без IO и измерения доступности |
+| `registry` | Полные строки PGID/снимка, shared OS temp, exclusive empty creation под коротким flock, публикация/удаление |
 
 Представление результатов и exit status остаются у CLI-входов операций; они передают готовые данные в `output`, затем печатают результат. [Общий договор формата и предупреждений](configuration.md#формат-json) принадлежит CLI.
 
@@ -26,6 +27,8 @@
 Обычная Task выбирает адресные tests по изменённой границе; full/release suite принадлежит отдельной проверке выпуска. Сохраняйте source/tree, argv/cwd, полные streams/exit, actual package digest и closure собственных ресурсов.
 
 Формат/аргументы/порядок диагностик проверяет `tests/test_cli_output.py`, настоящую npm-установку и её CLI — `tests/test_cli_output_package.py`. Затронутые прежние договоры покрывают `test_run_stop`, `test_cli_contract`, `test_run_stop_consumers`, `test_runtime_components`, `test_reservation_failure`; SDK/servicing/network/npm controls выбираются адресно. Перед npm checks подготовьте свои `ENV2_PACKAGE_TEST_ROOT`, `ENV2_PACKAGE_WHEELHOUSE` с настоящими build/runtime wheels и абсолютный `ENVIRONMENT_MAINTENANCE_PYTHON`. Это arrangement тестов, не настройки продукта.
+
+Схему required map, снимок конкретного запуска, legacy, диагностику и форматирование проверяет `tests/test_application_resources.py`; `tests/test_application_resources_package.py` проверяет реальную новую npm-установку, её origin/version и CLI. Примеры HTTP/очередей/планировщика здесь описывают метаданные, а не измеряют внешний backend или GUI.
 
 После всех применимых исправлений/refactoring/docs и адресных checks:
 

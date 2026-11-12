@@ -9,7 +9,7 @@
 | `infra`, `deps`, `adjust` | Объявленное обслуживание | `--config`, `--parameters`, `--base-dir`, `--requirements` |
 | `check` | Presence/availability/связанные условия | `--config`, `--parameters`, `--base-dir` |
 | `run` | Запуск с учётом PGID | `--config`, `--parameters`, `--base-dir`, `--env`, `--app` |
-| `run list` | IDs доступных APP | `--config`, `--env` |
+| `run list` | Именованные записи требуемых ресурсов APP | `--config`, `--parameters`, `--base-dir`, `--env` |
 | `stop`, `stop list`, `stop all` | Просмотр/остановка сохранённых групп | `--env`, `--app` по формам ниже |
 
 Для всех шести команд и форм list/all доступна общая опция [`--output [FORMAT]`](#формат-json).
@@ -97,15 +97,17 @@ start-app infra --requirements '["assets"]'
 | `run --env ENV` | Все APP в именованной среде |
 | `run --app APP` | Один APP в новой UUID-среде |
 | `run --env ENV --app APP` | Один новый APP в этой среде |
-| `run list` | Все IDs run конфигурации |
-| `run list --env ENV` | IDs конфигурации, ещё не зарегистрированные в найденной ENV |
-| `stop` или `stop list` | Просмотр всех записей реестра |
+| `run list` | Карта APP: `pgid: null` и требуемые ресурсы |
+| `run list --env ENV` | Такая же карта для APP, ещё не зарегистрированных в найденной ENV |
+| `stop` или `stop list` | Просмотр всех запусков с PGID и сохранёнными ресурсами |
 | `stop list --env ENV` | Просмотр указанной ENV |
 | `stop --env ENV` | SIGTERM всем сохранённым группам ENV |
 | `stop --env ENV --app APP` | SIGTERM одному APP |
 | `stop all` | SIGTERM всем группам всех читаемых ENV |
 
 Для stop выбор APP требует ENV. `APP=all` — буквальный ID; для всех APP опускают `--app`. Имя ENV `all` зарезервировано; используйте, например, `dev-1`. Полные правила и [пример](process-launch.md#пошаговая-инструкция) принадлежат [договору процессов](process-launch.md#запуск-процессов). Stop читает сохранённый реестр OS temp, а не main/parameters.
+
+Ресурсы и полные примеры ответов описаны [в договоре процессов](process-launch.md#ресурсы-приложения). При наличии `resources` просмотр использует тот же выбранный профиль/parameters/base-dir, что и запуск; для отсутствующей ENV возвращает `applications: {}` и `found: false`. SDK-списки ID сохраняют прежний договор.
 
 ## Результат и повторный запуск
 

@@ -5,13 +5,13 @@ description: Use a selected environment-maintenance instance for configured serv
 
 # Environment maintenance
 
-Use the selected package entry and its own installed Python. Read the [CLI contract](../../../docs/configuration.md#команды-и-аргументы), [persistent profile](../../../docs/persistent-entry.md#пошаговая-инструкция) and [installation walkthrough](../../../docs/npm-distribution.md#пошаговая-инструкция) for the actual scenario. This instruction describes version4; retained earlier supplies keep their own contracts. Source capability, candidate validation and live installation readiness are separate facts.
+Use the selected package entry and its own installed Python. Read the [CLI contract](../../../docs/configuration.md#команды-и-аргументы), [persistent profile](../../../docs/persistent-entry.md#пошаговая-инструкция) and [installation walkthrough](../../../docs/npm-distribution.md#пошаговая-инструкция) for the actual scenario. This instruction describes version5; retained earlier supplies keep their own contracts. Source capability, candidate validation and live installation readiness are separate facts.
 
 ## Select and restore an instance
 
 Each independent application owns its selected archive/npm manifest/generated lock and installed package/.venv. Use its node_modules/.bin/start-app or selected PREFIX/bin/start-app. Multiple registrations of that application may use its same copy. Retained supply belongs outside disposable Task roots; the package manager restores installed bytes. Do not make a disposable runtime the sole source of required code or configuration.
 
-Follow [application-owned installation](../../../docs/npm-distribution.md#собственная-зависимость-приложения) and [migration](../../../docs/migration-v4.md#переход-конфигурации) before updating a selected instance. The configured external environment-maintenance owner performs persistent preparation where required by the project. This skill grants no publication, integration or live-upgrade authority. Keep application Python/dependencies distinct from the maintenance runtime.
+Follow [application-owned installation](../../../docs/npm-distribution.md#собственная-зависимость-приложения) and [migration](../../../docs/migration-v5.md#переход-конфигурации) before updating a selected instance. The configured external environment-maintenance owner performs persistent preparation where required by the project. This skill grants no publication, integration or live-upgrade authority. Keep application Python/dependencies distinct from the maintenance runtime.
 
 Identify exact version/prefix/module paths and archive/lock bytes. npm entry preserves caller cwd and chooses its own Python; root source entry uses its neighbouring installed .venv. Main defaults to CWD/start-app.json. From another cwd select --config explicitly. See the [override contract](../../../docs/persistent-entry.md#переопределение-одного-вызова).
 
@@ -42,7 +42,9 @@ start-app stop list --env ENV
 start-app stop --env ENV --app APP
 ```
 
-Run without ENV generates UUID; without APP selects all applications. Existing nonempty ENV accepts one new APP, not full relaunch or duplicate registration. APP all is literal. Run list with missing ENV returns no available IDs. Stop without arguments lists records; stop all addresses all readable ENV; selecting APP requires ENV. Stop needs no application main/parameters and uses saved PGID in the same OS-temp registry.
+Run without ENV generates UUID; without APP selects all applications. Existing nonempty ENV accepts one new APP, not full relaunch or duplicate registration. APP all is literal. Run list returns an application-name map of pgid:null and declared required resources; a missing ENV returns an empty map. Stop without arguments lists records; stop all addresses all readable ENV; selecting APP requires ENV. Stop needs no application main/parameters and uses saved PGID and the launch resource snapshot in the same OS-temp registry. Legacy PGID-only records remain readable; never infer their missing resource history from current configuration.
+
+Follow the canonical [resource declaration and output contract](../../../docs/process-launch.md#ресурсы-приложения). Any resources key, including an empty or literal object, makes run list use the selected invocation/parameters/base-dir context. Metadata describes application resources; it does not measure health or exclusive ownership. Check owns availability. The new map changes CLI run list, not SDK ID lists or the run-result attempt array.
 
 Only run documents use applications; other operations use requirements. Default selection no longer comes from invocation.requirements. Production last-command submission uses the installed maintenance Python:
 
