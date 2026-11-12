@@ -1,5 +1,4 @@
 """Explicit preparation CLI inputs, composition and result delivery."""
-import json
 from pathlib import Path
 import shlex
 import sys
@@ -8,20 +7,10 @@ from ..configuration.json_file import read_json
 from ..actions import execute_action
 from ..actions.transport import load_interpreters, plan_for_json_transport, validate_json_data
 from ..configuration.execution import read_for_execution
+from ..invocation import parse_requirement_selection
+from ..output import format_json
 from .application import prepare_resources
 from .presentation import encode_result
-
-
-def _selection(raw: str) -> list[str] | str:
-    if raw == 'all':
-        return raw
-    try:
-        selected = json.loads(raw)
-    except ValueError as exc:
-        raise ValueError(f"--requirements selection: {exc}") from exc
-    if not isinstance(selected, list) or any(not isinstance(item, str) for item in selected):
-        raise ValueError("--requirements selection must be an identifier array or all")
-    return selected
 
 
 def run_preparation(
@@ -30,9 +19,11 @@ def run_preparation(
     parameters_path: Path,
     base_dir: Path,
     raw_selection: str,
+    *,
+    output: str = 'one-line',
 ) -> int:
     try:
-        selection = _selection(raw_selection)
+        selection = parse_requirement_selection(raw_selection)
         parameters = read_json(parameters_path)
         interpreters = load_interpreters(read_json(config_path))
         network_adjuster = None
@@ -59,5 +50,5 @@ def run_preparation(
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    print(json.dumps(encode_result(result), ensure_ascii=True, separators=(',', ':'), allow_nan=False))
+    print(format_json(encode_result(result), output))
     return 0 if result['status'] == 'succeeded' else 1

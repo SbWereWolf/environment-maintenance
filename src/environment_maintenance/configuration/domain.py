@@ -16,6 +16,20 @@ def configuration_for_operation(document: dict[str, Any], operation: str) -> str
     return selected
 
 
+def validate_selection(selection: list[str] | str) -> None:
+    if selection == "all":
+        return
+    if not isinstance(selection, list):
+        raise ValueError('selection must be an array of identifiers or "all"')
+    seen = set()
+    for position, identifier in enumerate(selection):
+        if not isinstance(identifier, str):
+            raise ValueError(f"selection[{position}]: expected an identifier")
+        if identifier in seen:
+            raise ValueError(f"Duplicate selected id {identifier} at position {position}; remove the repeated id")
+        seen.add(identifier)
+
+
 class Requirements:
     """Own full-document preservation, unique identifiers and ordered changes."""
 
@@ -46,17 +60,9 @@ class Requirements:
         return result
 
     def select_available(self, selection):
+        validate_selection(selection)
         if selection == "all":
             return deepcopy(list(self._by_id.values())), []
-        if not isinstance(selection, list):
-            raise ValueError('selection must be an array of identifiers or "all"')
-        seen = set()
-        for position, identifier in enumerate(selection):
-            if not isinstance(identifier, str):
-                raise ValueError(f"selection[{position}]: expected an identifier")
-            if identifier in seen:
-                raise ValueError(f"Duplicate selected id {identifier} at position {position}; remove the repeated id")
-            seen.add(identifier)
         result, missing = [], []
         for identifier in selection:
             if identifier not in self._by_id:

@@ -2,8 +2,24 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Any
+
+from .configuration.domain import validate_selection
+
+
+def parse_requirement_selection(raw: str) -> list[str] | str:
+    if raw == 'all':
+        return raw
+    try:
+        selection = json.loads(raw)
+        if not isinstance(selection, list):
+            raise ValueError('expected an identifier array or all')
+        validate_selection(selection)
+    except ValueError as exc:
+        raise ValueError(f'--requirements selection: {exc}') from exc
+    return selection
 
 
 @dataclass(frozen=True)
