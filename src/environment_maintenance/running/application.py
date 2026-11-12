@@ -2,6 +2,7 @@
 import re
 
 from ..actions.application import validate_execution_inputs
+from ..application_resources import resolve_resources
 from .domain import submitted_pgid
 
 
@@ -12,9 +13,12 @@ class RunApplications:
     def run(self, rows, parameters, base_dir, interpreters, title, app, result):
         result['planned'] = len(rows)
         validate_execution_inputs(parameters, base_dir, interpreters)
+        prepared = []
         for row in rows:
             try:
+                resources = resolve_resources(row, parameters)
                 self.planner(row, parameters, base_dir=base_dir, interpreters=interpreters)
+                prepared.append((row, resources))
             except ValueError as exc:
                 references = re.findall(r'\$\{[^}]*\}', repr(row))
                 raise ValueError(f"run application {row['id']}: {exc}; declared placeholders {references}") from exc
@@ -24,7 +28,7 @@ class RunApplications:
             result['errors'].append({'environment': title, 'file': result['file'], 'error': str(exc)})
             return
         result['file'] = str(path)
-        for row in rows:
+        for row, resources in prepared:
             action = self.executor(row, parameters, base_dir=base_dir, interpreters=interpreters)
             pgid = submitted_pgid(action, len(row['commands']))
             result['applications'].append({'id': row['id'], 'pgid': pgid, 'result': action})
@@ -34,7 +38,7 @@ class RunApplications:
             if pgid is not None:
                 result['received_pgids'] += 1
                 try:
-                    self.registry.put_application(path, row['id'], pgid)
+                    self.registry.put_application(path, row['id'], pgid, resources)
                 except (OSError, ValueError) as exc:
                     causes.append(f'Cannot save {path}: {exc}')
             elif not causes:
@@ -46,16 +50,18 @@ class RunApplications:
         except (OSError, ValueError) as exc:
             result['errors'].append({'file': str(path), 'error': str(exc)})
 
-    def list_available(self, identifiers, title):
+    def list_available(self, rows, title, parameters):
         result = {'operation': 'run-list', 'status': 'succeeded', 'environment': title,
-                  'applications': identifiers, 'errors': []}
+                  'applications': {}, 'errors': []}
         if title is not None:
             records, errors = self.registry.scan()
             found = next((record for _, record in records if record.title == title), None)
-            result.update(found=found is not None, errors=errors,
-                          applications=[name for name in identifiers if name not in found.applications] if found else [])
+            result.update(found=found is not None, errors=errors)
+            rows = [row for row in rows if row['id'] not in found.applications] if found else []
             if errors:
                 result['status'] = 'failed'
+        for row in rows:
+            result['applications'][row['id']] = {'pgid': None, **resolve_resources(row, parameters)}
         return result
 
 
@@ -76,9 +82,10 @@ class StopApplications:
         for path, record in records:
             if title is not None and record.title != title:
                 continue
-            for name, pgid in record.applications.items():
+            for name, application in record.applications.items():
                 if app is not None and name != app:
                     continue
+                pgid = application['pgid']
                 target = {'environment': record.title, 'id': name, 'pgid': pgid}
                 try:
                     if self.terminate_group(pgid):

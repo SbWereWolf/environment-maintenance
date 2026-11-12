@@ -1,11 +1,12 @@
 """Persisted environment facts, independent of files and process operations."""
 from dataclasses import dataclass
+from copy import deepcopy
 
 
 @dataclass
 class EnvironmentRecord:
     title: str
-    applications: dict[str, int]
+    applications: dict[str, dict]
     format_version: object = 1
 
     @classmethod
@@ -22,9 +23,9 @@ class EnvironmentRecord:
             pgid = row.get('pgid')
             if type(pgid) is not int or pgid <= 0:
                 raise ValueError(f'Application {name}: pgid must be a positive integer')
-            values[name] = pgid
+            values[name] = deepcopy(row)
         return cls(title, values, document['format-version'])
 
     def to_document(self):
         return {'format-version': self.format_version, 'environment-title': self.title,
-                'applications': {name: {'pgid': group} for name, group in self.applications.items()}}
+                'applications': deepcopy(self.applications)}

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "environment-maintenance"
-version = "4.1.0"
+version = "5.0.0"
 description = "Configured environment maintenance and named application groups"
 requires-python = ">=3.11"
 dependencies = [

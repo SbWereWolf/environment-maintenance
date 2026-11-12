@@ -5,7 +5,8 @@ from uuid import uuid4
 
 from ..actions import execute_action
 from ..actions.transport import load_interpreters, plan_for_json_transport
-from ..configuration import list_requirement_ids
+from ..configuration import read_requirements
+from ..actions.application import validate_execution_inputs
 from ..configuration.execution import read_for_execution
 from ..configuration.json_file import read_json
 from ..invocation import resolve_invocation
@@ -30,7 +31,14 @@ def run_launch(args, *, action=None):
         if args.env is not None:
             validate_environment_title(args.env)
         config = (args.config or Path.cwd() / 'start-app.json').absolute()
-        return _print(use_case.list_available(list_requirement_ids(config, 'run'), args.env), output)
+        rows = read_requirements(config, 'run', 'all')
+        parameters = {}
+        if any('resources' in row for row in rows):
+            invocation = resolve_invocation('run', args.config, args.parameters, args.base_dir,
+                None, instance_root=Path.cwd(), read_document=read_json)
+            parameters = read_json(invocation.parameters_path)
+            validate_execution_inputs(parameters, invocation.base_dir, {})
+        return _print(use_case.list_available(rows, args.env, parameters), output)
     title = validate_environment_title(args.env if args.env is not None else str(uuid4()))
     result = {'operation': 'run', 'status': 'succeeded', 'environment': title,
               'file': str(registry.path_for(title)), 'file_exists': False,

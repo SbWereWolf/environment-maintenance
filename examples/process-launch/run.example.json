@@ -2,6 +2,7 @@
   "applications": [
     {
       "id": "web-one",
+      "resources": {"host": "${bind_address}", "port": "${first_port}"},
       "commands": [
         {
           "argv": [
@@ -48,6 +49,7 @@
     },
     {
       "id": "web-two",
+      "resources": {"host": "${bind_address}", "port": "${second_port}"},
       "commands": [
         {
           "argv": [

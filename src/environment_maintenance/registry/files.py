@@ -3,6 +3,7 @@ import fcntl
 import json
 from pathlib import Path
 import tempfile
+from copy import deepcopy
 
 from ..configuration.json_file import read_json, write_json
 from .domain import EnvironmentRecord
@@ -76,9 +77,9 @@ class FileRegistry:
             finally:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
-    def put_application(self, path, name, pgid):
+    def put_application(self, path, name, pgid, resources=None):
         record = self._read(path)
-        record.applications[name] = pgid
+        record.applications[name] = {'pgid': pgid, **deepcopy(resources or {})}
         write_json(path, record.to_document())
 
     def remove_application(self, path, name):
