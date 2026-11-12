@@ -1,5 +1,6 @@
 """F08: the actual packed/installed npm CLI, with no source import fallback."""
 import os
+import json
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,7 @@ from npm_delivery_support import PackageLab
 from run_stop_support import Lab, ROOT, FIXTURES as RUN_FIXTURES
 from test_cli_output import (
     assert_golden, assert_inputs_unchanged, assert_no_resources,
-    assert_warning, cases, input_snapshot,
+    assert_warning, cases, input_snapshot, OUTPUT_FIXTURES,
 )
 
 
@@ -32,10 +33,13 @@ def consumer(package):
 def test_installed_npm_entry_uses_output_contract(package, consumer, tmp_path, row):
     lab = Lab(tmp_path)
     try:
-        identity = package.capture("output-runtime-origin", [consumer.python, "-I", "-B", "-c",
-            "import environment_maintenance; print(environment_maintenance.__file__)"], lab.root)
+        identity = package.capture("output-runtime-origin", [consumer.python, "-I", "-B",
+            OUTPUT_FIXTURES / "installed_identity.py"], lab.root)
         assert identity.returncode == 0 and identity.stderr == b""
-        assert Path(identity.stdout.decode().strip()).is_relative_to(consumer.prefix)
+        observed = json.loads(identity.stdout)
+        assert Path(observed["origin"]).is_relative_to(consumer.prefix)
+        assert Path(observed["prefix"]) == consumer.python.parent.parent
+        assert observed["module_version"] == observed["distribution_version"] == package.metadata["version"]
         environment = dict(package.env, TMPDIR=str(lab.tmp), PYTHONPATH=str(RUN_FIXTURES))
         environment["PATH"] = str(consumer.entry.parent) + os.pathsep + package.env["PATH"]
         assert str(ROOT / "src") not in environment["PYTHONPATH"]
