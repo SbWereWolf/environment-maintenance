@@ -11,7 +11,7 @@
 | `configuration` | Operations mapping, ordered unique selection, CRUD, JSON reader/atomic writer |
 | `cli` | Стандартный argparse для всех аргументов, ранние предупреждения и композиция шести команд |
 | `invocation` | Пути/defaults и декодирование CLI selection с общей проверкой формы/уникальности из `configuration` |
-| `output` | Чистое форматирование уже закодированного JSON: pretty/one-line без IO и решений об исполнении |
+| `output` | Чистое форматирование подготовленных JSON-данных: pretty/one-line без IO и решений об исполнении |
 | `actions` | Plan/execute, ResultInterpreter, полный transport, optional exit-code interpreter |
 | `preparation`, `checking`, `network` | Подготовка, presence/availability, командное/сетевое согласование |
 | `running` | Именованные use cases, raw submitted PGID, presentation, SIGTERM и module launcher |
