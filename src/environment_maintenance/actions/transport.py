@@ -1,80 +1,9 @@
-"""Shared ordinary JSON transport for configured action consumers."""
-import base64
-from copy import deepcopy
-import importlib
-import json
-from typing import Any
+"""Compatibility imports; the independent package owns this behavior."""
 
-from .application import ResultInterpreter, prepare_action
-
-
-def _require_json_data(value: Any) -> None:
-    if value is None or type(value) in (str, bool, int, float):
-        return
-    if type(value) is list:
-        for item in value:
-            _require_json_data(item)
-        return
-    if type(value) is dict:
-        for key, item in value.items():
-            if type(key) is not str:
-                raise ValueError("JSON objects require string keys")
-            _require_json_data(item)
-        return
-    raise ValueError(f"Unsupported JSON value type: {type(value).__name__}")
-
-
-def validate_json_data(value: Any) -> None:
-    """Validate transport data without silent coercion or numeric overflow."""
-    _require_json_data(value)
-    json.dumps(value, allow_nan=False)
-
-
-class JsonResultInterpreter:
-    def __init__(self, interpreter: ResultInterpreter):
-        self._interpreter = interpreter
-
-    def interpret(self, raw: dict[str, Any], options: dict[str, Any]) -> dict[str, Any]:
-        answer = self._interpreter.interpret(raw, options)
-        validate_json_data(answer)
-        return answer
-
-
-def load_interpreters(document: dict[str, Any]) -> dict[str, ResultInterpreter]:
-    declarations = document.get('interpreters')
-    if not isinstance(declarations, dict):
-        raise ValueError("interpreters must be an object")
-    result = {}
-    for name, declaration in declarations.items():
-        if not isinstance(name, str) or not name:
-            raise ValueError("interpreters require nonempty names")
-        if not isinstance(declaration, dict):
-            raise ValueError(f"interpreter {name}: expected module/attribute object")
-        module, attribute = declaration.get('module'), declaration.get('attribute')
-        if not isinstance(module, str) or not module or not isinstance(attribute, str) or not attribute:
-            raise ValueError(f"interpreter {name}: module and attribute must be nonempty strings")
-        try:
-            interpreter = getattr(importlib.import_module(module), attribute)
-        except Exception as exc:
-            raise ValueError(f"interpreter {name} {module}:{attribute}: {exc}") from exc
-        if not callable(getattr(interpreter, 'interpret', None)):
-            raise ValueError(f"interpreter {name} {module}:{attribute}: callable interpret is required")
-        result[name] = JsonResultInterpreter(interpreter)
-    return result
-
-
-def plan_for_json_transport(action, parameters, *, base_dir, interpreters):
-    plan = prepare_action(action, parameters, base_dir=base_dir, interpreters=interpreters)
-    validate_json_data(plan)
-    return plan
-
-
-def encode_action_result(result: dict[str, Any]) -> dict[str, Any]:
-    """Encode raw streams only; interpreted JSON retains its original types."""
-    encoded = deepcopy(result)
-    for command in encoded['commands']:
-        for field in ('stdout', 'stderr'):
-            command[field] = dict(
-                encoding='base64', data=base64.b64encode(command[field]).decode('ascii')
-            )
-    return encoded
+from command_execution.actions.transport import (
+    JsonResultInterpreter,
+    validate_json_data,
+    load_interpreters,
+    plan_for_json_transport,
+    encode_action_result,
+)

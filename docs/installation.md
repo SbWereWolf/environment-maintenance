@@ -4,7 +4,9 @@
 
 ## Npm-поставка
 
-Приложение выбирает конкретный tgz5.0.0 своей npm-зависимостью с package.json, npm-generated lock и собственным installed runtime. Глобальный prefix также поддерживается. Каждое независимое приложение выбирает и обновляет экземпляр отдельно; несколько регистраций одного приложения могут использовать его копию.
+Приложение выбирает конкретный tgz выбранного выпуска своей npm-зависимостью с package.json, npm-generated lock и собственным installed runtime. Глобальный prefix также поддерживается. Каждое независимое приложение выбирает и обновляет экземпляр отдельно; несколько регистраций одного приложения могут использовать его копию.
+
+Для 5.1.0 требуется выбранная зависимость `command-execution==0.1.0`; [отдельная инструкция](command-package.md#обновление-обслуживания-окружения) описывает полный wheelhouse, сохранение совместимых импортов и проверку каждого потребителя.
 
 ## Условия
 
@@ -14,7 +16,7 @@ Python и `.venv` пакета принадлежат инструменту. Py
 
 ## Установка из исходников
 
-Выберите точные исходники5.0.0 и собственный каталог установки. Из их корня:
+Выберите точные исходники 5.1.0 и доступ к выбранному wheel библиотеки 0.1.0 и собственный каталог установки. Из их корня:
 
 ```bash
 python3 -m venv --copies .venv
@@ -27,15 +29,15 @@ python3 -m venv --copies .venv
 
 ## Установка готового wheel
 
-Из подготовленного Python с pip в своём окружении:
+Из подготовленного Python с pip в своём окружении и с доступным выбранным набором зависимостей:
 
 ```bash
 /absolute/path/to/venv/bin/python -m pip install \
-  /absolute/path/to/environment_maintenance-5.0.0-py3-none-any.whl
+  /absolute/path/to/environment_maintenance-5.1.0-py3-none-any.whl
 /absolute/path/to/venv/bin/start-app --version
 ```
 
-Wheel содержит Python API и console entry. Для bundled docs/examples/skill и npm-границы выбирайте [npm-комплект](npm-distribution.md#пошаговая-инструкция).
+Pip разрешает зависимость `command-execution==0.1.0`; для offline-установки задайте `PIP_NO_INDEX=1` и `PIP_FIND_LINKS` на полный [wheelhouse](command-package.md#установка-выбранной-версии). Wheel содержит Python API и console entry. Для bundled docs/examples/skill и npm-границы выбирайте [npm-комплект](npm-distribution.md#пошаговая-инструкция).
 
 ## Пути и обновление
 

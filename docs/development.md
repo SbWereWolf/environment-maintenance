@@ -8,11 +8,13 @@
 
 | Owner | Ответственность |
 |---|---|
-| `configuration` | Operations mapping, ordered unique selection, CRUD, JSON reader/atomic writer |
+| `command_execution.configuration` | Operations mapping, ordered unique selection, CRUD, JSON reader/atomic writer |
+| `environment_maintenance.configuration` | Совместимые импорты; собственная execution-политика пропущенных ID |
 | `cli` | Стандартный argparse для всех аргументов, ранние предупреждения и композиция шести команд |
 | `invocation` | Пути/defaults и декодирование CLI selection с общей проверкой формы/уникальности из `configuration` |
 | `output` | Чистое форматирование подготовленных JSON-данных: pretty/one-line без IO и решений об исполнении |
-| `actions` | Plan/execute, ResultInterpreter, полный transport, optional exit-code interpreter |
+| `command_execution.actions` | Plan/execute, ResultInterpreter, полный transport, optional exit-code interpreter |
+| `environment_maintenance.actions` | Совместимые пути импортов установленной общей реализации |
 | `preparation`, `checking`, `network` | Подготовка, presence/availability, командное/сетевое согласование |
 | `running` | Именованные use cases, raw submitted PGID, presentation, SIGTERM и module launcher |
 | `application_resources` | Чистое разрешение декларации ресурсов/шаблонов, проверка формы без IO и измерения доступности |
@@ -57,6 +59,8 @@ PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
 После изменения docs/skill нужен свежий [pack/install](npm-distribution.md#пошаговая-инструкция): текущие source/docs/examples/tests и ровно один skill. Существующие `test_archive_contains_owned_material_bytes` и `test_installed_core_libraries_and_metadata_belong_to_instance` наблюдают actual архив/установку; installed run/list/stop проверяется своими npm entry cases. Старый tgz не является новым proof. После изменения документации повторите адресные проверки на точном новом commit и сравните изменённые Markdown-файлы с байтами внутри свежего архива; записывайте digest именно этого архива.
 
 ## Сборка и поставка
+
+Библиотека `command-execution` 0.1.0 имеет самостоятельный packaging root `packages/command-execution`; environment-maintenance 5.1.0 выбирает её точной зависимостью. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
 
 Source commit/tree, version, actual digest, runtime/tool identity, полные проверки и независимая приёмка принадлежат квитанции вне архива, чей digest она описывает. Python build в подготовленной среде:
 
