@@ -170,8 +170,7 @@ def test_async_snapshot_never_aborts_and_delivers_late_result(tmp_path, failure)
     # Causal proof: the sync child releases a blocked background runner.
     gate, began, delivered = Event(), Event(), Event()
     runner = Runner()
-    answers = Answers({'change': {'success': True, 'value': 'opaque', 'error': None,
-                                  'next_input': CASES['changed']}})
+    answers = Answers(deepcopy(CASES['async_answers']))
     if failure == 'rejected':
         answers.answers['background'] = {'success': False, 'value': None, 'error': 'rejected'}
     elif failure == 'interpreter':
@@ -201,6 +200,7 @@ def test_async_snapshot_never_aborts_and_delivers_late_result(tmp_path, failure)
         elif token == 'change':
             assert began.wait(10), 'test barrier: background was never dispatched'
             assert not delivered.is_set(), 'background completed before next command'
+            assert json.loads(invocation['stdin']) == CASES['initial']
             caller_input['nested'].append(99)
         else:
             after.append(json.loads(invocation['stdin']))
@@ -221,6 +221,8 @@ def test_async_snapshot_never_aborts_and_delivers_late_result(tmp_path, failure)
         row = records[0]
         if failure is None:
             assert row['error'] is None
+            assert row['interpretation']['next_input'] == {
+                'step': 'late-background', 'nested': [3]}
         assert row['input_data'] == CASES['initial']
         if failure:
             assert row['error']
@@ -254,16 +256,18 @@ def test_dry_run_prepares_exact_values_without_execution_or_interpretation(tmp_p
     from threading import Thread
     monkeypatch.setattr(subprocess, 'Popen', forbidden)
     monkeypatch.setattr(Thread, 'start', forbidden)
-    rows = [command('${token}'), command('${token}', mode='async')]
+    rows = [command('first-${token}', env={'VISIBLE': 'first-${token}'}),
+            command('second-${token}', env={'VISIBLE': 'second-${token}'}, mode='async')]
     before = deepcopy(rows)
     plan = public('plan_chain')({'commands': rows}, {'token': 'supplied'},
                                 input_data=CASES['initial'], base_dir=tmp_path,
                                 interpreters={'result': Forbidden()})
-    row = plan['commands'][0]
-    assert row['argv'] == ['worker', 'supplied']
-    assert row['cwd'] == str(tmp_path)
-    assert row['env'] == {}
-    assert row['mode'] == 'sync'
+    expected = deepcopy(CASES['dry_run_expected'])
+    for row in expected:
+        row['cwd'] = str(tmp_path)
+    fields = ('argv', 'cwd', 'env', 'interpreter', 'enabled', 'on_error', 'mode')
+    actual = [{field: row[field] for field in fields} for row in plan['commands']]
+    assert actual == expected
     assert rows == before
     assert list(tmp_path.iterdir()) == []
     with pytest.raises(ValueError, match='token'):

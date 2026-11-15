@@ -1,7 +1,89 @@
 {
-  "initial": {"step": "original", "nested": [1]},
-  "changed": {"step": "changed", "nested": [2]},
-  "falsey": [false, 0, "", [], {}, null],
-  "original_parameters": {"token": "original"},
-  "opaque_value": {"operation": "interpretation-only", "data": "not-chain-input"}
+  "initial": {
+    "step": "original",
+    "nested": [
+      1
+    ]
+  },
+  "changed": {
+    "step": "changed",
+    "nested": [
+      2
+    ]
+  },
+  "falsey": [
+    false,
+    0,
+    "",
+    [],
+    {},
+    null
+  ],
+  "original_parameters": {
+    "token": "original"
+  },
+  "opaque_value": {
+    "operation": "interpretation-only",
+    "data": "not-chain-input"
+  },
+  "async_answers": {
+    "change": {
+      "success": true,
+      "value": "opaque",
+      "error": null,
+      "next_input": {
+        "step": "changed",
+        "nested": [
+          2
+        ]
+      }
+    },
+    "background": {
+      "success": true,
+      "value": "opaque",
+      "error": null,
+      "next_input": {
+        "step": "late-background",
+        "nested": [
+          3
+        ]
+      }
+    }
+  },
+  "dry_run_expected": [
+    {
+      "argv": [
+        "worker",
+        "first-supplied"
+      ],
+      "cwd": "",
+      "env": {
+        "VISIBLE": "first-supplied"
+      },
+      "interpreter": {
+        "name": "result",
+        "options": {}
+      },
+      "enabled": true,
+      "on_error": "stop",
+      "mode": "sync"
+    },
+    {
+      "argv": [
+        "worker",
+        "second-supplied"
+      ],
+      "cwd": "",
+      "env": {
+        "VISIBLE": "second-supplied"
+      },
+      "interpreter": {
+        "name": "result",
+        "options": {}
+      },
+      "enabled": true,
+      "on_error": "stop",
+      "mode": "async"
+    }
+  ]
 }

@@ -36,6 +36,9 @@ result = command_execution.execute_chain({'commands': [row]}, parameters,
                                           on_result=observe, **arguments)
 assert result['data'] == initial
 assert done.wait(10), 'installed async consumer never received completion'
+assert records[0]['error'] is None
+assert records[0]['interpretation']['next_input'] == {'step': 'child-changed', 'nested': [1]}
+assert result['data'] == initial
 assert records[0]['input_data'] == initial
 assert records[0]['exit_code'] == 7
 print('installed-chain-contract-ok')
