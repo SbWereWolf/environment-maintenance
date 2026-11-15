@@ -62,9 +62,9 @@ PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
 
 ## Сборка и поставка
 
-Библиотека `command-execution` 1.1.0 имеет самостоятельный packaging root `packages/command-execution`; environment-maintenance 5.2.0 выбирает её точной зависимостью. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
+Корень сборки библиотеки `command-execution` 1.1.0 — корень отдельного checkout репозитория `command-execution` с его `pyproject.toml`; environment-maintenance 5.2.0 выбирает её точной зависимостью. Вложенный `environment-maintenance/packages/command-execution` — исторический bootstrap 0.1.0, его не используют для сборки 1.1.0. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
 
-Source commit/tree, version, actual digest, runtime/tool identity, полные проверки и независимая приёмка принадлежат квитанции вне архива, чей digest она описывает. Python build в подготовленной среде:
+Source commit/tree, version, actual digest, runtime/tool identity, полные проверки и независимая приёмка принадлежат квитанции вне архива, чей digest она описывает. Python build выполняйте в подготовленной среде из корня именно собираемого проекта: самостоятельного `command-execution` для библиотеки либо `environment-maintenance` для SDK. Команда без аргумента исходника собирает текущий проект:
 
 ```bash
 "$app_python" -m build --no-isolation --outdir /absolute/path/to/owned-output
