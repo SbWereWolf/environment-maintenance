@@ -60,7 +60,7 @@ PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
 
 ## Сборка и поставка
 
-Библиотека `command-execution` 0.1.0 имеет самостоятельный packaging root `packages/command-execution`; environment-maintenance 5.1.0 выбирает её точной зависимостью. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
+Библиотека `command-execution` 1.0.0 развивается в отдельном репозитории; environment-maintenance 5.1.0 выбирает её точной зависимостью. `packages/command-execution` сохраняет исторический bootstrap 0.1.0 для характеризационных проверок. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
 
 Source commit/tree, version, actual digest, runtime/tool identity, полные проверки и независимая приёмка принадлежат квитанции вне архива, чей digest она описывает. Python build в подготовленной среде:
 

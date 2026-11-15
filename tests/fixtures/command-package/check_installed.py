@@ -8,10 +8,11 @@ import sys
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
-mode, target, fixture, workspace = sys.argv[1:]
+mode, target, fixture, workspace = sys.argv[1:5]
+expected_version = sys.argv[5] if len(sys.argv) == 6 else '0.1.0'
 sys.path.insert(0, target)
 distribution = importlib.metadata.distribution('command-execution')
-assert distribution.version == '0.1.0'
+assert distribution.version == expected_version
 # Declared installation requirements are observed independently of ambient imports.
 declared = [Requirement(value) for value in (distribution.requires or [])]
 assert not any(canonicalize_name(value.name) == 'environment-maintenance'

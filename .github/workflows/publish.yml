@@ -1,0 +1,63 @@
+name: Publish environment-maintenance
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare selected package tools and public dependency supply
+        run: |
+          npm install --global npm@11
+          python -m pip install -e '.[dev]'
+          mkdir "$RUNNER_TEMP/em-wheelhouse" "$RUNNER_TEMP/em-package-tests" "$RUNNER_TEMP/em-release"
+          python -m pip download --only-binary=:all: --dest "$RUNNER_TEMP/em-wheelhouse" setuptools wheel jsonpatch jsonpointer command-execution==1.0.0
+          echo "ENVIRONMENT_MAINTENANCE_PYTHON=$(command -v python)" >> "$GITHUB_ENV"
+          echo "ENV2_PACKAGE_TEST_ROOT=$RUNNER_TEMP/em-package-tests" >> "$GITHUB_ENV"
+          echo "ENV2_PACKAGE_WHEELHOUSE=$RUNNER_TEMP/em-wheelhouse" >> "$GITHUB_ENV"
+      - name: Check release source, package behavior and maintained smoke
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python -I -B tests/test_release_contract.py -v
+          python -I -B .github/scripts/release.py validate --tag "$RELEASE_TAG"
+          python -B -m pytest -p no:cacheprovider -q tests/test_command_package_extraction.py tests/test_npm_delivery.py tests/test_npm_persistent_entry.py
+          bash tests/smoke.sh "$(command -v python)"
+      - name: Pack the checked source once
+        run: |
+          npm pack --json --pack-destination "$RUNNER_TEMP/em-release" > "$RUNNER_TEMP/em-pack.json"
+          echo "RELEASE_TARBALL=$RUNNER_TEMP/em-release/$(python -c 'import json, os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/em-pack.json"))[0]["filename"])')" >> "$GITHUB_ENV"
+      - name: Refuse conflicting published bytes and recognize exact replay
+        id: registry
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python -I -B .github/scripts/release.py registry --tag "$RELEASE_TAG" --tarball "$RELEASE_TARBALL"
+      - name: Publish through the configured npm trusted publisher
+        if: steps.registry.outputs.decision == 'publish'
+        run: npm publish "$RELEASE_TARBALL" --access public --provenance --registry=https://registry.npmjs.org
+      - name: Verify registry integrity after publication or exact replay
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python -I -B .github/scripts/release.py registry --tag "$RELEASE_TAG" --tarball "$RELEASE_TARBALL" | tee "$RUNNER_TEMP/em-registry-result.json"
+          python -c 'import json, os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/em-registry-result.json"))["decision"] == "already-published"'

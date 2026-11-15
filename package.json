@@ -2,6 +2,10 @@
   "name": "environment-maintenance",
   "version": "5.1.0",
   "description": "Инструмент обслуживания окружения по конфигурации",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SbWereWolf/environment-maintenance.git"
+  },
   "bin": {
     "start-app": "src/npm-start-app.cjs"
   },
