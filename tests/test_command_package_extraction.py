@@ -83,10 +83,11 @@ def test_original_consumer_selects_and_uses_package(baseline_control):
     assert 'command-execution==1.0.0' in document['project']['dependencies'], (
         'NEW-ORIGINAL-CONSUMER-USE: valid original operation still has no '
         'selected independent command package dependency')
-    target = temporary / 'selected-library'
+    target = temporary / 'installed'
+    wheelhouse = Path(os.environ['ENV2_PACKAGE_WHEELHOUSE']).resolve(strict=True)
     run([sys.executable, '-I', '-B', '-m', 'pip', 'install', '--no-index',
-         '--find-links', os.environ['ENV2_PACKAGE_WHEELHOUSE'], '--no-deps',
-         '--target', str(target), 'command-execution==1.0.0'], cwd=temporary)
+         '--find-links', str(wheelhouse), '--target', str(target),
+         'command-execution==1.0.0'], cwd=temporary)
     # A separate output directory prevents confusing library and consumer wheels.
     consumer_build = temporary / 'consumer-build'
     consumer_build.mkdir()
@@ -95,7 +96,7 @@ def test_original_consumer_selects_and_uses_package(baseline_control):
     import shutil
     shutil.copytree(consumer_install, target, dirs_exist_ok=True)
     result = run([sys.executable, '-I', '-B', str(FIXTURES / 'check_installed.py'),
-                  'consumer', str(target), str(FIXTURES / 'child.py'), str(temporary), '1.0.0'],
+                  'consumer', str(target), str(FIXTURES / 'child.py'), str(temporary)],
                  cwd=temporary)
     assert result.stdout == b'original-consumer-use-ok\n'
 

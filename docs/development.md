@@ -30,6 +30,8 @@
 
 Формат/аргументы/порядок диагностик проверяет `tests/test_cli_output.py`, настоящую npm-установку и её CLI — `tests/test_cli_output_package.py`. Затронутые прежние договоры покрывают `test_run_stop`, `test_cli_contract`, `test_run_stop_consumers`, `test_runtime_components`, `test_reservation_failure`; SDK/servicing/network/npm controls выбираются адресно. Перед npm checks подготовьте свои `ENV2_PACKAGE_TEST_ROOT`, `ENV2_PACKAGE_WHEELHOUSE` с настоящими build/runtime wheels и абсолютный `ENVIRONMENT_MAINTENANCE_PYTHON`. Это arrangement тестов, не настройки продукта.
 
+`tests/test_command_package_extraction.py` проверяет самостоятельную библиотеку и её применение установленным EM. Для проверки потребителя задайте `ENV2_PACKAGE_WHEELHOUSE` с опубликованным `command-execution==1.0.0` и его runtime-зависимостями: тест устанавливает их через pip с `--no-index`, собирает EM и проверяет фактические вызовы через выбранную библиотеку.
+
 Схему required map, снимок конкретного запуска, legacy, диагностику и форматирование проверяет `tests/test_application_resources.py`; `tests/test_application_resources_package.py` проверяет реальную новую npm-установку, её origin/version и CLI. Примеры HTTP/очередей/планировщика здесь описывают метаданные, а не измеряют внешний backend или GUI.
 
 После всех применимых исправлений/refactoring/docs и адресных checks:
@@ -60,7 +62,7 @@ PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
 
 ## Сборка и поставка
 
-Библиотека `command-execution` 1.0.0 развивается в отдельном репозитории; environment-maintenance 5.1.1 выбирает её точной зависимостью. Фикстуры проверок находятся в `packages/command-execution`; установленная зависимость выбирается пакетным менеджером. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
+Environment-maintenance 5.1.0 выбирает опубликованную библиотеку `command-execution==1.0.0`. Самостоятельный packaging root `packages/command-execution` содержит исходную версию 0.1.0 для отдельной проверки извлечения библиотеки; она не заменяет выбранный выпуск зависимости EM. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
 
 Source commit/tree, version, actual digest, runtime/tool identity, полные проверки и независимая приёмка принадлежат квитанции вне архива, чей digest она описывает. Python build в подготовленной среде:
 

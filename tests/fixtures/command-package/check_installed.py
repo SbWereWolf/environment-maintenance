@@ -8,11 +8,10 @@ import sys
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
-mode, target, fixture, workspace = sys.argv[1:5]
-expected_version = sys.argv[5] if len(sys.argv) == 6 else '0.1.0'
+mode, target, fixture, workspace = sys.argv[1:]
 sys.path.insert(0, target)
 distribution = importlib.metadata.distribution('command-execution')
-assert distribution.version == expected_version
+assert distribution.version == ('0.1.0' if mode == 'independent' else '1.0.0')
 # Declared installation requirements are observed independently of ambient imports.
 declared = [Requirement(value) for value in (distribution.requires or [])]
 assert not any(canonicalize_name(value.name) == 'environment-maintenance'
@@ -42,6 +41,11 @@ if mode == 'independent':
 else:
     import environment_maintenance as api
     assert Path(api.__file__).is_relative_to(Path(target))
+    consumer = importlib.metadata.distribution('environment-maintenance')
+    selected = [Requirement(value) for value in (consumer.requires or [])
+                if canonicalize_name(Requirement(value).name) == 'command-execution']
+    assert len(selected) == 1 and str(selected[0].specifier) == '==1.0.0'
+    assert distribution.version in selected[0].specifier
 
 from command_execution.actions.interpreters import exit_result
 # Observe the real process creation and its call-stack provenance, without
