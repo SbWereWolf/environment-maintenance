@@ -4,6 +4,7 @@ SourceContract observes the current source without a future producer. The
 future gate class is selected only once its interface exists; missing imports
 are never evidence of behavioral RED.
 """
+import ast
 import importlib.util
 import io
 import json
@@ -40,9 +41,21 @@ class SourceContract(unittest.TestCase):
     def test_selected_source_keeps_em_own_version(self):
         npm = json.loads((ROOT / "package.json").read_text())
         python = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
-        self.assertEqual((npm["name"], npm["version"]),
-                         (EXPECTED["name"], EXPECTED["version"]))
-        self.assertEqual(python["version"], EXPECTED["version"])
+        self.assertEqual(
+            (npm["name"], npm["version"], python["version"]),
+            ("environment-maintenance", "5.1.1", "5.1.1"),
+        )
+
+    def test_selected_module_declares_release_version(self):
+        module = ast.parse((ROOT / "src/environment_maintenance/__init__.py").read_text())
+        versions = [
+            ast.literal_eval(node.value)
+            for node in module.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "__version__"
+                    for target in node.targets)
+        ]
+        self.assertEqual(versions, ["5.1.1"])
 
     def test_selected_source_requires_library_first_release(self):
         python = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]

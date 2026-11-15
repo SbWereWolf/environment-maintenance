@@ -12,7 +12,7 @@ import pytest
 from npm_delivery_support import FIXTURES, ROOT, PackageLab, fixture, write_json
 
 
-CANDIDATE_VERSION = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
+CANDIDATE_VERSION = '5.1.1'
 
 
 @pytest.fixture(scope='module')
