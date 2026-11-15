@@ -1,0 +1,8 @@
+{
+  "argv": ["worker", "${token}"],
+  "cwd": ".",
+  "env": {},
+  "interpreter": {"name": "result", "options": {}},
+  "enabled": true,
+  "on_error": "stop"
+}
