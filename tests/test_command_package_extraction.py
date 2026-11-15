@@ -64,7 +64,7 @@ def library_project():
         'selectable command-execution package supply')
     document = tomllib.loads((project / 'pyproject.toml').read_text())
     assert document['project']['name'] == 'command-execution'
-    assert document['project']['version'] == '0.2.0'
+    assert document['project']['version'] == '0.1.0'
     return project
 
 
@@ -80,10 +80,14 @@ def test_independent_package_public_contract(baseline_control):
 def test_original_consumer_selects_and_uses_package(baseline_control):
     temporary = baseline_control
     document = tomllib.loads((ROOT / 'pyproject.toml').read_text())
-    assert 'command-execution==0.2.0' in document['project']['dependencies'], (
+    assert 'command-execution==1.1.0' in document['project']['dependencies'], (
         'NEW-ORIGINAL-CONSUMER-USE: valid original operation still has no '
         'selected independent command package dependency')
-    target = install_project(library_project(), temporary)
+    target = temporary / 'installed'
+    wheelhouse = Path(os.environ['ENV2_PACKAGE_WHEELHOUSE']).resolve(strict=True)
+    run([sys.executable, '-I', '-B', '-m', 'pip', 'install', '--no-index',
+         '--find-links', str(wheelhouse), '--target', str(target),
+         'command-execution==1.1.0'], cwd=temporary)
     # A separate output directory prevents confusing library and consumer wheels.
     consumer_build = temporary / 'consumer-build'
     consumer_build.mkdir()

@@ -302,7 +302,8 @@ def test_installed_wheel_uses_new_public_contract(tmp_path):
     import shutil
     root = Path(__file__).resolve().parents[1]
     source = tmp_path / 'package-source'
-    shutil.copytree(root / 'packages' / 'command-execution', source,
+    library_source = Path(os.environ['COMMAND_EXECUTION_SOURCE']).resolve(strict=True)
+    shutil.copytree(library_source, source,
                     ignore=shutil.ignore_patterns('__pycache__', '*.egg-info', 'build', 'dist'))
     env = dict(os.environ)
     env.pop('PYTHONPATH', None)
