@@ -4,35 +4,20 @@
 
 ## Локальные репозитории исходников
 
-В текущей установке EM использует локальный bare
-`/mnt/d/WORK/kv1me/planing/em.git` через remote `bare-local`.
-Ветка `master` отслеживает `bare-local/master`; GitHub остаётся отдельным remote
-`origin` (`https://github.com/SbWereWolf/environment-maintenance.git`).
-Прежний alias `migration-source` заменён на `bare-local`.
-Действующий проект Poise выбирает `git.remote=bare-local`, `git.base_ref=master`,
-`git.push_required=false`. Его рабочая конфигурация находится вне исходников
-EM; изменения проводятся через владельца `project-config`, а не правкой JSON.
+Для резервной копии исходников настройте собственный bare remote `bare-local`,
+а для публикации исходников — `origin` выбранного GitHub-репозитория.
+Рабочая ветка отслеживает соответствующую ветку локального bare. EM и
+`command-execution` имеют отдельные репозитории и пространства версий.
 
-Библиотека имеет отдельную рабочую копию
-`/home/sbwerewolf/workdata/command-execution` и bare
-`/mnt/d/WORK/kv1me/planing/command-execution.git`. Её `master` отслеживает
-собственный `bare-local/master`. Это самостоятельное пространство версий:
-первый самостоятельный release — `1.0.0` / `v1.0.0`; линия версий EM остаётся 5.x.
-Каталог `packages/command-execution` внутри EM сохраняет исторический bootstrap
-0.1.0. Дальнейшие версии библиотеки развиваются в отдельном репозитории.
+Привязки конкретной установки задаёт оператор вне исходников.
+Если проект обслуживается Poise, согласуйте `git.remote`, `git.base_ref` и
+`git.push_required=false` через владельца `project-config`.
 
-GitHub-репозиторий библиотеки создаёт владелец из готовой рабочей копии и затем
-добавляет его как `origin`. Настройка PyPI publisher и публикация по push тега
-описаны в README библиотеки. Наличие локального тега не подтверждает публикацию
-версии в реестре. Локальный bare хранит Git-историю; приложения устанавливают
-опубликованные версии через свои менеджеры пакетов и lock.
-
-Для проверки подключений выполните `git remote -v` и
+Проверьте `git remote -v` и
 `git for-each-ref --format='%(refname) %(objectname) %(upstream)' refs/heads refs/tags`
-в соответствующей рабочей копии. Отправляйте нужные ветку и тег в `bare-local`
-обычным `git push bare-local master <tag>`. Не применяйте force и не передвигайте
-выпущенные теги. Отправка в локальный bare сохраняет историю; GitHub Actions
-запускается отправкой тега в настроенный GitHub origin.
+в выбранной рабочей копии. Сохраняйте проверенные ветки и теги в своём bare.
+Не применяйте force и не передвигайте выпущенные теги. Приложения устанавливают
+пакеты из реестра либо из явно выбранной offline-поставки, а не из Git bare.
 
 ## Автоматический выпуск и установка из реестра
 
@@ -54,28 +39,46 @@ Node 22.14+ и npm 11.5.1+; workflow подготавливает npm 11.
 не меняют линию версий EM. Если Python-зависимость недоступна,
 подготовка CI завершается отказом до публикации EM.
 
-Для выпуска 5.1.0 согласуйте версии `package.json` и `pyproject.toml`, точную
-Python-зависимость и буквальные test fixtures. Проверьте изменение локально,
+Для выпуска 5.1.1 согласуйте версии `package.json`, `pyproject.toml` и
+`src/environment_maintenance/__init__.py`, точную Python-зависимость и ожидания
+текущего кандидата. Независимые sample fixtures не меняются при выборе новой версии. Проверьте изменение локально,
 сохраните commit с workflow и выполните проверку тега:
 
 ```bash
 "${MAINTENANCE_PYTHON:?Set MAINTENANCE_PYTHON}" -I -B tests/test_release_contract.py -v
-"${MAINTENANCE_PYTHON:?Set MAINTENANCE_PYTHON}" -I -B .github/scripts/release.py validate --tag v5.1.0
+"${MAINTENANCE_PYTHON:?Set MAINTENANCE_PYTHON}" -I -B .github/scripts/release.py validate --tag v5.1.1
 ```
 
-После требуемой приёмки создайте annotated `v5.1.0` на проверенном commit.
-Отправка `git push origin master v5.1.0` запускает workflow именно из этого тега.
+После требуемой приёмки оператор сначала публикует проверенный source commit.
+`RELEASE_COMMIT` — его точный hash, выбранный по результату проверки; команду
+выполняют в рабочей копии, содержащей этот commit:
+
+```bash
+git push origin "$RELEASE_COMMIT":refs/heads/master
+```
+
+Подтвердите в GitHub ожидаемый commit, наличие `publish.yml` и активное
+определение workflow в Actions. Затем создайте annotated `v5.1.1` именно на
+`RELEASE_COMMIT` и отправьте этот тег. Отправка существующего неизменённого тега
+повторно не создаёт нового события:
+
+```bash
+git tag -a v5.1.1 "$RELEASE_COMMIT" -m 'Release environment-maintenance 5.1.1'
+git push origin refs/tags/v5.1.1
+```
+
+Push тега запускает workflow из выбранного tag commit.
 Workflow получает публичную Python-зависимость, проверяет package tests и smoke,
 упаковывает источник один раз, сравнивает опубликованную integrity и публикует
 эти же байты. Тег не перемещается; содержимое уже выпущенной версии не заменяется.
 Для следующего выпуска согласуйте следующую свободную версию и её test fixtures.
 
-После появления 5.1.0 в npm приложение устанавливает собственную точную зависимость:
+После появления 5.1.1 в npm приложение устанавливает собственную точную зависимость:
 
 ```bash
 ENVIRONMENT_MAINTENANCE_PYTHON="${MAINTENANCE_PYTHON:?Set MAINTENANCE_PYTHON}" \
 npm install --save-dev --save-exact --ignore-scripts=false \
-  environment-maintenance@5.1.0 --registry=https://registry.npmjs.org
+  environment-maintenance@5.1.1 --registry=https://registry.npmjs.org
 ```
 
 Выполняйте команду в каталоге приложения и сохраните его `package.json` и
@@ -95,14 +98,14 @@ upload. HTTP404 разрешает первую публикацию; конфл
 
 ## Договор экземпляра
 
-Для исходников 5.1.0 выберите также `command-execution==1.0.0` и полный набор зависимостей pip. [Руководство общей библиотеки](command-package.md#обновление-обслуживания-окружения) содержит проверяемый npm-вход с выбранным wheelhouse. Нижеследующие пути/архивы 5.0.0 сохраняют контекст выбранного прежнего выпуска; его байты и договоры остаются самостоятельными.
+Для исходников 5.1.1 выберите также `command-execution==1.0.0` и полный набор зависимостей pip. [Руководство общей библиотеки](command-package.md#обновление-обслуживания-окружения) содержит проверяемый npm-вход с выбранным wheelhouse.
 
-Версия 5.0.0 поставляется самостоятельным пакетом. Приложение устанавливает
+Версия 5.1.1 поставляется самостоятельным пакетом. Приложение устанавливает
 выбранный tgz своей локальной npm-зависимостью и получает
 `node_modules/.bin/start-app`. Отдельная глобальная установка в выбранный prefix
 также поддерживается и предоставляет `bin/start-app`.
 Lifecycle создаёт `.venv` внутри пакета; pip устанавливает Python-проект,
-`jsonpatch` и `jsonpointer`. Исходники, docs/tests/examples и один AI-скилл
+выбранную `command-execution==1.0.0` и её зависимости. Исходники, docs/tests/examples и один AI-скилл
 находятся в этом экземпляре. Конфиги и инструменты обслуживаемого приложения
 задаёт его владелец.
 
@@ -168,7 +171,7 @@ package_root=/absolute/path/to/prefix/lib/node_modules/environment-maintenance
 app_python="$package_root/.venv/bin/python"
 workspace=/absolute/path/to/private-workspace
 prefix=/absolute/path/to/prefix
-archive=/absolute/path/to/environment-maintenance-5.0.0.tgz
+archive=/absolute/path/to/environment-maintenance-5.1.1.tgz
 prerequisite_python=/absolute/path/to/python3
 export package_root app_python workspace
 ```
@@ -200,8 +203,8 @@ Installed node_modules/venv восстанавливаются из этой sup
 cd /absolute/path/to/application
 tools="$PWD/.tools/environment-maintenance"
 mkdir -p "$tools/vendor"
-cp /absolute/path/to/issued/environment-maintenance-5.0.0.tgz "$tools/vendor/"
-sha256sum "$tools/vendor/environment-maintenance-5.0.0.tgz"
+cp /absolute/path/to/issued/environment-maintenance-5.1.1.tgz "$tools/vendor/"
+sha256sum "$tools/vendor/environment-maintenance-5.1.1.tgz"
 cd "$tools"
 cat > package.json <<'JSON'
 {
@@ -209,7 +212,7 @@ cat > package.json <<'JSON'
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "environment-maintenance": "file:vendor/environment-maintenance-5.0.0.tgz"
+    "environment-maintenance": "file:vendor/environment-maintenance-5.1.1.tgz"
   }
 }
 JSON
@@ -221,7 +224,7 @@ npm ls --depth=0 --json
 
 Перед установкой сравните SHA-256 с переданным владельцем выпуска. Digest относится к конкретному архиву и хранится в отдельной квитанции, а не внутри описываемого архива.
 Сохраните `package.json`, созданный npm `package-lock.json` и выбранный архив
-вместе с зависимостью приложения. Lock фиксирует `version: "5.0.0"`, локальный
+вместе с зависимостью приложения. Lock фиксирует `version: "5.1.1"`, локальный
 `resolved` и `integrity` архива. Локальный `file:` нужен для выданного tgz;
 публикация этой версии в реестре npm здесь не заявляется. Общий кеш загрузок
 допустим, установленный пакет и его `.venv` принадлежат отдельному приложению.
@@ -235,7 +238,7 @@ npm ls --depth=0 --json
 ```bash
 package_root="$tools/node_modules/environment-maintenance"
 app_python="$package_root/.venv/bin/python"
-"$app_python" -I -B -c 'import sys, importlib.metadata, environment_maintenance as em; assert em.__version__ == importlib.metadata.version("environment-maintenance") == "5.0.0"; print(sys.executable, sys.prefix, em.__file__)'
+"$app_python" -I -B -c 'import sys, importlib.metadata, environment_maintenance as em; assert em.__version__ == importlib.metadata.version("environment-maintenance") == "5.1.1"; print(sys.executable, sys.prefix, em.__file__)'
 ```
 
 Python, sys.prefix и импортированный модуль должны находиться в собственном installed пакете приложения. Для обычного exit-code результата связывайте module `environment_maintenance.actions.interpreters` и attribute `exit_result` с явным options.accept. Production launcher — этот Python с `-I -B -m environment_maintenance.running.console`; Python payload приложения может быть другим. [Полный договор](process-launch.md#внешний-инструмент).
@@ -262,12 +265,12 @@ npm pack --json --pack-destination /absolute/path/to/candidate
 Передайте архив и его SHA-256. Установка выбранных байтов в отдельный prefix:
 
 ```bash
-ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-5.0.0.tgz
+ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-5.1.1.tgz
 /absolute/path/to/prefix/bin/start-app --version
 npm root --global --prefix /absolute/path/to/prefix
 ```
 
-Ожидаемая версия — `environment-maintenance 5.0.0`. Последняя команда показывает
+Ожидаемая версия — `environment-maintenance 5.1.1`. Последняя команда показывает
 корень npm-модулей; добавьте `environment-maintenance` для каталога пакета.
 Предоставьте `PREFIX/bin` через `PATH` установленного окружения.
 Идентифицируйте реальный source/tree/tgz digest, runtime и результаты проверки.
@@ -366,24 +369,25 @@ ENVIRONMENT_MAINTENANCE_PYTHON="$prerequisite_python" npm install --global --pre
 sha256sum "$archive"
 ```
 
-Версия снова5.0.0, digest архива прежний. Аналогично обновление устанавливает
+Версия снова5.1.1, digest архива прежний. Аналогично обновление устанавливает
 новый отдельно выбранный проверенный пакет в свой prefix. Полученные результаты
 и tgz передаются получателю до удаления демонстрационных рабочих материалов.
 Рабочие конфиги/журналы не помещаются в историю версий.
 
 ## Публичная версия и обновление потребителей
 
-Локальные `npm pack` и установка tgz подтверждают только выбранные локальные байты. Для публичной поставки владелец выпуска выбирает принятый неизменённый архив, проверяет свободную версию и выполняет публикацию именно этого архива в выбранный реестр. Для публичного npm:
+Публикация выполняется [workflow по отправке тега](#автоматический-выпуск-и-установка-из-реестра).
+После успешного Actions проверьте точную версию в реестре и скачайте её в свой
+существующий каталог, отличный от каталога выданного кандидата:
 
 ```bash
-npm view environment-maintenance versions --json --registry=https://registry.npmjs.org
-npm publish /absolute/path/to/issued/environment-maintenance-5.0.0.tgz --access public --registry=https://registry.npmjs.org
-npm view environment-maintenance@5.0.0 version dist --json --registry=https://registry.npmjs.org
-npm pack environment-maintenance@5.0.0 --registry=https://registry.npmjs.org --pack-destination /absolute/path/to/download
-sha256sum /absolute/path/to/download/environment-maintenance-5.0.0.tgz
+npm view environment-maintenance@5.1.1 version dist --json --registry=https://registry.npmjs.org
+npm pack environment-maintenance@5.1.1 --registry=https://registry.npmjs.org --pack-destination /absolute/path/to/download
+sha256sum /absolute/path/to/download/environment-maintenance-5.1.1.tgz
 ```
 
-Каталог скачивания должен существовать и отличаться от каталога выданного архива. Сравните скачанные байты с выданными; ответ publish или metadata сам по себе этого не доказывает. Команды описывают процедуру, а не подтверждают состоявшуюся публикацию. Сохраняйте её receipt отдельно от архива.
+Сверьте байты и integrity с квитанцией выпуска. Успешный ответ публикации или
+metadata сами по себе не доказывают совпадение скачанного пакета.
 
 Затем обновите каждую фактическую установку через владельца приложения по [переходу на версию 5](migration-v5.md#пошаговая-поставка). У одного приложения могут быть несколько самостоятельных экземпляров. Успех одного не обновляет остальные. Выбранные manifest/lock/архив остаются в постоянной области потребителя, а его реальные вызовы проверяются собственным entry и Python.
 
