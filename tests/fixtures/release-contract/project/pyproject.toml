@@ -1,0 +1,4 @@
+[project]
+name = "environment-maintenance"
+version = "5.1.0"
+dependencies = ["command-execution==1.0.0"]
