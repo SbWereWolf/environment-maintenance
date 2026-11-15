@@ -1,8 +1,10 @@
 # environment-maintenance 5.1.0
 
-Приложение выполняет объявленное обслуживание, регистрирует запуски приложений по окружению и останавливает сохранённые группы процессов.
+English | [Русский](docs/README.ru.md)
 
-Один установленный `start-app` предоставляет шесть команд:
+Run declared environment maintenance, track application launches by environment, and stop recorded process groups.
+
+One installed `start-app` provides six commands:
 
 ```bash
 start-app infra
@@ -13,37 +15,39 @@ start-app run
 start-app stop
 ```
 
-Пути, параметры, порядок команд и прикладные интерпретаторы задаёт приложение. Операции вызываются явно. Именованные запуски и их PGID хранятся в реестре выбранного OS temp; `stop` читает реестр без конфигурации приложения. Пакет работает независимо от ERP, Poise и их баз данных.
+The consuming application defines paths, parameters, command order, and command interpreters. Operations run when explicitly invoked. Named launches and their process group IDs (PGIDs) are stored in a registry under the selected operating-system temporary directory. `stop` reads that registry without requiring the application's configuration. The package runs independently of ERP, Poise, and their databases.
 
-## Установка и инструкции
+## Installation and guides
 
-- [Выбор установки и восстановление](docs/installation.md).
-- [Самостоятельная библиотека конфигурации и команд](docs/command-package.md).
-- [Npm и собственная зависимость приложения](docs/npm-distribution.md#пакетная-поставка-npm).
-- [Все команды и аргументы](docs/configuration.md#команды-и-аргументы).
-- [Постоянный профиль](docs/persistent-entry.md#поля-постоянного-профиля).
-- [Запуск, просмотр и остановка](docs/process-launch.md#запуск-процессов).
-- [Переход 4.x → 5 и восстановление](docs/migration-v5.md).
-- [Разработка и проверки](docs/development.md).
-- [Поставляемый AI-навык](.agents/skills/environment-maintenance/SKILL.md).
+The detailed guides below are in Russian. The bundled AI skill is in English.
 
-По умолчанию JSON выводится в одну строку. `--output` без значения включает форматирование; полный [договор формата JSON](docs/configuration.md#формат-json) описывает значения и расположение опции.
+- [Installation options and recovery](docs/installation.md).
+- [Independent configuration and command library](docs/command-package.md).
+- [npm installation as an application-owned dependency](docs/npm-distribution.md#пакетная-поставка-npm).
+- [All commands and arguments](docs/configuration.md#команды-и-аргументы).
+- [Persistent profile](docs/persistent-entry.md#поля-постоянного-профиля).
+- [Launching, listing, and stopping processes](docs/process-launch.md#запуск-процессов).
+- [Migration from 4.x to 5 and recovery](docs/migration-v5.md).
+- [Development and checks](docs/development.md).
+- [Bundled AI skill](.agents/skills/environment-maintenance/SKILL.md).
 
-## Библиотека конфигурации 2.0
+JSON output uses one line by default. Passing `--output` without a value enables pretty printing. The [JSON output contract](docs/configuration.md#формат-json) describes option values and placement.
 
-[Чтение](docs/configuration-reading.md#библиотека-чтения) возвращает IDs или полные объекты. [Запись](docs/configuration-editing.md#библиотека-записи) добавляет, меняет, удаляет и очищает выбранные данные с сохранением остальных полей. У операции `run` массив называется `applications`, у остальных — `requirements`. Запись конфигурации сама команды не выполняет.
+## Configuration library 2.0
 
-## Запуск
+[Reading](docs/configuration-reading.md#библиотека-чтения) returns IDs or complete objects. [Writing](docs/configuration-editing.md#библиотека-записи) adds, updates, deletes, or clears selected data while preserving other fields. The array for `run` is named `applications`; other operations use `requirements`. Writing configuration does not execute commands.
 
-| Возможность | Канонический договор |
+## Running applications
+
+| Capability | Reference |
 |---|---|
-| Цепочки команд и сменные интерпретаторы | [API действий](docs/action-execution.md#библиотека-исполнения) |
-| Инфраструктура и зависимости | [Подготовка](docs/resource-preparation.md#подготовка-ресурсов) |
-| Командное и сетевое согласование | [Adjust](docs/settings-alignment.md#согласование-настроек) |
-| Presence, availability и дополнительные условия | [Check](docs/resource-checking.md#проверка-окружения) |
-| Run/list, реестр PGID, stop/list/all | [Процессы](docs/process-launch.md#запуск-процессов) |
+| Command chains and replaceable interpreters | [Action API](docs/action-execution.md#библиотека-исполнения) |
+| Infrastructure and dependencies | [Resource preparation](docs/resource-preparation.md#подготовка-ресурсов) |
+| Command and network settings alignment | [Adjust](docs/settings-alignment.md#согласование-настроек) |
+| Presence, availability, and additional conditions | [Check](docs/resource-checking.md#проверка-окружения) |
+| Run/list, PGID registry, stop/list/all | [Processes](docs/process-launch.md#запуск-процессов) |
 
-После подготовки профиля из каталога приложения:
+After preparing the profile, run these commands from the application directory:
 
 ```bash
 start-app run list
@@ -52,18 +56,18 @@ start-app stop list --env dev
 start-app stop --env dev --app web
 ```
 
-`run list` возвращает карту APP с `pgid: null` и объявленными требуемыми ресурсами. `stop list` показывает PGID и сохранённые ресурсы конкретного запуска; текущая конфигурация для этого не нужна. Отсутствующие описания ресурсов не заполняются догадками.
+`run list` returns an application map with `pgid: null` and the declared required resources. `stop list` shows the PGID and saved resources for a particular launch without requiring the current configuration. Missing resource declarations are not inferred.
 
-`web` — ID в конфигурации вашего приложения. Самостоятельный проверяемый пример находится в [инструкции запуска](docs/process-launch.md#пошаговая-инструкция).
+`web` is an ID in your application's configuration. A standalone example is available in the [launch guide](docs/process-launch.md#пошаговая-инструкция).
 
-## Версионирование
+## Versioning
 
-Исходники этой редакции описывают 5.1.0 и самостоятельную зависимость `command-execution` 1.0.0. [Выпуск по тегу и установка из npm](docs/npm-distribution.md#автоматический-выпуск-и-установка-из-реестра) задают основной маршрут. Выбранные байты установленного экземпляра подтверждают его версия, lock и собственный Python. Новый source или проверенный кандидат не публикует пакет и не обновляет потребителей. Прежние выпущенные 1.0.0/2.0.0/2.1.0/3.0.0/3.1.0 сохраняют свои байты и договоры.
+This source revision describes environment-maintenance 5.1.0 and its independent dependency, `command-execution` 1.0.0. [Tag-based releases and installation from npm](docs/npm-distribution.md#автоматический-выпуск-и-установка-из-реестра) define the standard distribution route. The installed version, lockfile, and its own Python environment identify the selected installation. Changing source or checking a release candidate does not publish a package or update consumers. Earlier releases 1.0.0, 2.0.0, 2.1.0, 3.0.0, and 3.1.0 retain their original contents and contracts.
 
-Несовместимое изменение CLI/формата запуска произошло в 4.0.0; [переход](docs/migration-v4.md) требует согласованного переключения. Удалённый каталоговый интерфейс не входит в эту редакцию. Документация старого выпуска принадлежит его выбранной поставке. В 5.0.0 карта записей `run list` заменяет прежний массив ID; это несовместимое изменение CLI. Компактный вывод по умолчанию, SDK-договоры и массив попыток запуска в результате `run` сохраняются; указание доступности API начиная с 4.0.0 остаётся действительным.
+Version 4.0.0 introduced a breaking change to the CLI and launch format; [migration](docs/migration-v4.md) requires coordinated updates. The removed directory-based interface is not part of this revision. Use the documentation bundled with an older release when working with that release. In 5.0.0, the `run list` entry map replaced the previous array of IDs, which is a breaking CLI change. Compact output by default, SDK contracts, and the launch-attempt array in `run` results remain unchanged. Statements that an API is available since 4.0.0 remain valid.
 
-## Проверки
+## Supported platform and checks
 
-Поддерживаемая платформа — Linux, Node22+, npm10+, Python3.11+ с venv/pip. Проверена Ubuntu24.04.4 WSL2 x86_64, Node22.23.2, npm10.9.8, Python3.12.3 для текущей редакции. Все сочетания платформ и Python не объявляются проверенными.
+The supported platform is Linux with Node.js 22+, npm 10+, and Python 3.11+ with venv and pip. This revision has been checked on Ubuntu 24.04.4 WSL2 x86_64 with Node.js 22.23.2, npm 10.9.8, and Python 3.12.3. This does not imply verification of every platform and Python combination.
 
-Обычная разработка использует [адресные проверки и maintained smoke](docs/development.md#проверки). Публикация и внедрение имеют отдельные полномочия владельца поставки.
+Regular development uses [targeted checks and the maintained smoke suite](docs/development.md#проверки). Publication and adoption require their respective delivery owner's authorization.
