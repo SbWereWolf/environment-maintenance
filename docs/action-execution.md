@@ -2,7 +2,8 @@
 
 ## Библиотека исполнения
 
-[Пошаговая инструкция всех возможностей](#пошаговая-инструкция).
+[Пошаговая инструкция прежних действий](#пошаговая-инструкция).
+[Цепочки с JSON-входом, sync/async и dry-run](#цепочки-с-передачей-данных).
 
 API доступен собственному Python npm-поставки 4.0.0.
 [Общий контекст](npm-distribution.md#библиотека-и-поставленные-примеры) объясняет
@@ -213,3 +214,238 @@ PYTHONPATH=src "$app_python" -B examples/action-execution/walkthrough.py
 для объявленного действия. Предметный анализ оформляйте своим `interpret` и
 выбирайте имя/настройки в конфиге. Внешний инструмент владеет своими командами,
 доменной трактовкой результата и осознанным продолжением после ошибки.
+
+## Цепочки с передачей данных
+
+Начиная с `command-execution` 0.2.0 и совместимых импортов
+`environment-maintenance` 5.2.0 доступны отдельные Python API:
+
+```python
+plan_chain(action, parameters, *, input_data, base_dir, interpreters)
+execute_chain(action, parameters, *, input_data, base_dir, interpreters,
+              run_command=None, on_result=None)
+```
+
+Импорт: `from command_execution import plan_chain, execute_chain` либо те же имена
+из `environment_maintenance`. [Установите выбранную библиотеку](command-package.md#установка-выбранной-версии).
+Прежние `plan_action`/`execute_action` сохраняют описанный выше договор.
+Новые функции вызываются приложением явно; новые CLI-флаги или перенос hooks
+из одного обновления библиотеки не следуют.
+
+`action`, `parameters`, `base_dir`, `interpreters` и поля `argv/cwd/env/interpreter`
+имеют [общий договор подготовки](#публичные-функции-и-аргументы).
+`input_data` — отдельное JSON-совместимое значение; его явная передача обязательна.
+`None`, bool, числа, строки, массивы и объекты допустимы, неконечные числа
+отвергаются. Все команды и дополнительные параметры проверяются до запуска.
+JSON-вход и дальнейшие снимки глубоко копируются.
+
+| Дополнительное поле команды | Читаемое значение по умолчанию | Значения |
+|---|---|---|
+| `mode` | `"sync"` | `"sync"`, `"async"` |
+| `enabled` | `True` | Строго bool |
+| `on_error` | `"stop"` | `"continue"`, `"stop"` |
+
+Это defaults **исполнения читаемой конфигурации**. Редактор списка команд и его
+правила создания записей данным API не предоставляются.
+
+Подготовленные `argv/cwd/env` используют исходную карту `parameters` и её
+[однократные подстановки](#параметры-и-план). Текущий вход кодируется JSON в bytes
+`invocation.stdin` и поступает процессу через stdin. Он не раскрывает заново уже
+подготовленные аргументы. Отдельный `run_command` при необходимости принимает
+такой invocation и возвращает полные `invocation/exit_code/stdout/stderr` по
+[договору интерпретатора](#интерфейс-интерпретатора). По умолчанию используется
+обычный process adapter; полный `env` задаёт вызывающее приложение.
+
+`plan_chain` — dry-run: возвращает все подготовленные `commands` в исходном
+порядке с конкретными `argv/cwd/env/interpreter/mode/enabled/on_error`.
+Процессы, интерпретаторы и фоновые потоки не запускаются. Отключённая запись
+остаётся в плане; `execute_chain` её пропускает.
+
+### Изменение данных и ошибки
+
+Интерпретатор возвращает прежние обязательные `success/value/error` и может
+добавить `next_input`. `value` остаётся непрозрачным результатом, а наличие
+JSON-пригодного `next_input` явно задаёт новые данные. `False`, `0`, пустая строка,
+пустой список/объект и `None` передаются как значения; отсутствие ключа сохраняет
+прежний вход.
+
+Синхронная команда передаёт следующей изменённые либо сохранённые данные.
+Успех определяет `interpretation.success`; ненулевой код процесса может быть
+принят прикладным интерпретатором. При неуспехе `on_error="stop"` останавливает
+дальнейший проход, `"continue"` продолжает его. При продолжении допустимый явно
+заданный `next_input` передаётся даже от предметно неуспешного результата.
+Ошибка запуска, интерпретации или некорректный `next_input` сохраняют последний
+допустимый вход. Итог после sync-ошибки остаётся `status="failed"` с первой
+ошибкой, даже если следующие команды успешны. Внешние эффекты не откатываются.
+
+Асинхронная команда получает глубокий снимок текущих данных. Цепочка немедленно
+передаёт следующему звену тот же вход. Поздние `next_input`, ошибки и исключения
+async не меняют `data/status/error` продолжающейся цепочки. `on_error` у async
+не превращает её в прерывающее звено, включая отказ создания/запуска потока.
+
+## Результаты и фоновое завершение
+
+`execute_chain` возвращает `status`, `data`, `commands`, `error` синхронного
+прохода. `commands` содержит записи достигнутых включённых команд, включая
+попытки dispatch без запуска процесса. Отключённые записи и недостигнутые
+после sync stop команды в результат не входят. Запись содержит подготовленный
+`invocation`, `interpreter`, исходный `index`, глубокий `input_data`, `state`,
+`exit_code`, `stdout/stderr`, `interpretation`, `error`, `exception`.
+
+| Состояние попытки | Представление результата |
+|---|---|
+| Async ещё выполняется | `state="running"`; `stdout/stderr/exit_code/interpretation=None` |
+| Процесс завершён, интерпретация обработана | `state="completed"`; полные bytes потоков, фактический exit code, ответ интерпретатора либо его ошибка |
+| Ошибка запуска процесса | `state="completed"`; пустые bytes потоков, `exit_code=None`, `interpretation=None`, launch error/exception |
+| Исключение создания/запуска фонового потока | Уже добавленная запись `completed`; процесс не запускается, `stdout/stderr/exit_code/interpretation=None`, dispatch error и exception |
+
+`exception` — `None` либо объект `type/message` фактического исключения.
+Предметный отказ `success=False` имеет ошибку интерпретации, но не выдуманное
+исключение. Непригодный `next_input` сохраняет реальные потоки и код, отмечая
+ошибку и исключение проверки. `state="completed"` само по себе не гарантирует
+наличие bytes или запущенного процесса. Перед `.hex()` различайте `None` и bytes;
+сырой результат с bytes не является готовым JSON. Представление для человека
+принадлежит consumer, исходные потоки сохраняются полностью.
+
+`on_result` — необязательный callable с одним аргументом: отдельной глубокой
+копией завершённой записи. Для sync он вызывается в вызывающем потоке, при
+обычном завершении async — в worker. Если создание/запуск фонового потока
+выбросило исключение, callback с dispatch-error записью вызывается непосредственно
+в вызывающем потоке. Обработчик consumer должен быть пригоден к обоим контекстам,
+коротким и не выбрасывающим исключений; при необходимости он передаёт запись
+в собственную очередь для асинхронного журнала. Библиотека предоставляет полную
+запись, хранение/журналирование организует consumer.
+
+Фоновое завершение обновляет только собственную запись `commands` и вызывает
+callback. Недемонический поток не требует join внутри `execute_chain`, но может
+удерживать завершение Python-процесса. Consumer владеет временем жизни runtime и
+ожиданием нужных завершений. Принудительная остановка процесса не имеет обещанной
+гарантии доставки журналов. Готовность callback и runtime не заменяются сохранением
+ссылки на ещё выполняющуюся запись.
+
+## Пример цепочки
+
+### Dry-run и два синхронных звена
+
+Выберите `LIBRARY_PYTHON` установленной библиотеки по
+[инструкции установки](command-package.md#установка-выбранной-версии).
+Пример не меняет рабочие конфиги, каждый дочерний процесс только возвращает stdin.
+
+Подсказка: `input_data` — стартовые JSON-данные; `base_dir` — абсолютная база cwd;
+`interpreters` связывает имя с объектом. Без `mode` команда синхронна.
+`plan_chain` готовит вызовы без запуска. [Все аргументы и defaults](#цепочки-с-передачей-данных).
+
+```bash
+"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 0.2.0}" -I -B - <<'PY'
+import json
+from pathlib import Path
+import sys
+from command_execution import plan_chain, execute_chain
+
+class Increment:
+    def interpret(self, raw, options):
+        received = json.loads(raw["stdout"])
+        return {"success": True, "value": "separate-value", "error": None,
+                "next_input": {"number": received["number"] + 1}}
+
+command = {
+    "argv": [sys.executable, "-B", "-c",
+             "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())"],
+    "cwd": ".", "env": {},
+    "interpreter": {"name": "increment", "options": {}}
+}
+action = {"commands": [command, command]}
+arguments = dict(input_data={"number": 3}, base_dir=Path.cwd(),
+                 interpreters={"increment": Increment()})
+plan = plan_chain(action, {}, **arguments)  # dry-run: no child starts
+assert [row["mode"] for row in plan["commands"]] == ["sync", "sync"]
+records = []
+result = execute_chain(action, {}, on_result=records.append, **arguments)
+assert result["status"] == "succeeded"
+assert result["data"] == {"number": 5}
+assert [json.loads(row["stdout"]) for row in records] == [{"number": 3}, {"number": 4}]
+assert [row["exit_code"] for row in records] == [0, 0]
+print(json.dumps({"data": result["data"],
+                  "stdout_hex": [row["stdout"].hex() for row in records]}))
+PY
+```
+
+Ожидаются `data={"number": 5}` и два полных stdout, представляющих входы
+`{"number": 3}` и `{"number": 4}`. Значение `"separate-value"` не заменяет данные.
+
+### Асинхронный снимок и поздний результат
+
+Подсказка: `mode="async"` передаёт снимок без ожидания; `on_result` получает
+завершённую запись. Очередь и ожидание результата принадлежат consumer.
+Пример освобождает свой барьер в `finally` и ограничивает собственное ожидание.
+[Контексты callback и ошибки dispatch](#результаты-и-фоновое-завершение).
+
+```bash
+"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 0.2.0}" -I -B - <<'PY'
+import json
+from pathlib import Path
+from queue import Queue
+import sys
+from threading import Event
+from command_execution import execute_chain
+
+started, release, delivered = Event(), Event(), Event()
+completed = Queue()  # thread-safe consumer-owned result sink
+
+class Answer:
+    def interpret(self, raw, options):
+        if options["background"]:
+            started.set()
+            if not release.wait(10):
+                raise RuntimeError("consumer did not release background")
+            next_input = {"step": "late-background"}
+        else:
+            if not started.wait(10):
+                raise RuntimeError("background did not start")
+            next_input = {"step": "sync"}
+        return {"success": True, "value": json.loads(raw["stdout"]),
+                "error": None, "next_input": next_input}
+
+def command(background):
+    return {
+        "argv": [sys.executable, "-B", "-c",
+                 "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())"],
+        "cwd": ".", "env": {}, "mode": "async" if background else "sync",
+        "interpreter": {"name": "answer", "options": {"background": background}}
+    }
+
+def observe(record):
+    completed.put(record)
+    if record["index"] == 0:
+        delivered.set()
+
+try:
+    result = execute_chain(
+        {"commands": [command(True), command(False)]}, {},
+        input_data={"step": "initial"}, base_dir=Path.cwd(),
+        interpreters={"answer": Answer()}, on_result=observe,
+    )
+    assert result["data"] == {"step": "sync"}
+finally:
+    release.set()  # consumer, not execute_chain, releases its background barrier
+assert delivered.wait(10), "consumer did not receive background result"
+records = {}
+for _ in range(2):
+    record = completed.get(timeout=10)
+    records[record["index"]] = record
+assert all(record["error"] is None for record in records.values())
+assert json.loads(records[0]["stdout"]) == {"step": "initial"}
+assert json.loads(records[1]["stdout"]) == {"step": "initial"}
+assert records[0]["interpretation"]["next_input"] == {"step": "late-background"}
+assert result["data"] == {"step": "sync"}  # unchanged after actual late delivery
+assert result["status"] == "succeeded"
+print(json.dumps({"data": result["data"], "background_received": True,
+                  "background_next_input": records[0]["interpretation"]["next_input"]}))
+PY
+```
+
+Оба дочерних процесса получают `{"step": "initial"}`. Sync-результат становится
+`{"step": "sync"}` ещё до освобождения фонового интерпретатора. После получения
+реального позднего `{"step": "late-background"}` итог остаётся sync, а callback
+уже доставил отдельную запись. Это ожидание принадлежит примеру consumer;
+`execute_chain` не ждёт фонового завершения внутри себя.

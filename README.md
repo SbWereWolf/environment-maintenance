@@ -1,87 +1,70 @@
-# environment-maintenance 5.1.1
+# environment-maintenance 5.2.0
 
-English | [Русский](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/README.ru.md)
+Приложение выполняет объявленное обслуживание, регистрирует запуски приложений по окружению и останавливает сохранённые группы процессов.
 
-Prepare an application's runtime directory, install its declared dependencies, check resources, and manage its running processes using commands described in JSON. Your application defines what to run; `start-app` executes those declarations and returns structured results with exit codes and output.
-
-Use it to give developers and automation the same explicit commands for preparing and running an application.
-
-## Install
-
-Requires Linux, Node.js 22+, npm 10+, and Python 3.11+ with venv and pip. In your application's npm project:
+Один установленный `start-app` предоставляет шесть команд:
 
 ```bash
-ENVIRONMENT_MAINTENANCE_PYTHON="$(command -v python3)" \
-npm install --save-dev --save-exact --ignore-scripts=false environment-maintenance@5.1.1
+start-app infra
+start-app deps
+start-app adjust
+start-app check
+start-app run
+start-app stop
 ```
 
-npm creates the tool's own Python environment. Keep the dependency and generated lockfile with your application. See [installation options](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/installation.md) for prerequisites and offline installation.
+Пути, параметры, порядок команд и прикладные интерпретаторы задаёт приложение. Операции вызываются явно. Именованные запуски и их PGID хранятся в реестре выбранного OS temp; `stop` читает реестр без конфигурации приложения. Пакет работает независимо от ERP, Poise и их баз данных.
 
-## Quick example
+## Установка и инструкции
 
-This example ensures your application's `var` directory exists. Run it from the same directory where you installed the package:
+- [Выбор установки и восстановление](docs/installation.md).
+- [Самостоятельная библиотека конфигурации и команд](docs/command-package.md).
+- [Цепочки команд, передача данных и dry-run через Python API](docs/action-execution.md#цепочки-с-передачей-данных).
+- [Npm и собственная зависимость приложения](docs/npm-distribution.md#пакетная-поставка-npm).
+- [Все команды и аргументы](docs/configuration.md#команды-и-аргументы).
+- [Постоянный профиль](docs/persistent-entry.md#поля-постоянного-профиля).
+- [Запуск, просмотр и остановка](docs/process-launch.md#запуск-процессов).
+- [Переход 4.x → 5 и восстановление](docs/migration-v5.md).
+- [Разработка и проверки](docs/development.md).
+- [Поставляемый AI-навык](.agents/skills/environment-maintenance/SKILL.md).
 
-```bash
-cat > em.json <<'JSON'
-{
-  "operations": {"infra": "infra.json"},
-  "interpreters": {
-    "exit": {"module": "command_execution.actions.interpreters", "attribute": "exit_result"}
-  }
-}
-JSON
-cat > infra.json <<'JSON'
-{
-  "requirements": [{
-    "id": "runtime-dir",
-    "commands": [{
-      "argv": ["mkdir", "-p", "var"],
-      "cwd": ".",
-      "env": {},
-      "interpreter": {"name": "exit", "options": {"accept": [0]}}
-    }]
-  }]
-}
-JSON
-printf '{}\n' > parameters.json
-./node_modules/.bin/start-app infra --config em.json --parameters parameters.json \
-  --base-dir "$PWD" --requirements '["runtime-dir"]'
-test -d var && printf 'runtime directory ready\n'
-```
+По умолчанию JSON выводится в одну строку. `--output` без значения включает форматирование; полный [договор формата JSON](docs/configuration.md#формат-json) описывает значения и расположение опции.
 
-The command returns JSON with `status: "succeeded"` and prints `runtime directory ready`. The directory is created by the declared `mkdir` command. You can run the operation again because `mkdir -p` accepts an existing directory.
+## Библиотека конфигурации 2.0
 
-Replace the command with your application's maintenance command; add named requirements to select individual resources. The [resource preparation guide](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/resource-preparation.md#%D0%BF%D0%BE%D0%B4%D0%B3%D0%BE%D1%82%D0%BE%D0%B2%D0%BA%D0%B0-%D1%80%D0%B5%D1%81%D1%83%D1%80%D1%81%D0%BE%D0%B2) explains checks, parameters, interpreters, and failure results.
+[Чтение](docs/configuration-reading.md#библиотека-чтения) возвращает IDs или полные объекты. [Запись](docs/configuration-editing.md#библиотека-записи) добавляет, меняет, удаляет и очищает выбранные данные с сохранением остальных полей. У операции `run` массив называется `applications`, у остальных — `requirements`. Запись конфигурации сама команды не выполняет.
 
-## Commands
+## Запуск
 
-| Command | Purpose |
+| Возможность | Канонический договор |
 |---|---|
-| `start-app infra` | Prepare declared infrastructure resources. |
-| `start-app deps` | Prepare declared application dependencies. |
-| `start-app adjust` | Apply declared command or network settings changes. |
-| `start-app check` | Observe declared resource conditions. |
-| `start-app run` | Launch selected named applications and record their process groups. |
-| `start-app stop` | Stop recorded application process groups. |
+| Цепочки команд и сменные интерпретаторы | [API действий](docs/action-execution.md#библиотека-исполнения) |
+| Инфраструктура и зависимости | [Подготовка](docs/resource-preparation.md#подготовка-ресурсов) |
+| Командное и сетевое согласование | [Adjust](docs/settings-alignment.md#согласование-настроек) |
+| Presence, availability и дополнительные условия | [Check](docs/resource-checking.md#проверка-окружения) |
+| Run/list, реестр PGID, stop/list/all | [Процессы](docs/process-launch.md#запуск-процессов) |
 
-Each operation is explicit. An application supplies its tools, parameters, working directories, and result interpreters. Named launches are recorded in the selected operating-system temporary directory; `stop` uses the saved registry without needing the current application configuration.
+После подготовки профиля из каталога приложения:
 
-## Detailed documentation
+```bash
+start-app run list
+start-app run --env dev --app web
+start-app stop list --env dev
+start-app stop --env dev --app web
+```
 
-The guides are in Russian; the bundled AI skill is in English.
+`run list` возвращает карту APP с `pgid: null` и объявленными требуемыми ресурсами. `stop list` показывает PGID и сохранённые ресурсы конкретного запуска; текущая конфигурация для этого не нужна. Отсутствующие описания ресурсов не заполняются догадками.
 
-- [All CLI commands and arguments](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/configuration.md#%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D1%8B-%D0%B8-%D0%B0%D1%80%D0%B3%D1%83%D0%BC%D0%B5%D0%BD%D1%82%D1%8B).
-- [Persistent profile and one-call overrides](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/persistent-entry.md#%D0%BF%D0%BE%D0%BB%D1%8F-%D0%BF%D0%BE%D1%81%D1%82%D0%BE%D1%8F%D0%BD%D0%BD%D0%BE%D0%B3%D0%BE-%D0%BF%D1%80%D0%BE%D1%84%D0%B8%D0%BB%D1%8F).
-- [Launching, listing, and stopping applications](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/process-launch.md#%D0%BF%D0%BE%D1%88%D0%B0%D0%B3%D0%BE%D0%B2%D0%B0%D1%8F-%D0%B8%D0%BD%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%86%D0%B8%D1%8F).
-- [Command planning, execution, and result interpreters](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/action-execution.md#%D0%BF%D1%83%D0%B1%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B5-%D1%84%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D0%B8-%D0%B8-%D0%B0%D1%80%D0%B3%D1%83%D0%BC%D0%B5%D0%BD%D1%82%D1%8B).
-- [Configuration reading](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/configuration-reading.md#%D0%BF%D1%83%D0%B1%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%B4%D0%BE%D0%B3%D0%BE%D0%B2%D0%BE%D1%80) and [editing](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/configuration-editing.md#%D0%BF%D1%83%D0%B1%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B9-%D0%B4%D0%BE%D0%B3%D0%BE%D0%B2%D0%BE%D1%80).
-- [Dependency selection and compatible Python imports](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/command-package.md#%D1%81%D0%BE%D0%B2%D0%BC%D0%B5%D1%81%D1%82%D0%B8%D0%BC%D1%8B%D0%B5-%D0%B8%D0%BC%D0%BF%D0%BE%D1%80%D1%82%D1%8B).
-- [npm installation, updating, and recovery](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/npm-distribution.md#%D0%BF%D0%B0%D0%BA%D0%B5%D1%82%D0%BD%D0%B0%D1%8F-%D0%BF%D0%BE%D1%81%D1%82%D0%B0%D0%B2%D0%BA%D0%B0-npm).
-- [Configuration migration](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/migration-v5.md#%D0%BF%D0%B5%D1%80%D0%B5%D1%85%D0%BE%D0%B4-%D0%BA%D0%BE%D0%BD%D1%84%D0%B8%D0%B3%D1%83%D1%80%D0%B0%D1%86%D0%B8%D0%B8).
-- [Bundled AI skill](https://github.com/SbWereWolf/environment-maintenance/blob/master/.agents/skills/environment-maintenance/SKILL.md).
+`web` — ID в конфигурации вашего приложения. Самостоятельный проверяемый пример находится в [инструкции запуска](docs/process-launch.md#пошаговая-инструкция).
 
-JSON output is one line by default. Passing `--output` without a value enables pretty printing; see the [output reference](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/configuration.md#%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%82-json).
+## Версионирование
 
-## Supported platform and checks
+Исходники этой редакции описывают 5.2.0 и самостоятельную зависимость `command-execution` 0.2.0. Выбранные байты установленного экземпляра подтверждают его версия, архив/lock и собственный Python. Новый source или проверенный кандидат не публикует пакет и не обновляет потребителей. Прежние выпущенные 1.0.0/2.0.0/2.1.0/3.0.0/3.1.0 сохраняют свои байты и договоры.
 
-The supported platform is Linux with Node.js 22+, npm 10+, and Python 3.11+ with venv and pip. Each application pins and updates its own installation. [Development checks](https://github.com/SbWereWolf/environment-maintenance/blob/master/docs/development.md#%D0%BF%D1%80%D0%BE%D0%B2%D0%B5%D1%80%D0%BA%D0%B8) cover the CLI, installed npm package, and process lifecycle.
+Несовместимое изменение CLI/формата запуска произошло в 4.0.0; [переход](docs/migration-v4.md) требует согласованного переключения. Удалённый каталоговый интерфейс не входит в эту редакцию. Документация старого выпуска принадлежит его выбранной поставке. В 5.0.0 карта записей `run list` заменяет прежний массив ID; это несовместимое изменение CLI. Компактный вывод по умолчанию, SDK-договоры и массив попыток запуска в результате `run` сохраняются; указание доступности API начиная с 4.0.0 остаётся действительным.
+
+## Проверки
+
+Поддерживаемая платформа — Linux, Node22+, npm10+, Python3.11+ с venv/pip. Проверена Ubuntu24.04.4 WSL2 x86_64, Node22.23.2, npm10.9.8, Python3.12.3 для текущей редакции. Все сочетания платформ и Python не объявляются проверенными.
+
+Обычная разработка использует [адресные проверки и maintained smoke](docs/development.md#проверки). Публикация и внедрение имеют отдельные полномочия владельца поставки.
