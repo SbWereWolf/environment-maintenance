@@ -50,11 +50,11 @@ Node 22.14+ и npm 11.5.1+; workflow подготавливает npm 11.
 ```
 
 После требуемой приёмки оператор сначала публикует проверенный source commit.
-`RELEASE_COMMIT` — его точный hash, выбранный по результату проверки; команду
+Задайте `RELEASE_COMMIT` точным hash принятого commit; команду
 выполняют в рабочей копии, содержащей этот commit:
 
 ```bash
-git push origin "$RELEASE_COMMIT":refs/heads/master
+git push origin "${RELEASE_COMMIT:?Set the reviewed release commit}":refs/heads/master
 ```
 
 Подтвердите в GitHub ожидаемый commit, наличие `publish.yml` и активное
@@ -63,7 +63,7 @@ git push origin "$RELEASE_COMMIT":refs/heads/master
 повторно не создаёт нового события:
 
 ```bash
-git tag -a v5.1.1 "$RELEASE_COMMIT" -m 'Release environment-maintenance 5.1.1'
+git tag -a v5.1.1 "${RELEASE_COMMIT:?Set the reviewed release commit}" -m 'Release environment-maintenance 5.1.1'
 git push origin refs/tags/v5.1.1
 ```
 
