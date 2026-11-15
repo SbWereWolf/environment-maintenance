@@ -89,7 +89,7 @@ class ActionExecutor:
         records = []
         error = None
         for index, command in enumerate(plan["commands"]):
-            record = self.execute_command(
+            record = self._execute_command(
                 command, interpreters[command["interpreter"]["name"]], index
             )
             records.append(record)
@@ -101,38 +101,27 @@ class ActionExecutor:
             commands=records, error=error,
         )
 
-    def execute_command(
-        self, command: dict[str, Any], interpreter: ResultInterpreter, index: int, *,
-        stdin: bytes | None = None, capture_exception: bool = False,
+    def _execute_command(
+        self, command: dict[str, Any], interpreter: ResultInterpreter, index: int
     ) -> dict[str, Any]:
         invocation = {field: deepcopy(command[field]) for field in ("argv", "cwd", "env")}
-        if stdin is not None:
-            invocation["stdin"] = stdin
         record = dict(
             invocation=invocation, interpreter=deepcopy(command["interpreter"]),
             exit_code=None, stdout=b"", stderr=b"", interpretation=None, error=None,
         )
-        if capture_exception:
-            record["exception"] = None
         try:
             raw = self._run_command(deepcopy(invocation))
-        except Exception as exc:
-            if not capture_exception and not isinstance(exc, (OSError, ValueError)):
-                raise
-            if capture_exception:
-                record["exception"] = {"type": type(exc).__name__, "message": str(exc)}
+        except (OSError, ValueError) as exc:
             record["error"] = f"commands[{index}] launch argv/cwd: {exc}"
             return record
         record.update(raw)
-        interpretation, error, exception = self._interpret(raw, command["interpreter"], interpreter)
+        interpretation, error = self._interpret(raw, command["interpreter"], interpreter)
         record.update(interpretation=interpretation, error=error)
-        if capture_exception:
-            record["exception"] = exception
         return record
 
     def _interpret(
         self, raw: dict[str, Any], configuration: dict[str, Any], interpreter: ResultInterpreter
-    ) -> tuple[dict[str, Any] | None, str | None, dict[str, str] | None]:
+    ) -> tuple[dict[str, Any] | None, str | None]:
         name = configuration["name"]
         try:
             answer = interpreter.interpret(
@@ -140,9 +129,9 @@ class ActionExecutor:
             )
             interpretation = interpreted_result(answer)
         except Exception as exc:
-            return None, f"interpreter {name}: {exc}", {"type": type(exc).__name__, "message": str(exc)}
+            return None, f"interpreter {name}: {exc}"
         error = (
             None if interpretation["success"]
             else f"interpreter {name}: {interpretation['error']}"
         )
-        return interpretation, error, None
+        return interpretation, error

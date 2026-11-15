@@ -217,7 +217,7 @@ PYTHONPATH=src "$app_python" -B examples/action-execution/walkthrough.py
 
 ## Цепочки с передачей данных
 
-Начиная с `command-execution` 0.2.0 и совместимых импортов
+Начиная с `command-execution` 1.1.0 и совместимых импортов
 `environment-maintenance` 5.2.0 доступны отдельные Python API:
 
 ```python
@@ -336,7 +336,7 @@ callback. Недемонический поток не требует join вн�
 `plan_chain` готовит вызовы без запуска. [Все аргументы и defaults](#цепочки-с-передачей-данных).
 
 ```bash
-"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 0.2.0}" -I -B - <<'PY'
+"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 1.1.0}" -I -B - <<'PY'
 import json
 from pathlib import Path
 import sys
@@ -381,7 +381,7 @@ PY
 [Контексты callback и ошибки dispatch](#результаты-и-фоновое-завершение).
 
 ```bash
-"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 0.2.0}" -I -B - <<'PY'
+"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 1.1.0}" -I -B - <<'PY'
 import json
 from pathlib import Path
 from queue import Queue

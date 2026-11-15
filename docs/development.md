@@ -58,9 +58,11 @@ PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
 
 После изменения docs/skill нужен свежий [pack/install](npm-distribution.md#пошаговая-инструкция): текущие source/docs/examples/tests и ровно один skill. Существующие `test_archive_contains_owned_material_bytes` и `test_installed_core_libraries_and_metadata_belong_to_instance` наблюдают actual архив/установку; installed run/list/stop проверяется своими npm entry cases. Старый tgz не является новым proof. После изменения документации повторите адресные проверки на точном новом commit и сравните изменённые Markdown-файлы с байтами внутри свежего архива; записывайте digest именно этого архива.
 
+`tests/test_command_package_extraction.py` проверяет самостоятельную библиотеку и её применение установленным EM. Для проверки потребителя задайте `ENV2_PACKAGE_WHEELHOUSE` с опубликованным `command-execution==1.1.0` и его runtime-зависимостями: тест устанавливает их через pip с `--no-index`, собирает EM и проверяет фактические вызовы через выбранную библиотеку.
+
 ## Сборка и поставка
 
-Библиотека `command-execution` 0.2.0 имеет самостоятельный packaging root `packages/command-execution`; environment-maintenance 5.2.0 выбирает её точной зависимостью. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
+Библиотека `command-execution` 1.1.0 имеет самостоятельный packaging root `packages/command-execution`; environment-maintenance 5.2.0 выбирает её точной зависимостью. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
 
 Source commit/tree, version, actual digest, runtime/tool identity, полные проверки и независимая приёмка принадлежат квитанции вне архива, чей digest она описывает. Python build в подготовленной среде:
 
@@ -80,6 +82,9 @@ Wheel/sdist/npm — разные артефакты. Исполняйте и п�
 Python текущего checkout с установленной соответствующей библиотекой:
 
 ```bash
+: "${COMMAND_EXECUTION_SOURCE:?Выберите абсолютный checkout command-execution 1.1.0}"
+: "${ENV2_PACKAGE_WHEELHOUSE:?Выберите wheelhouse с принятым wheel 1.1.0 и зависимостями}"
+export COMMAND_EXECUTION_SOURCE ENV2_PACKAGE_WHEELHOUSE
 "${app_python:?Выберите Python подготовленного checkout}" -I -B -m pytest \
   -p no:cacheprovider -q tests/test_command_chain.py tests/test_command_package_extraction.py
 ```

@@ -59,17 +59,3 @@ def interpreted_result(answer: dict[str, Any]) -> dict[str, Any]:
     elif not isinstance(answer["error"], str) or not answer["error"]:
         raise ValueError("failed interpreter result.error must be a nonempty string")
     return deepcopy(answer)
-
-
-def chain_options(command: dict[str, Any], index: int) -> dict[str, Any]:
-    """Validate only the additional policy of the new chain contract."""
-    mode = command.get("mode", "sync")
-    enabled = command.get("enabled", True)
-    policy = command.get("on_error", "stop")
-    if mode not in ("sync", "async"):
-        raise ValueError(f"commands[{index}].mode must be sync or async")
-    if type(enabled) is not bool:
-        raise ValueError(f"commands[{index}].enabled must be bool")
-    if policy not in ("continue", "stop"):
-        raise ValueError(f"commands[{index}].on_error must be continue or stop")
-    return dict(mode=mode, enabled=enabled, on_error=policy)
