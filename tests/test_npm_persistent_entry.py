@@ -261,7 +261,7 @@ def test_installed_run_list_stop_share_real_groups_and_caller_configuration(pack
         assert result['received_pgids'] == result['planned'] == 1
         assert result['applications'][0]['pgid'] == group and living_group(group)
         pending = lab.answer('run', 'list', '--env', 'npm-E', entry=entry, env=environment)
-        assert pending['applications'] == ['B']
+        assert pending['applications'] == {'B': {'pgid': None}}
         final = lab.answer('stop', '--env', 'npm-E', '--app', 'A', entry=entry, env=environment)
         assert final['stopped'] == [{'environment': 'npm-E', 'id': 'A', 'pgid': group}]
         assert final['errors'] == []

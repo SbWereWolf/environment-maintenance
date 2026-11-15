@@ -137,7 +137,7 @@ def test_installed_core_libraries_and_metadata_belong_to_instance(package, consu
     assert_entry_identity(identity, consumer.prefix)
 
 
-@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check'])
 def test_installed_operations_keep_actual_inputs_effects_and_results(package, consumer, scenario, operation):
     require(package, consumer)
     result = package.invoke(consumer, scenario, operation)
@@ -164,6 +164,23 @@ def test_installed_operations_keep_actual_inputs_effects_and_results(package, co
     else:
         assert [r['id'] for r in answer['requirements']] == ['selected']
         assert_action(answer['requirements'][0]['result'], scenario, operation, profile)
+
+
+def test_maintenance_document_is_refused_by_named_run(package, consumer, scenario):
+    require(package, consumer)
+    result = package.capture('refused-maintenance-run',
+        [consumer.entry, 'run', '--config', scenario.main,
+         '--parameters', scenario.values, '--base-dir', scenario.serviced],
+        scenario.serviced)
+    assert result.returncode == 2
+    answer = json.loads(result.stdout)
+    assert answer['operation'] == 'run' and answer['status'] == 'failed'
+    assert answer['planned'] == answer['received_pgids'] == 0
+    assert answer['applications'] == [] and answer['file_exists'] is False
+    assert not Path(answer['file']).exists()
+    assert str(scenario.main).encode() in result.stderr
+    assert b'applications must be an array' in result.stderr
+    assert not scenario.events.exists()
 
 
 def test_caller_stdin_and_large_raw_streams_survive_entry(package, consumer, scenario):
