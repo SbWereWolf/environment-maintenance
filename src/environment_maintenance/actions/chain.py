@@ -89,7 +89,13 @@ def execute_prepared(plan, interpreters, runner, input_data=None, on_result=None
 
     def completed(outcome):
         row = rows[outcome.id]
-        row.update(records[outcome.id], input_data=deepcopy(outcome.input), state='completed')
+        if outcome.state == 'dispatch_failed':
+            detail = outcome.error
+            row.update(error=f'commands[{outcome.id}] dispatch: {detail["message"]}',
+                exception={key: detail[key] for key in ('type', 'message')})
+        else:
+            row.update(records[outcome.id])
+        row.update(input_data=deepcopy(outcome.input), state='completed')
         if prepared[outcome.id].get('mode', 'sync') == 'sync' and row['error'] is not None:
             aggregate['status'] = 'failed'
             if aggregate['error'] is None:
