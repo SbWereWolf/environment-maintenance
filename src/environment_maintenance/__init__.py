@@ -1,5 +1,5 @@
 """Independent environment requirement runner. No application-specific dependencies."""
-__version__ = "5.3.0"
+__version__ = "5.3.3"
 
 from .actions import execute_action, plan_action, execute_chain, plan_chain
 

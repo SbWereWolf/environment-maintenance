@@ -1,6 +1,6 @@
 {
   "name": "environment-maintenance",
-  "version": "5.3.0",
+  "version": "5.3.3",
   "description": "Инструмент обслуживания окружения по конфигурации",
   "bin": {
     "start-app": "src/npm-start-app.cjs"
