@@ -1,6 +1,11 @@
-"""Compatibility imports; the independent package owns this behavior."""
+"""Optional generic interpretations of declared command exit codes."""
 
-from command_execution.actions.interpreters import (
-    ExitCodeInterpreter,
-    exit_result,
-)
+
+class ExitCodeInterpreter:
+    def interpret(self, result, options):
+        success = result["exit_code"] in options["accept"]
+        return dict(success=success, value=result["exit_code"],
+                    error=None if success else "command exit code is not accepted")
+
+
+exit_result = ExitCodeInterpreter()

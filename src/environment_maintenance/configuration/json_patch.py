@@ -1,5 +1,6 @@
-"""Compatibility imports; the independent package owns this behavior."""
+"""EM's supported JSON changes use the shared pure path editor."""
+from command_execution import JSONPathEditor
 
-from command_execution.configuration.json_patch import (
-    apply_changes,
-)
+
+def apply_changes(requirement, changes):
+    return JSONPathEditor().patch(requirement, changes)

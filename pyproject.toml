@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "environment-maintenance"
-version = "5.2.0"
+version = "5.3.0"
 description = "Configured environment maintenance and named application groups"
 requires-python = ">=3.11"
 dependencies = [
-    "command-execution==1.1.0",
+    "command-execution==2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -24,3 +24,6 @@ start-app = "environment_maintenance.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+environment_maintenance = ["resources/commands/*"]
