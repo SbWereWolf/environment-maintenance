@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "environment-maintenance"
-version = "5.3.5"
+version = "5.3.7"
 description = "Configured environment maintenance and named application groups"
 requires-python = ">=3.11"
 dependencies = [
-    "command-execution==2.0.4",
+    "command-execution==2.0.5",
 ]
 
 [project.optional-dependencies]

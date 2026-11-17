@@ -1,6 +1,6 @@
 {
   "name": "environment-maintenance",
-  "version": "5.3.5",
+  "version": "5.3.7",
   "description": "Инструмент обслуживания окружения по конфигурации",
   "bin": {
     "start-app": "src/npm-start-app.cjs"
@@ -32,6 +32,7 @@
     "tests/**/*.md",
     "tests/**/*.hex",
     "tests/**/*.txt",
-    ".agents/skills/environment-maintenance/SKILL.md"
+    ".agents/skills/environment-maintenance/SKILL.md",
+    "src/environment_maintenance/resources/commands/*"
   ]
 }
