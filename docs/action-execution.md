@@ -2,10 +2,10 @@
 
 ## Библиотека исполнения
 
-[Пошаговая инструкция прежних действий](#пошаговая-инструкция).
+[Пошаговая инструкция действий](#пошаговая-инструкция).
 [Цепочки с JSON-входом, sync/async и dry-run](#цепочки-с-передачей-данных).
 
-API доступен собственному Python npm-поставки 4.0.0.
+API доступен собственному Python выбранной npm-поставки.
 [Общий контекст](npm-distribution.md#библиотека-и-поставленные-примеры) объясняет
 выбор runtime и поставленного набора примеров. Примеры с `PYTHONPATH=src`
 явно используют выбранный исходный набор внутри пакета либо development checkout.
@@ -217,8 +217,8 @@ PYTHONPATH=src "$app_python" -B examples/action-execution/walkthrough.py
 
 ## Цепочки с передачей данных
 
-Начиная с `command-execution` 1.1.0 и совместимых импортов
-`environment-maintenance` 5.2.0 доступны отдельные Python API:
+Для цепочек с передачей данных импортируйте Python API из
+`environment_maintenance`:
 
 ```python
 plan_chain(action, parameters, *, input_data, base_dir, interpreters)
@@ -226,11 +226,11 @@ execute_chain(action, parameters, *, input_data, base_dir, interpreters,
               run_command=None, on_result=None)
 ```
 
-Импорт: `from command_execution import plan_chain, execute_chain` либо те же имена
-из `environment_maintenance`. [Установите выбранную библиотеку](command-package.md#установка-выбранной-версии).
-Прежние `plan_action`/`execute_action` сохраняют описанный выше договор.
-Новые функции вызываются приложением явно; новые CLI-флаги или перенос hooks
-из одного обновления библиотеки не следуют.
+Импорт: `from environment_maintenance import plan_chain, execute_chain`.
+В CE2 эти прикладные имена не экспортируются. [Установите выбранную библиотеку](command-package.md#установка-выбранной-версии).
+`plan_action`/`execute_action` используют описанный выше договор.
+Функции вызываются приложением явно; выбор Python API не добавляет
+CLI-флаги и не переносит hooks автоматически.
 
 `action`, `parameters`, `base_dir`, `interpreters` и поля `argv/cwd/env/interpreter`
 имеют [общий договор подготовки](#публичные-функции-и-аргументы).
@@ -254,7 +254,7 @@ JSON-вход и дальнейшие снимки глубоко копирую
 подготовленные аргументы. Отдельный `run_command` при необходимости принимает
 такой invocation и возвращает полные `invocation/exit_code/stdout/stderr` по
 [договору интерпретатора](#интерфейс-интерпретатора). По умолчанию используется
-обычный process adapter; полный `env` задаёт вызывающее приложение.
+предоставленный EM Bash-скрипт; полный `env` задаёт вызывающее приложение.
 
 `plan_chain` — dry-run: возвращает все подготовленные `commands` в исходном
 порядке с конкретными `argv/cwd/env/interpreter/mode/enabled/on_error`.
@@ -281,7 +281,7 @@ JSON-пригодного `next_input` явно задаёт новые данн
 Асинхронная команда получает глубокий снимок текущих данных. Цепочка немедленно
 передаёт следующему звену тот же вход. Поздние `next_input`, ошибки и исключения
 async не меняют `data/status/error` продолжающейся цепочки. `on_error` у async
-не превращает её в прерывающее звено, включая отказ создания/запуска потока.
+не превращает её в прерывающее звено, для обычного завершения фонового процесса.
 
 ## Результаты и фоновое завершение
 
@@ -297,7 +297,6 @@ async не меняют `data/status/error` продолжающейся цеп�
 | Async ещё выполняется | `state="running"`; `stdout/stderr/exit_code/interpretation=None` |
 | Процесс завершён, интерпретация обработана | `state="completed"`; полные bytes потоков, фактический exit code, ответ интерпретатора либо его ошибка |
 | Ошибка запуска процесса | `state="completed"`; пустые bytes потоков, `exit_code=None`, `interpretation=None`, launch error/exception |
-| Исключение создания/запуска фонового потока | Уже добавленная запись `completed`; процесс не запускается, `stdout/stderr/exit_code/interpretation=None`, dispatch error и exception |
 
 `exception` — `None` либо объект `type/message` фактического исключения.
 Предметный отказ `success=False` имеет ошибку интерпретации, но не выдуманное
@@ -309,9 +308,7 @@ async не меняют `data/status/error` продолжающейся цеп�
 
 `on_result` — необязательный callable с одним аргументом: отдельной глубокой
 копией завершённой записи. Для sync он вызывается в вызывающем потоке, при
-обычном завершении async — в worker. Если создание/запуск фонового потока
-выбросило исключение, callback с dispatch-error записью вызывается непосредственно
-в вызывающем потоке. Обработчик consumer должен быть пригоден к обоим контекстам,
+обычном завершении async — в worker. Обработчик consumer должен быть пригоден к обоим контекстам,
 коротким и не выбрасывающим исключений; при необходимости он передаёт запись
 в собственную очередь для асинхронного журнала. Библиотека предоставляет полную
 запись, хранение/журналирование организует consumer.
@@ -327,7 +324,7 @@ callback. Недемонический поток не требует join вн�
 
 ### Dry-run и два синхронных звена
 
-Выберите `LIBRARY_PYTHON` установленной библиотеки по
+Выберите `MAINTENANCE_LIBRARY_PYTHON` установленного EM по
 [инструкции установки](command-package.md#установка-выбранной-версии).
 Пример не меняет рабочие конфиги, каждый дочерний процесс только возвращает stdin.
 
@@ -336,11 +333,11 @@ callback. Недемонический поток не требует join вн�
 `plan_chain` готовит вызовы без запуска. [Все аргументы и defaults](#цепочки-с-передачей-данных).
 
 ```bash
-"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 1.1.0}" -I -B - <<'PY'
+"${MAINTENANCE_LIBRARY_PYTHON:?Выберите Python установленного EM}" -I -B - <<'PY'
 import json
 from pathlib import Path
 import sys
-from command_execution import plan_chain, execute_chain
+from environment_maintenance import plan_chain, execute_chain
 
 class Increment:
     def interpret(self, raw, options):
@@ -381,13 +378,13 @@ PY
 [Контексты callback и ошибки dispatch](#результаты-и-фоновое-завершение).
 
 ```bash
-"${LIBRARY_PYTHON:?Выберите Python установленной библиотеки 1.1.0}" -I -B - <<'PY'
+"${MAINTENANCE_LIBRARY_PYTHON:?Выберите Python установленного EM}" -I -B - <<'PY'
 import json
 from pathlib import Path
 from queue import Queue
 import sys
 from threading import Event
-from command_execution import execute_chain
+from environment_maintenance import execute_chain
 
 started, release, delivered = Event(), Event(), Event()
 completed = Queue()  # thread-safe consumer-owned result sink

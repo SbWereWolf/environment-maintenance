@@ -6,11 +6,11 @@
 
 Приложение выбирает конкретный tgz выбранного выпуска своей npm-зависимостью с package.json, npm-generated lock и собственным installed runtime. Глобальный prefix также поддерживается. Каждое независимое приложение выбирает и обновляет экземпляр отдельно; несколько регистраций одного приложения могут использовать его копию.
 
-Для 5.2.0 требуется выбранная зависимость `command-execution==1.1.0`; [отдельная инструкция](command-package.md#обновление-обслуживания-окружения) описывает полный wheelhouse, сохранение совместимых импортов и проверку каждого потребителя.
+Точная зависимость CE задаётся `pyproject.toml` выбранного EM; [отдельная инструкция](command-package.md#обновление-обслуживания-окружения) описывает полный wheelhouse, сохранение совместимых импортов и проверку каждого потребителя.
 
 ## Условия
 
-Linux/POSIX, Node22+, npm10+, абсолютный Python3.11+ с venv/pip и доступ к выбранным build/runtime dependencies. Проверенная среда указана в [README](../README.md#проверки). Writable prefix и индекс либо offline wheelhouse предоставляет владелец установки.
+Linux/POSIX, Node22+, npm10+, абсолютный Python3.11+ с venv/pip и доступ к выбранным build/runtime dependencies. Требования установки указаны в [README](../README.md#install). Writable prefix и индекс либо offline wheelhouse предоставляет владелец установки.
 
 Python и `.venv` пакета принадлежат инструменту. Python/Node/PHP приложения, терминал, display и команды обслуживания принадлежат приложению. Установка пакета не развёртывает внешние ресурсы.
 
@@ -36,7 +36,7 @@ Python и `.venv` пакета принадлежат инструменту. Py
 
 ## Установка из исходников
 
-Выберите точные исходники 5.2.0 и доступ к выбранному wheel библиотеки `command-execution` 1.1.0 и собственный каталог установки. Из их корня:
+Выберите точные исходники EM, доступ к объявленной точной зависимости CE и собственный каталог установки. Из их корня:
 
 ```bash
 python3 -m venv --copies .venv
@@ -53,11 +53,11 @@ python3 -m venv --copies .venv
 
 ```bash
 /absolute/path/to/venv/bin/python -m pip install \
-  /absolute/path/to/environment_maintenance-5.2.0-py3-none-any.whl
+  /absolute/path/to/environment_maintenance-VERSION-py3-none-any.whl
 /absolute/path/to/venv/bin/start-app --version
 ```
 
-Pip разрешает зависимость `command-execution==1.1.0`; для offline-установки задайте `PIP_NO_INDEX=1` и `PIP_FIND_LINKS` на полный [wheelhouse](command-package.md#установка-выбранной-версии). Wheel содержит Python API и console entry. Для bundled docs/examples/skill и npm-границы выбирайте [npm-комплект](npm-distribution.md#пошаговая-инструкция).
+Pip разрешает точную CE-зависимость из metadata выбранного EM; для offline-установки задайте `PIP_NO_INDEX=1` и `PIP_FIND_LINKS` на полный [wheelhouse](command-package.md#установка-выбранной-версии). Wheel содержит Python API и console entry. Для bundled docs/examples/skill и npm-границы выбирайте [npm-комплект](npm-distribution.md#пошаговая-инструкция).
 
 ## Пути и обновление
 

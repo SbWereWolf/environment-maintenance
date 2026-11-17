@@ -8,13 +8,13 @@
 
 | Owner | Ответственность |
 |---|---|
-| `command_execution.configuration` | Operations mapping, ordered unique selection, CRUD, JSON reader/atomic writer |
-| `environment_maintenance.configuration` | Совместимые импорты; собственная execution-политика пропущенных ID |
+| `command_execution` pure JSON/collection classes | Detached values, ordered selection, nested JSON edits and profiles |
+| `environment_maintenance.configuration` | Operations mapping, file-based facades/Bash IO; собственная execution-политика пропущенных ID |
 | `cli` | Стандартный argparse для всех аргументов, ранние предупреждения и композиция шести команд |
 | `invocation` | Пути/defaults и декодирование CLI selection с общей проверкой формы/уникальности из `configuration` |
 | `output` | Чистое форматирование подготовленных JSON-данных: pretty/one-line без IO и решений об исполнении |
-| `command_execution.actions` | Plan/execute, ResultInterpreter, полный transport, optional exit-code interpreter |
-| `environment_maintenance.actions` | Совместимые пути импортов установленной общей реализации |
+| `command_execution.configuration/execution` | Generic CommandPlanner/ChainCoordinator, raw outcomes, stop/continue and output delivery |
+| `environment_maintenance.actions` | App plan/action/chain facade, named interpreters and caller-owned Bash cwd/env policy |
 | `preparation`, `checking`, `network` | Подготовка, presence/availability, командное/сетевое согласование |
 | `running` | Именованные use cases, raw submitted PGID, presentation, SIGTERM и module launcher |
 | `application_resources` | Чистое разрешение декларации ресурсов/шаблонов, проверка формы без IO и измерения доступности |
@@ -58,11 +58,19 @@ PYTHONPATH="$poise_root/src:$poise_root" "$poise_python" -P -s -B \
 
 После изменения docs/skill нужен свежий [pack/install](npm-distribution.md#пошаговая-инструкция): текущие source/docs/examples/tests и ровно один skill. Существующие `test_archive_contains_owned_material_bytes` и `test_installed_core_libraries_and_metadata_belong_to_instance` наблюдают actual архив/установку; installed run/list/stop проверяется своими npm entry cases. Старый tgz не является новым proof. После изменения документации повторите адресные проверки на точном новом commit и сравните изменённые Markdown-файлы с байтами внутри свежего архива; записывайте digest именно этого архива.
 
-`tests/test_command_package_extraction.py` проверяет самостоятельную библиотеку и её применение установленным EM. Для проверки потребителя задайте `ENV2_PACKAGE_WHEELHOUSE` с опубликованным `command-execution==1.1.0` и его runtime-зависимостями: тест устанавливает их через pip с `--no-index`, собирает EM и проверяет фактические вызовы через выбранную библиотеку.
+Для проверки выбранного CE2 используйте актуальный публичный API из
+[руководства общей библиотеки](command-package.md#current-imports) и его
+[примеров](https://github.com/SbWereWolf/command-execution/blob/master/docs/usage.md).
+Выбирайте package/contract checks, соответствующие конкретным metadata/API и
+входным данным. Имя файла теста само по себе не доказывает применимость к другой
+major-версии; ожидаемые результаты не ослабляют ради успешного запуска.
 
 ## Сборка и поставка
 
-Корень сборки библиотеки `command-execution` 1.1.0 — корень отдельного checkout репозитория `command-execution` с его `pyproject.toml`; environment-maintenance 5.2.0 выбирает её точной зависимостью. Вложенный `environment-maintenance/packages/command-execution` — исторический bootstrap 0.1.0, его не используют для сборки 1.1.0. [Руководство пакета](command-package.md#самостоятельный-пакет) определяет установку, совместимые импорты и обновление потребителей. Сборка environment-maintenance не подменяет отдельный выпуск библиотеки.
+Корень сборки CE — выбранный checkout `command-execution` с его `pyproject.toml`.
+EM собирается отдельно и выбирает точную зависимость через metadata.
+[Руководство пакета](command-package.md#самостоятельный-пакет) описывает
+актуальные импорты, установку и единовременное итоговое обновление потребителей.
 
 Source commit/tree, version, actual digest, runtime/tool identity, полные проверки и независимая приёмка принадлежат квитанции вне архива, чей digest она описывает. Python build выполняйте в подготовленной среде из корня именно собираемого проекта: самостоятельного `command-execution` для библиотеки либо `environment-maintenance` для SDK. Команда без аргумента исходника собирает текущий проект:
 
@@ -78,22 +86,22 @@ Wheel/sdist/npm — разные артефакты. Исполняйте и п�
 
 ## Проверки цепочки данных
 
-Для принятого изменения API адресные проверки запускаются собственным подготовленным
-Python текущего checkout с установленной соответствующей библиотекой:
+Примеры [sync/async и данных](action-execution.md#цепочки-с-передачей-данных)
+используют установленный EM и его прикладные функции. CE2 предоставляет
+отдельные классы; не импортируйте из него EM-фасады.
+
+Для адресной проверки текущей границы EM/CE выберите подготовленный developer
+Python с pytest и точной CE-зависимостью. Из корня выбранного checkout:
 
 ```bash
-: "${COMMAND_EXECUTION_SOURCE:?Выберите абсолютный checkout command-execution 1.1.0}"
-: "${ENV2_PACKAGE_WHEELHOUSE:?Выберите wheelhouse с принятым wheel 1.1.0 и зависимостями}"
-export COMMAND_EXECUTION_SOURCE ENV2_PACKAGE_WHEELHOUSE
-"${app_python:?Выберите Python подготовленного checkout}" -I -B -m pytest \
-  -p no:cacheprovider -q tests/test_command_chain.py tests/test_command_package_extraction.py
+PYTHONPATH=src "${app_python:?Выберите developer Python с pytest и выбранным CE}" -B -m pytest \
+  -p no:cacheprovider -q \
+  tests/test_resource_checks.py::test_public_check_api_preserves_full_bytes_and_context \
+  tests/test_settings_alignment.py::test_public_api_adjust_preserves_bytes_and_real_settings
 ```
 
-Проверки различают фиксированные подстановки и текущий JSON-вход, явный `next_input`,
-sync stop/continue, полные bytes и реальные процессы. Асинхронный сценарий использует
-причинные барьеры: следующее звено исполняется до фонового завершения, получает
-исходный снимок, а поздний результат не заменяет итог цепочки. Проверка wheel
-использует отдельную установленную библиотеку и совместимые импорты SDK.
-Это адресные проверки API, а не подтверждение внедрения каждого потребителя.
-[Границы callback и времени жизни](action-execution.md#результаты-и-фоновое-завершение)
-остаются частью договора вызывающего приложения.
+Ожидаются два успешных случая с фактическими байтами/контекстом и изменением
+собственных тестовых settings. Они не требуют GUI. Это адресное наблюдение,
+а не полная проверка выпуска или внедрение каждой установки. Полные
+[SDK-примеры](action-execution.md#пример-цепочки) отдельно показывают snapshots,
+next_input и callback; у вызывающего остаётся владение временем жизни runtime.

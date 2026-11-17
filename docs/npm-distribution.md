@@ -1,322 +1,156 @@
-# Пакетная поставка npm
+<a id="пакетная-поставка-npm"></a>
+# npm installation and application dependency
 
-[Пошаговая инструкция установки и всех CLI-операций](#пошаговая-инструкция).
+<a id="договор-экземпляра"></a>
+## Installation contract
 
-## Договор экземпляра
+Use Linux, Node.js22+, npm10+, and an absolute Python3.11+ with venv/pip.
+`ENVIRONMENT_MAINTENANCE_PYTHON` selects the installation interpreter.
+npm lifecycle creates the package's private `.venv`; pip resolves its exact
+declared CE dependency and build/runtime requirements. Provide a suitable index
+or complete offline wheelhouse. Installation does not prepare external app resources.
 
-Для исходников 5.2.0 выберите также `command-execution==1.1.0` и полный набор зависимостей pip. [Руководство общей библиотеки](command-package.md#обновление-обслуживания-окружения) содержит проверяемый npm-вход с выбранным wheelhouse. Нижеследующие пути/архивы 5.0.0 сохраняют контекст выбранного прежнего выпуска; его байты и договоры остаются самостоятельными.
+The selected package supplies source, docs, examples and its AI skill.
+Application config, working values and tools remain caller-owned.
+A package command uses its own private Python and preserves caller cwd;
+[profile selection](persistent-entry.md#выбор-установки-и-рабочего-файла)
+determines default config paths.
 
-Версия 5.0.0 поставляется самостоятельным пакетом. Приложение устанавливает
-выбранный tgz своей локальной npm-зависимостью и получает
-`node_modules/.bin/start-app`. Отдельная глобальная установка в выбранный prefix
-также поддерживается и предоставляет `bin/start-app`.
-Lifecycle создаёт `.venv` внутри пакета; pip устанавливает Python-проект,
-`jsonpatch` и `jsonpointer`. Исходники, docs/tests/examples и один AI-скилл
-находятся в этом экземпляре. Конфиги и инструменты обслуживаемого приложения
-задаёт его владелец.
+<a id="команды-и-полные-аргументы"></a>
+## Commands
 
-Поддерживается Linux/POSIX: Node 22+, npm 10+, Python 3.11+ с venv/pip.
-Проверенный контекст — Ubuntu/WSL, Node 22.23.2, npm 10.9.8, Python 3.12.3.
-Зависимости разрешают пакетные менеджеры. Metadata engines объявляет поддержку;
-строгую проверку engines определяет npm. Готовая среда создаётся на месте.
-
-| Настройка установки | Значение |
+| Command | Reference |
 |---|---|
-| `ENVIRONMENT_MAINTENANCE_PYTHON` | Абсолютный выбранный Python с venv/pip; нужен при установке |
-| npm `--prefix` | Самостоятельный корень выбранного экземпляра |
-| npm `--ignore-scripts=false` | Выполнить необходимую подготовку runtime |
-| Настройки pip | Выбранный индекс/колёса/cache, включая стандартный offline-режим |
-| Приложение | Предоставляет доступные своему runtime внешние инструменты и готовые обработчики |
+| infra, deps | [Resource preparation](resource-preparation.md#команды-и-аргументы) |
+| adjust | [Settings](settings-alignment.md#входы-и-результаты) |
+| check | [Resource checks](resource-checking.md#команды-и-аргументы) |
+| run, run list | [Launch](process-launch.md#входы-и-аргументы) |
+| stop, stop list, stop all | [Recorded groups](process-launch.md#входы-и-аргументы) |
 
-Корневой `./start-app` комплекта выбирает `ROOT/.venv` с `-I`.
-Npm-вход выбирает `PACKAGE_ROOT/.venv` с `-P -s -B`, сохраняя cwd и обычный
-явно подготовленный import path. Оператор предоставляет собственный
-`node_modules/.bin` либо выбранный `PREFIX/bin` через `PATH`.
-Пользователь вызывает пакетную команду из каталога проекта. Другие экземпляры сохраняются.
-[Постоянный профиль](persistent-entry.md#выбор-установки-и-рабочего-файла)
-объясняет точное расположение `start-app.json` для обоих входов.
+The [CLI reference](configuration.md#команды-и-аргументы) describes full arguments
+and output. Config/parameters/base-dir overrides are explicit; ordinary calls
+may use a [persistent profile](persistent-entry.md).
+[Application action/chain functions](action-execution.md#цепочки-с-передачей-данных)
+are imported from environment_maintenance; generic CE2 classes are separate.
 
-## Команды и полные аргументы
+<a id="библиотека-и-поставленные-примеры"></a>
+## Installed Python and examples
 
-| Обычный вызов | Полный справочник и инструкция |
-|---|---|
-| `start-app --version`, `--help` | Версия/справка выбранной установки без действий |
-| `start-app infra`, `deps` | [Подготовка ресурсов](resource-preparation.md#команды-и-аргументы) |
-| `start-app adjust` | [Согласование](settings-alignment.md#входы-и-результаты) |
-| `start-app check` | [Проверки](resource-checking.md#команды-и-аргументы) |
-| `start-app run` | [Запуск процессов](process-launch.md#входы-и-аргументы) |
-| `start-app stop`, `stop list`, `stop all` | [Сохранённые группы](process-launch.md#входы-и-аргументы) |
+For a local npm dependency, `package_root` is your tools project's
+`node_modules/environment-maintenance`; `app_python` is
+`$package_root/.venv/bin/python`. A global prefix normally uses
+`PREFIX/lib/node_modules/environment-maintenance`.
 
-Пути, значения и выбор ресурсов берутся из постоянного профиля.
-`--config`, `--parameters`, `--base-dir` и применимый `--requirements` доступны
-как [необязательные переопределения](persistent-entry.md#переопределение-одного-вызова).
-Полностью явная прежняя форма сохраняется. Npm-вход передаёт полные argv,
-env/stdin/stdout/stderr и обычные/сигнальные исходы выбранного CLI.
+[Shared-core/current imports](command-package.md#current-imports) and
+[action examples](action-execution.md#пошаговая-инструкция) specify the actual
+API. Use the selected installed environment, not a sibling source checkout.
+Examples explicitly using PYTHONPATH select their packaged source and do not
+prove an unrelated installed origin.
 
-[Общая опция `--output`](configuration.md#формат-json) выбирает компактный или форматированный JSON ответа. [Предупреждения аргументов](configuration.md#предупреждения-аргументов) выводятся в stderr сразу после разбора; неверный формат не отменяет допустимую операцию. Npm-вход сохраняет этот договор CLI.
+<a id="пошаговая-инструкция"></a>
+## Installation procedure
 
-Команды вызываются отдельно: `run` исполняет только объявленный запуск,
-`check` — объявленные наблюдения. Команды, цепочки, шаблоны `string.Template`
-и интерпретаторы принадлежат приложению; один читатель разрешает его документы.
+<a id="собственная-зависимость-приложения"></a>
+### Own application dependency
 
-Новый Python API [цепочек с передачей данных](action-execution.md#цепочки-с-передачей-данных) доступен через выбранную библиотеку 1.1.0 и совместимые импорты SDK 5.2.0. Выбор этих API делает вызывающее приложение; команды CLI сохраняют свой договор.
-
-## Библиотека и поставленные примеры
-
-[Контекст и правильная подготовка](#пошаговая-инструкция).
-
-Следующие технические API-примеры используют один подготовленный пакет.
-Оператор задаёт значения один раз: `package_root` — установленный пакет,
-`app_python` — его `.venv/bin/python`, `workspace` — существующий собственный
-каталог данных; `prefix`, `archive`, `prerequisite_python` нужны для обслуживания
-самой установки. Это контекст примеров API, а не обязательные параметры запуска.
-Для локальной зависимости возьмите `package_root` и `app_python` из
-[собственного npm-проекта](#собственная-зависимость-приложения).
-Следующий блок показывает расположение именно глобального prefix-варианта.
+Select an available release in `EM_VERSION`. From your application's directory:
 
 ```bash
-package_root=/absolute/path/to/prefix/lib/node_modules/environment-maintenance
-app_python="$package_root/.venv/bin/python"
-workspace=/absolute/path/to/private-workspace
-prefix=/absolute/path/to/prefix
-archive=/absolute/path/to/environment-maintenance-5.0.0.tgz
-prerequisite_python=/absolute/path/to/python3
-export package_root app_python workspace
-```
-
-[Чтение](configuration-reading.md#пошаговая-инструкция),
-[CRUD](configuration-editing.md#пошаговая-инструкция),
-[исполнение](action-execution.md#пошаговая-инструкция),
-[подготовка](resource-preparation.md#пошаговая-инструкция),
-[согласование](settings-alignment.md#пошаговая-инструкция),
-[проверка](resource-checking.md#пошаговая-инструкция) и
-[запуск](process-launch.md#пошаговая-инструкция) имеют собственные полные инструкции.
-Примеры с `PYTHONPATH=src` явно выбирают поставленный исходный набор; обычный
-npm-вход использует собственный установленный core. Наблюдения этих способов
-фиксируются отдельно.
-
-## Пошаговая инструкция
-
-### Собственная зависимость приложения
-
-У каждого независимого приложения свой npm-проект инструментов, установленный
-пакет и Python-окружение. Для приложения без корневого npm-проекта подходит
-собственный `.tools/environment-maintenance` с сохранёнными manifest/lock/archive.
-Installed node_modules/venv восстанавливаются из этой supply; каталог задачи или соседний checkout производителя
-не заменяет её. Несколько регистраций одного приложения используют его экземпляр.
-
-Подготовьте выбранный неизменяемый архив и перейдите в приложение:
-
-```bash
-cd /absolute/path/to/application
 tools="$PWD/.tools/environment-maintenance"
-mkdir -p "$tools/vendor"
-cp /absolute/path/to/issued/environment-maintenance-5.0.0.tgz "$tools/vendor/"
-sha256sum "$tools/vendor/environment-maintenance-5.0.0.tgz"
+mkdir -p "$tools"
 cd "$tools"
-cat > package.json <<'JSON'
-{
-  "name": "application-environment-tools",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "environment-maintenance": "file:vendor/environment-maintenance-5.0.0.tgz"
-  }
-}
-JSON
-npm install --package-lock-only --ignore-scripts --offline --no-audit --no-fund
-ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm ci --ignore-scripts=false --foreground-scripts --offline --no-audit --no-fund
-npm ls --depth=0 --json
+npm init --yes
+ENVIRONMENT_MAINTENANCE_PYTHON=/usr/bin/python3.12 \
+  npm install --save-exact "environment-maintenance@${EM_VERSION:?Select an available release}"
 ./node_modules/.bin/start-app --version
 ```
 
-Перед установкой сравните SHA-256 с переданным владельцем выпуска. Digest относится к конкретному архиву и хранится в отдельной квитанции, а не внутри описываемого архива.
-Сохраните `package.json`, созданный npm `package-lock.json` и выбранный архив
-вместе с зависимостью приложения. Lock фиксирует `version: "5.0.0"`, локальный
-`resolved` и `integrity` архива. Локальный `file:` нужен для выданного tgz;
-публикация этой версии в реестре npm здесь не заявляется. Общий кеш загрузок
-допустим, установленный пакет и его `.venv` принадлежат отдельному приложению.
+Keep package.json and the npm-generated lock under your application's version
+control. Restore with npm ci and the same installation Python/dependency supply.
+Do not commit node_modules or private environments.
+Several registrations can share one tool installation; independent copies
+are selected/updated independently.
 
-`--offline` относится к npm. Pip отдельно получает зависимости из выбранного
-индекса либо подготовленных колёс. Для автономной установки приложение выбирает доступный retained wheelhouse; при установке и восстановлении
-передаются `PIP_NO_INDEX=1` и абсолютный `PIP_FIND_LINKS` этого каталога.
+For offline pip, set PIP_NO_INDEX=1 and PIP_FIND_LINKS to the complete wheelhouse
+for the selected package. npm still needs its own selected package supply/cache.
 
-Проверьте собственный runtime, сохраняя основной Python приложения:
+<a id="собрать-и-установить-выбранный-кандидат"></a>
+### Isolated local candidate
 
-```bash
-package_root="$tools/node_modules/environment-maintenance"
-app_python="$package_root/.venv/bin/python"
-"$app_python" -I -B -c 'import sys, importlib.metadata, environment_maintenance as em; assert em.__version__ == importlib.metadata.version("environment-maintenance") == "5.0.0"; print(sys.executable, sys.prefix, em.__file__)'
-```
+To check source before release, the delivery owner can npm pack into its own
+output directory and install that exact tgz in an isolated prefix with lifecycle
+enabled. Inspect source/archive/installed bytes and hashes. This is verification,
+not registry publication or deployment. Never overwrite an occupied artifact
+version with changed bytes. See [development](development.md#локальный-npm-кандидат).
 
-Python, sys.prefix и импортированный модуль должны находиться в собственном installed пакете приложения. Для обычного exit-code результата связывайте module `environment_maintenance.actions.interpreters` и attribute `exit_result` с явным options.accept. Production launcher — этот Python с `-I -B -m environment_maintenance.running.console`; Python payload приложения может быть другим. [Полный договор](process-launch.md#внешний-инструмент).
+<a id="подготовить-собственные-конфиги"></a>
+### Own configuration
 
-Примеры не копируются в site-packages как реализация. Custom callbacks хранит versioned приложение и предоставляет их import path. Предоставьте свой tools/node_modules/.bin в PATH; абсолютный entry сохраняет выбор main по cwd. Npm-проект инструментов и обслуживаемый проект могут находиться в разных каталогах.
+Copy appropriate packaged examples into your application's permanent configuration
+area, choose real paths/parameters/interpreters and keep local secrets out of Git.
+The [README quickstart](../README.md#quickstart) creates complete temporary check
+files. A configured [profile](persistent-entry.md#поля-постоянного-профиля)
+supports ordinary calls without repeated path arguments.
 
-Для восстановления выполните тот же `npm ci` из инструментального npm-проекта
-с теми же входами и настройками pip. Он восстанавливает только его `node_modules`;
-восстановите зависимости/import path своих versioned application handlers. При обновлении
-сначала установите и проверьте выбранные байты, затем переключайте рабочие
-указатели приложения. Проверьте его реальные вызовы и сохранность других
-приложений. До успешной проверки сохраняйте прежнюю пригодную установку для
-согласованного возврата. Одного изменения пути к общему экземпляру недостаточно
-для поставки независимых зависимостей.
+<a id="исполнить-шесть-выбранных-команд-через-короткий-вход"></a>
+### Execute declared operations
 
-### Собрать и установить выбранный кандидат
-
-Оператор выбирает точный source commit и каталог результата сборки:
-
-```bash
-npm pack --json --pack-destination /absolute/path/to/candidate
-```
-
-Передайте архив и его SHA-256. Установка выбранных байтов в отдельный prefix:
-
-```bash
-ENVIRONMENT_MAINTENANCE_PYTHON=/absolute/path/to/python3 npm install --global --prefix /absolute/path/to/prefix --ignore-scripts=false --no-audit --no-fund /absolute/path/to/environment-maintenance-5.0.0.tgz
-/absolute/path/to/prefix/bin/start-app --version
-npm root --global --prefix /absolute/path/to/prefix
-```
-
-Ожидаемая версия — `environment-maintenance 5.0.0`. Последняя команда показывает
-корень npm-модулей; добавьте `environment-maintenance` для каталога пакета.
-Предоставьте `PREFIX/bin` через `PATH` установленного окружения.
-Идентифицируйте реальный source/tree/tgz digest, runtime и результаты проверки.
-Публикация в реестре — отдельное действие, эта инструкция её не выполняет.
-
-При offline-установке оператор предоставляет стандартные `PIP_NO_INDEX=1`
-и `PIP_FIND_LINKS` с выбранными build/runtime колёсами. Проверочный wheelhouse
-не является встроенным источником зависимостей продукта.
-
-### Подготовить собственные конфиги
-
-Следуйте [инструкции постоянного входа](persistent-entry.md#пошаговая-инструкция).
-Приложение или настроенный владелец развёртывания создаёт рабочие main/parameters
-и отдельные документы операций через свой конфиг. Примеры остаются в пакете;
-рабочие копии хранятся в постоянной области приложения; секретные локальные значения исключает их владелец. Один и тот же пакетный вход используется во всех
-проектах; их программные обёртки
-не требуются. Подготовка готового обработчика в собственном runtime SDK — часть
-однократной настройки; стандартный обработчик уже находится в установленном пакете.
-
-### Исполнить шесть выбранных команд через короткий вход
-
-В каталоге проекта с подготовленным `start-app.json`:
+From the app with its profile:
 
 ```bash
 start-app infra
 start-app deps
 start-app adjust
 start-app check
-start-app run --env npm-demo
-start-app stop --env npm-demo
+start-app run --env dev
+start-app stop --env dev
 ```
 
-Ожидаются успешные результаты объявленных приложением команд.
-Учебный профиль и его точные события описаны у
-[постоянного входа](persistent-entry.md#шесть-обычных-команд).
-Из постороннего cwd укажите main проекта через необязательный `--config`.
-Абсолютный пакетный вход выбирает runtime; обычный main по-прежнему определяется cwd.
-Дополнительные ключи нужны только для осознанных переопределений одного вызова.
+These are separate explicit actions, using your declared resources/environment.
+The [profile example](persistent-entry.md#шесть-обычных-команд) supplies a complete
+demonstration. A check does not silently run repair; a run does not invent tests.
 
-### Прочитать и изменить конфиг через установленную библиотеку
+<a id="прочитать-и-изменить-конфиг-через-установленную-библиотеку"></a>
+### Read/edit through the installed API
 
-Здесь import выполняется из собственного site-packages без source PYTHONPATH.
-Изменяется только отдельная копия демонстрационного документа:
+The [configuration and bytes example](command-package.md#пример-конфигурации-и-команды)
+creates its own files and exercises actual read/add/update APIs. Full
+[reading](configuration-reading.md#пошаговая-инструкция) and
+[editing](configuration-editing.md#пошаговая-инструкция) references cover IDs,
+batch selection, delete and clear. No declared command runs during a file edit.
 
-```bash
-env -u PYTHONPATH "$app_python" -P -s -B - <<'PY'
-import os
-from pathlib import Path
-from shutil import copy2
-from environment_maintenance import (list_requirement_ids, read_requirements,
-    add_requirement, update_requirement, delete_requirement, clear_requirements)
-root, work = Path(os.environ['package_root']), Path(os.environ['workspace']) / 'library'
-work.mkdir()
-for path in (root / 'examples/configuration-reading').glob('*.example.json'):
-    copy2(path, work / path.name)
-config = work / 'app.example.json'
-assert list_requirement_ids(config, 'infra') == ['postgres', 'redis']
-assert read_requirements(config, 'infra', ['redis'])[0]['id'] == 'redis'
-assert len(read_requirements(config, 'infra', 'all')) == 2
-add_requirement(config, 'infra', {'id': 'demo', 'commands': []})
-update_requirement(config, 'infra', 'demo', [{'op': 'add', 'path': '/label', 'value': 'Демонстрация'}])
-assert read_requirements(config, 'infra', ['demo'])[0]['label'] == 'Демонстрация'
-delete_requirement(config, 'infra', 'demo')
-assert list_requirement_ids(config, 'infra') == ['postgres', 'redis']
-clear_requirements(config, 'infra')
-assert read_requirements(config, 'infra', 'all') == []
-print('installed library: IDs, batch, all, add, update, delete, clear confirmed')
-PY
-```
+<a id="удалить-и-повторно-установить-те-же-байты"></a>
+### Restore an installation
 
-Для остальных API выполните уже поставленные правильные walkthrough:
+Keep the selected manifest/lock and dependency supply. In the same tools project,
+use npm ci with the selected Python and available exact CE dependency to recreate
+node_modules/private runtime. Preserve application data/config first.
+[Runtime recovery](installation.md#пути-и-обновление) describes the owner boundary.
 
-```bash
-cd "$package_root"
-PYTHONPATH=src "$app_python" -B examples/action-execution/walkthrough.py
-PYTHONPATH=src "$app_python" -B examples/resource-preparation/walkthrough.py
-PYTHONPATH=src "$app_python" -B examples/settings-alignment/walkthrough.py
-PYTHONPATH=src "$app_python" -B examples/resource-checking/walkthrough.py
-```
+<a id="публичная-версия-и-обновление-потребителей"></a>
+## Publication and consumer update
 
-Ожидается код0 и подтверждения собственных проверок каждого walkthrough. Их
-source CLI явно использует поставленный src; эти результаты дополняют предыдущие
-настоящие short-bin вызовы, а не заменяют их. Временные файлы walkthrough
-закрываются их владельцами; исходные шаблоны сохраняются.
+A version/tag/local pack is not a published registry result. The release owner
+verifies an immutable source/build/version, publishes through the configured
+channel, downloads the actual result and compares hashes.
+A consumer then installs a selected available npm version through its package
+manager; it need not create/upload a separate archive for every update.
 
-### Удалить и повторно установить те же байты
+Intermediate bugfix versions remain distinct verification artifacts. Perform
+final consumer dependency update/integration once after shared-core readiness.
+Validate the actual installed version/origin/private Python and a nonempty
+declared operation for each independent installation.
 
-После сохранения нужных результатов примера завершите свои процессы/консоли.
-Обычная команда удаления и повторной установки:
+<a id="диагностика-и-правильное-продолжение"></a>
+## Errors and continuation
 
-```bash
-cd "$workspace"
-npm uninstall --global --prefix "$prefix" --no-audit --no-fund environment-maintenance
-ENVIRONMENT_MAINTENANCE_PYTHON="$prerequisite_python" npm install --global --prefix "$prefix" --ignore-scripts=false --no-audit --no-fund "$archive"
-"$prefix/bin/start-app" --version
-sha256sum "$archive"
-```
+Read actual npm/venv/pip stdout/stderr. Supply a valid Python, writable prefix and
+available declared dependencies, then intentionally retry installation.
+Runtime preparation belongs to install, not an implicit repair inside an ordinary
+start-app operation.
 
-Версия снова5.0.0, digest архива прежний. Аналогично обновление устанавливает
-новый отдельно выбранный проверенный пакет в свой prefix. Полученные результаты
-и tgz передаются получателю до удаления демонстрационных рабочих материалов.
-Рабочие конфиги/журналы не помещаются в историю версий.
-
-## Публичная версия и обновление потребителей
-
-Локальные `npm pack` и установка tgz подтверждают только выбранные локальные байты. Для публичной поставки владелец выпуска выбирает принятый неизменённый архив, проверяет свободную версию и выполняет публикацию именно этого архива в выбранный реестр. Для публичного npm:
-
-```bash
-npm view environment-maintenance versions --json --registry=https://registry.npmjs.org
-npm publish /absolute/path/to/issued/environment-maintenance-5.0.0.tgz --access public --registry=https://registry.npmjs.org
-npm view environment-maintenance@5.0.0 version dist --json --registry=https://registry.npmjs.org
-npm pack environment-maintenance@5.0.0 --registry=https://registry.npmjs.org --pack-destination /absolute/path/to/download
-sha256sum /absolute/path/to/download/environment-maintenance-5.0.0.tgz
-```
-
-Каталог скачивания должен существовать и отличаться от каталога выданного архива. Сравните скачанные байты с выданными; ответ publish или metadata сам по себе этого не доказывает. Команды описывают процедуру, а не подтверждают состоявшуюся публикацию. Сохраняйте её receipt отдельно от архива.
-
-Затем обновите каждую фактическую установку через владельца приложения по [переходу на версию 5](migration-v5.md#пошаговая-поставка). У одного приложения могут быть несколько самостоятельных экземпляров. Успех одного не обновляет остальные. Выбранные manifest/lock/архив остаются в постоянной области потребителя, а его реальные вызовы проверяются собственным entry и Python.
-
-## Диагностика и правильное продолжение
-
-[Правильная установка и проверка экземпляра](#пошаговая-инструкция).
-
-При установке сначала прочитайте исходную причину npm/venv/pip. Предоставьте
-доступный Python с venv/pip, writable отдельный prefix и доступ к выбранному
-индексу/колёсам; затем повторите стандартную установку выбранного tgz. При
-неуспехе venv следующий pip не выполняется. Неподготовленный runtime диагностируется
-рабочим входом; подготовка повторяется явно через npm, не внутри обычного вызова.
-
-Для configured операций успех возвращает exit0, runtime failure — exit1, ошибка входа — exit2. Run при допустимом ENV сохраняет JSON с адресом/ошибками; исходы stop/list описаны [здесь](process-launch.md#результат-и-продолжение). Отказ собственной Python-обёртки и npm lifecycle имеют свою причину; читайте полные stdout/stderr. После partial effects продолжение определяет владелец [по receipt](migration-v4.md#ручное-восстановление).
-
-Npm installation имеет
-собственный ненулевой исход при ошибке lifecycle. Сигнальный исход Python
-сохраняется как завершение тем же сигналом, включая PIPE/USR1; способ числового
-представления оболочки определяется самой оболочкой. Обёртка не включает
-отладчик вместо передачи USR1 и не подменяет PIPE обычным кодом2.
-
-Перед осознанным продолжением смотрите полные результаты и уже совершённые
-действия; внешние инструменты и оператор владеют предметным исправлением.
-Публикация npm, Git tag/push и обновление существующих потребителей — отдельные
-действия. Наличие локального кандидата их не выполняет.
+Configured operations exit0 on success,1 on runtime failure,2 on invalid input;
+[run/stop outcomes](process-launch.md#результат-и-продолжение) keep their specific
+contracts. Python signal completion remains a signal at the npm boundary.
+Preserve partial effects and observe actual state before a retry; publication,
+source delivery and adoption remain separately observed operations.
