@@ -1,6 +1,6 @@
 {
   "name": "environment-maintenance",
-  "version": "5.3.8",
+  "version": "5.3.9",
   "description": "Инструмент обслуживания окружения по конфигурации",
   "bin": {
     "start-app": "src/npm-start-app.cjs"
@@ -34,5 +34,9 @@
     "tests/**/*.txt",
     ".agents/skills/environment-maintenance/SKILL.md",
     "src/environment_maintenance/resources/commands/*"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SbWereWolf/environment-maintenance.git"
+  }
 }

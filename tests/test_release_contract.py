@@ -43,7 +43,7 @@ class SourceContract(unittest.TestCase):
         python = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
         self.assertEqual(
             (npm["name"], npm["version"], python["version"]),
-            ("environment-maintenance", "5.1.1", "5.1.1"),
+            ("environment-maintenance", "5.3.9", "5.3.9"),
         )
 
     def test_selected_module_declares_release_version(self):
@@ -55,11 +55,11 @@ class SourceContract(unittest.TestCase):
             and any(isinstance(target, ast.Name) and target.id == "__version__"
                     for target in node.targets)
         ]
-        self.assertEqual(versions, ["5.1.1"])
+        self.assertEqual(versions, ["5.3.9"])
 
-    def test_selected_source_requires_library_first_release(self):
+    def test_selected_source_requires_exact_library_release(self):
         python = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
-        self.assertIn(EXPECTED["library_requirement"], python["dependencies"])
+        self.assertIn("command-execution==2.0.6", python["dependencies"])
 
 
 class TransportContract(unittest.TestCase):
@@ -117,7 +117,7 @@ class ReleaseGateContract(unittest.TestCase):
 
     def test_old_library_dependency_is_refused(self):
         path = self.project / "pyproject.toml"
-        path.write_text(path.read_text().replace("command-execution==1.0.0", "command-execution==0.1.0"))
+        path.write_text(path.read_text().replace("command-execution==2.0.6", "command-execution==0.1.0"))
         with self.assertRaisesRegex(ValueError, "dependency"):
             self.validate()
 

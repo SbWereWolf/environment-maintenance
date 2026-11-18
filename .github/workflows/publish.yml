@@ -1,63 +1,134 @@
 name: Publish environment-maintenance
 on:
   push:
-    tags: ['v*']
-
+    tags: ['v[0-9]*']
+  pull_request:
 permissions:
   contents: read
-
 concurrency:
-  group: npm-${{ github.ref }}
+  group: release-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
-  publish:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify release gates and maintained smoke
+        env:
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          python -I -B tests/test_release_contract.py -v
+          if [[ -n "$RELEASE_TAG" ]]; then
+            python -I -B .github/scripts/release.py validate --tag "$RELEASE_TAG"
+          fi
+          python -m pip install -e '.[dev]'
+          mkdir "$RUNNER_TEMP/em-wheelhouse" "$RUNNER_TEMP/em-package-tests"
+          mapfile -t runtime_requirements < <(python -c 'import tomllib; print(*tomllib.load(open("pyproject.toml", "rb"))["project"]["dependencies"], sep="\n")')
+          python -m pip download --only-binary=:all: --dest "$RUNNER_TEMP/em-wheelhouse" setuptools wheel "${runtime_requirements[@]}"
+          export ENVIRONMENT_MAINTENANCE_PYTHON=$(command -v python)
+          export ENV2_PACKAGE_TEST_ROOT="$RUNNER_TEMP/em-package-tests"
+          export ENV2_PACKAGE_WHEELHOUSE="$RUNNER_TEMP/em-wheelhouse"
+          python -B -m pytest -p no:cacheprovider -q tests/test_command_package_extraction.py tests/test_npm_delivery.py tests/test_npm_persistent_entry.py
+          bash tests/smoke.sh "$(command -v python)"
+      - name: Build both distributions
+        env:
+          RELEASE_REF: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: scripts/build-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: dist/
+          if-no-files-found: error
+  pypi:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release/
+      - run: |
+          mkdir dist
+          mv release/*.whl dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+      - name: Verify published wheel
+        run: |
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          import hashlib, json, time, urllib.error, urllib.request
+
+          wheel, = Path("dist").glob("*.whl")
+          package, version, *_ = wheel.name.split("-")
+          expected = hashlib.sha256(wheel.read_bytes()).hexdigest()
+          url = f"https://pypi.org/pypi/{package.replace('_', '-')}/{version}/json"
+          for attempt in range(12):
+              try:
+                  with urllib.request.urlopen(url, timeout=15) as response:
+                      files = json.load(response)["urls"]
+              except urllib.error.HTTPError as error:
+                  if error.code != 404:
+                      raise
+                  files = []
+              actual = next((f["digests"]["sha256"] for f in files if f["filename"] == wheel.name), None)
+              if actual is not None:
+                  if actual != expected:
+                      raise SystemExit("Published wheel does not match the built artifact")
+                  break
+              time.sleep(5)
+          else:
+              raise SystemExit("Published wheel is unavailable")
+          PYTHON
+  npm:
+    needs: pypi
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     environment: npm
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-      - uses: actions/setup-python@v5
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
         with:
-          python-version: '3.11'
-      - name: Prepare selected package tools and public dependency supply
+          name: release
+          path: release/
+      - run: npm install --global npm@11.15.0
+      - name: Publish and verify npm artifact
         run: |
-          npm install --global npm@11
-          python -m pip install -e '.[dev]'
-          mkdir "$RUNNER_TEMP/em-wheelhouse" "$RUNNER_TEMP/em-package-tests" "$RUNNER_TEMP/em-release"
-          python -m pip download --only-binary=:all: --dest "$RUNNER_TEMP/em-wheelhouse" setuptools wheel jsonpatch jsonpointer command-execution==1.0.0
-          echo "ENVIRONMENT_MAINTENANCE_PYTHON=$(command -v python)" >> "$GITHUB_ENV"
-          echo "ENV2_PACKAGE_TEST_ROOT=$RUNNER_TEMP/em-package-tests" >> "$GITHUB_ENV"
-          echo "ENV2_PACKAGE_WHEELHOUSE=$RUNNER_TEMP/em-wheelhouse" >> "$GITHUB_ENV"
-      - name: Check release source, package behavior and maintained smoke
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          python -I -B tests/test_release_contract.py -v
-          python -I -B .github/scripts/release.py validate --tag "$RELEASE_TAG"
-          python -B -m pytest -p no:cacheprovider -q tests/test_command_package_extraction.py tests/test_npm_delivery.py tests/test_npm_persistent_entry.py
-          bash tests/smoke.sh "$(command -v python)"
-      - name: Pack the checked source once
-        run: |
-          npm pack --json --pack-destination "$RUNNER_TEMP/em-release" > "$RUNNER_TEMP/em-pack.json"
-          echo "RELEASE_TARBALL=$RUNNER_TEMP/em-release/$(python -c 'import json, os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/em-pack.json"))[0]["filename"])')" >> "$GITHUB_ENV"
-      - name: Refuse conflicting published bytes and recognize exact replay
-        id: registry
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: python -I -B .github/scripts/release.py registry --tag "$RELEASE_TAG" --tarball "$RELEASE_TARBALL"
-      - name: Publish through the configured npm trusted publisher
-        if: steps.registry.outputs.decision == 'publish'
-        run: npm publish "$RELEASE_TARBALL" --access public --provenance --registry=https://registry.npmjs.org
-      - name: Verify registry integrity after publication or exact replay
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          python -I -B .github/scripts/release.py registry --tag "$RELEASE_TAG" --tarball "$RELEASE_TARBALL" | tee "$RUNNER_TEMP/em-registry-result.json"
-          python -c 'import json, os; assert json.load(open(os.environ["RUNNER_TEMP"] + "/em-registry-result.json"))["decision"] == "already-published"'
+          set -euo pipefail
+          archive=(release/*.tgz)
+          test "${#archive[@]}" -eq 1
+          package=$(tar -xOf "${archive[0]}" package/package.json | jq -er '.name + "@" + .version')
+          expected="sha512-$(openssl dgst -sha512 -binary "${archive[0]}" | openssl base64 -A)"
+          actual=$(npm view "$package" dist.integrity 2>registry-error.log) || {
+            if ! grep -q 'code E404' registry-error.log; then
+              cat registry-error.log >&2
+              exit 1
+            fi
+            actual=''
+          }
+          if [[ -z "$actual" ]]; then
+            npm publish "${archive[0]}" --access public
+          fi
+          for attempt in {1..12}; do
+            actual=$(npm view "$package" dist.integrity) || actual=''
+            [[ -n "$actual" ]] && break
+            sleep 5
+          done
+          [[ "$actual" == "$expected" ]]

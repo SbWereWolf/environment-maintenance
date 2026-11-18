@@ -2,7 +2,7 @@
   "name": "environment-maintenance",
   "version": "5.1.0",
   "tag": "v5.1.0",
-  "library_requirement": "command-execution==1.0.0",
+  "library_requirement": "command-execution==2.0.6",
   "url": "https://registry.npmjs.org/environment-maintenance/5.1.0",
   "tarball_text": "test-owned npm tarball bytes\n",
   "integrity": "sha512-hNuIuX2KDgZMLgj/hLZTqWPVg8dUuzjxYHrz/ka7Y8phjnUeidhlhm0/2lyS8BSeTvFL6wbRPAqT+s+QF2YMLw=="

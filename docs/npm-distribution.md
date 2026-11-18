@@ -130,11 +130,31 @@ node_modules/private runtime. Preserve application data/config first.
 <a id="публичная-версия-и-обновление-потребителей"></a>
 ## Publication and consumer update
 
-A version/tag/local pack is not a published registry result. The release owner
-verifies an immutable source/build/version, publishes through the configured
-channel, downloads the actual result and compares hashes.
-A consumer then installs a selected available npm version through its package
-manager; it need not create/upload a separate archive for every update.
+GitHub Actions publishes the Python wheel and the npm package from an
+annotated `vMAJOR.MINOR.PATCH` tag. Its version must match `package.json` and
+`pyproject.toml`. Configure Trusted Publishers for `publish.yml` with the
+`pypi` and `npm` GitHub environments. Publish the pinned CE version to PyPI
+before releasing EM.
+
+From the approved release branch, push the branch and tag in one operation:
+
+```bash
+tag=v5.3.9
+branch=$(git symbolic-ref --short HEAD)
+commit="${APPROVED_COMMIT:?Set the approved commit}"
+git tag -a "$tag" "$commit" -m "Release $tag" &&
+git push --atomic origin "$commit:refs/heads/$branch" "refs/tags/$tag:refs/tags/$tag"
+npm view environment-maintenance@5.3.9 version dist.integrity
+```
+
+The workflow runs the release checks and verifies the PyPI wheel hash and npm
+integrity against the built artifacts.
+
+Application owners update only from the npm registry. Select the published
+version with `npm install --save-exact "environment-maintenance@$VERSION"`,
+commit the manifest and npm-generated lock together, then restore that selection
+with `npm ci`. The install hook resolves CE from PyPI. Local archives and Git
+checkouts are inputs for development and isolated candidate checks.
 
 Intermediate bugfix versions remain distinct verification artifacts. Perform
 final consumer dependency update/integration once after shared-core readiness.

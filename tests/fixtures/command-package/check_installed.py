@@ -11,7 +11,7 @@ from packaging.utils import canonicalize_name
 mode, target, fixture, workspace = sys.argv[1:]
 sys.path.insert(0, target)
 distribution = importlib.metadata.distribution('command-execution')
-assert distribution.version == ('0.1.0' if mode == 'independent' else '1.1.0')
+assert distribution.version == '2.0.6'
 # Declared installation requirements are observed independently of ambient imports.
 declared = [Requirement(value) for value in (distribution.requires or [])]
 assert not any(canonicalize_name(value.name) == 'environment-maintenance'
@@ -37,17 +37,29 @@ import command_execution as shared
 assert Path(shared.__file__).is_relative_to(Path(target))
 
 if mode == 'independent':
-    api = shared
-else:
-    import environment_maintenance as api
-    assert Path(api.__file__).is_relative_to(Path(target))
-    consumer = importlib.metadata.distribution('environment-maintenance')
-    selected = [Requirement(value) for value in (consumer.requires or [])
-                if canonicalize_name(Requirement(value).name) == 'command-execution']
-    assert len(selected) == 1 and str(selected[0].specifier) == '==1.1.0'
-    assert distribution.version in selected[0].specifier
+    plan, issues = shared.CommandPlanner().compile({'commands': [
+        {'id': 'probe', 'argv': [sys.executable, '-B', fixture]},
+    ]})
+    assert not issues
+    result = shared.ChainCoordinator(plan).run(None)
+    row, = result.commands
+    assert result.status == 'failed'
+    assert row.raw.returncode == 7
+    assert row.raw.stdout == b'package-out\x00\xff'
+    assert row.raw.stderr == b'package-err\xfe'
+    print('independent-package-contract-ok')
+    raise SystemExit(0)
 
-from command_execution.actions.interpreters import exit_result
+import environment_maintenance as api
+from environment_maintenance.actions.interpreters import exit_result
+
+assert Path(api.__file__).is_relative_to(Path(target))
+consumer = importlib.metadata.distribution('environment-maintenance')
+selected = [Requirement(value) for value in (consumer.requires or [])
+            if canonicalize_name(Requirement(value).name) == 'command-execution']
+assert len(selected) == 1 and str(selected[0].specifier) == '==2.0.6'
+assert distribution.version in selected[0].specifier
+
 # Observe the real process creation and its call-stack provenance, without
 # replacing a late-bound attribute or prescribing when a runner is captured.
 launches = []
@@ -74,8 +86,12 @@ result = api.execute_action({'commands': [command]}, {'work': workspace},
                             base_dir=workspace, interpreters={'exit': exit_result})
 assert len(launches) == 1
 arguments, execution_files = launches[0]
-assert arguments[1] == command['argv']
-assert arguments[2] == workspace
+launcher, script, child_workdir, env_count, *child_arguments = arguments[1]
+assert launcher == 'bash'
+assert Path(script) == Path(api.__file__).parent / 'resources/commands/invoke.bash'
+assert child_workdir == workspace
+assert env_count == '0'
+assert child_arguments == command['argv']
 assert any(Path(name).is_relative_to(shared_root) for name in execution_files), (
     'Real child launch did not traverse the installed shared implementation')
 assert result['status'] == 'succeeded'
@@ -98,4 +114,4 @@ assert api.list_requirement_ids(config, 'infra') == ['second']
 api.clear_requirements(config, 'infra')
 assert api.read_requirements(config, 'infra', 'all') == []
 assert json.loads(operation.read_text())['metadata'] == 'keep'
-print('independent-package-contract-ok' if mode == 'independent' else 'original-consumer-use-ok')
+print('original-consumer-use-ok')

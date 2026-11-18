@@ -22,8 +22,9 @@ def validate_release(root, tag):
         raise ValueError("tag must select the stable npm version")
     if python["version"] != version or python["name"] != name:
         raise ValueError("Python and npm package name/version differ")
-    if "command-execution==1.0.0" not in python.get("dependencies", []):
-        raise ValueError("dependency must select command-execution==1.0.0")
+    if not any(re.fullmatch(r"command-execution==(?:[2-9]|[1-9][0-9]+)\.[0-9]+\.[0-9]+", dependency)
+               for dependency in python.get("dependencies", [])):
+        raise ValueError("dependency must pin a released shared-core version")
     return name, version
 
 
