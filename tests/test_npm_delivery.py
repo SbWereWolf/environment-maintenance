@@ -9,10 +9,12 @@ import tomllib
 
 import pytest
 
-from npm_delivery_support import FIXTURES, ROOT, PackageLab, fixture, write_json
+from npm_delivery_support import FIXTURES, ROOT, PackageLab, fixture, write_json, living_group
+from run_stop_support import Lab, FIXTURES as RUN_FIXTURES, application, write
+import os
 
 
-CANDIDATE_VERSION = '5.1.1'
+CANDIDATE_VERSION = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']['version']
 
 
 @pytest.fixture(scope='module')
@@ -137,9 +139,40 @@ def test_installed_core_libraries_and_metadata_belong_to_instance(package, consu
     assert_entry_identity(identity, consumer.prefix)
 
 
-@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check'])
-def test_installed_operations_keep_actual_inputs_effects_and_results(package, consumer, scenario, operation):
+@pytest.mark.parametrize('operation', ['infra', 'deps', 'adjust', 'check', 'run'])
+def test_installed_operations_keep_actual_inputs_effects_and_results(package, consumer, scenario, operation, tmp_path):
     require(package, consumer)
+    if operation == 'run':
+        lab = Lab(tmp_path / 'named-run')
+        try:
+            parameters = json.loads(lab.values.read_text())
+            parameters['python'] = str(consumer.python)
+            write(lab.values, parameters)
+            lab.run_rows([application('selected')])
+            environment = dict(package.env, TMPDIR=str(lab.tmp), PYTHONPATH=str(RUN_FIXTURES))
+            before = {path: path.read_bytes() for path in lab.root.glob('*.json')}
+            answer = lab.answer('run', '--env', 'npm-selected', '--app', 'selected',
+                                entry=consumer.entry, env=environment)
+            group = lab.started('selected')['pgid']
+            assert answer['operation'] == 'run' and answer['status'] == 'succeeded'
+            assert answer['errors'] == []
+            assert answer['planned'] == answer['received_pgids'] == 1
+            assert [row['id'] for row in answer['applications']] == ['selected']
+            assert answer['applications'][0]['pgid'] == group and living_group(group)
+            assert lab.state('npm-selected')['applications'] == {'selected': {'pgid': group}}
+            pending = lab.answer('run', 'list', '--env', 'npm-selected',
+                                 entry=consumer.entry, env=environment)
+            assert pending['applications'] == {}
+            stopped = lab.answer('stop', '--env', 'npm-selected', '--app', 'selected',
+                                 entry=consumer.entry, env=environment)
+            assert stopped['errors'] == []
+            assert stopped['stopped'] == [{'environment': 'npm-selected', 'id': 'selected', 'pgid': group}]
+            lab.dead(group)
+            assert not lab.state_path('npm-selected').exists()
+            assert all(path.read_bytes() == content for path, content in before.items())
+        finally:
+            lab.close()
+        return
     result = package.invoke(consumer, scenario, operation)
     assert result.returncode == 0 and result.stderr == b''
     answer = json.loads(result.stdout)
