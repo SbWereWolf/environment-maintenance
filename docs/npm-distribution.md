@@ -148,7 +148,9 @@ npm view environment-maintenance@5.3.9 version dist.integrity
 ```
 
 The workflow runs the release checks and verifies the PyPI wheel hash and npm
-integrity against the built artifacts.
+integrity against the built artifacts. It waits up to 25 minutes for npm to
+make a new upload public. An identical published npm archive is accepted
+without a second upload.
 
 Application owners update only from the npm registry. Select the published
 version with `npm install --save-exact "environment-maintenance@$VERSION"`,

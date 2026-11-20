@@ -95,11 +95,18 @@ jobs:
     needs: pypi
     if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     environment: npm
     permissions:
       contents: read
       id-token: write
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -112,23 +119,24 @@ jobs:
       - name: Publish and verify npm artifact
         run: |
           set -euo pipefail
-          archive=(release/*.tgz)
+          shopt -s nullglob
+          archive=(./release/*.tgz)
           test "${#archive[@]}" -eq 1
-          package=$(tar -xOf "${archive[0]}" package/package.json | jq -er '.name + "@" + .version')
-          expected="sha512-$(openssl dgst -sha512 -binary "${archive[0]}" | openssl base64 -A)"
-          actual=$(npm view "$package" dist.integrity 2>registry-error.log) || {
-            if ! grep -q 'code E404' registry-error.log; then
-              cat registry-error.log >&2
-              exit 1
-            fi
-            actual=''
+          registry_decision() {
+            env -u GITHUB_OUTPUT python -I -B .github/scripts/release.py registry \
+              --tag "$RELEASE_TAG" --tarball "${archive[0]}" | jq -er '.decision'
           }
-          if [[ -z "$actual" ]]; then
+          decision=$(registry_decision)
+          if [[ "$decision" == publish ]]; then
             npm publish "${archive[0]}" --access public
+            deadline=$((SECONDS + 25 * 60))
+            while [[ "$decision" == publish ]] && (( SECONDS < deadline )); do
+              printf 'Waiting for npm to make %s public\n' "$RELEASE_TAG"
+              sleep 30
+              decision=$(registry_decision)
+            done
           fi
-          for attempt in {1..12}; do
-            actual=$(npm view "$package" dist.integrity) || actual=''
-            [[ -n "$actual" ]] && break
-            sleep 5
-          done
-          [[ "$actual" == "$expected" ]]
+          if [[ "$decision" != already-published ]]; then
+            printf 'npm did not make %s public within 25 minutes.\n' "$RELEASE_TAG" >&2
+            exit 1
+          fi
