@@ -136,16 +136,31 @@ annotated `vMAJOR.MINOR.PATCH` tag. Its version must match `package.json` and
 `pypi` and `npm` GitHub environments. Publish the pinned CE version to PyPI
 before releasing EM.
 
-From the approved release branch, push the branch and tag in one operation:
+Одобренный коммит и аннотированный тег сначала сохраняют в `bare-local`.
+Ветка `master` использует `bare-local` для хранения рабочей истории и
+`origin` для запуска публикации из GitHub Actions.
+При совместной поставке ветки и выпуске отправляйте `master` и тег в GitHub
+атомарно после допуска к публикации и проверки fast-forward в обоих
+репозиториях:
 
 ```bash
 tag=v5.3.9
-branch=$(git symbolic-ref --short HEAD)
 commit="${APPROVED_COMMIT:?Set the approved commit}"
+git fetch bare-local &&
+git fetch origin &&
+git merge-base --is-ancestor refs/remotes/bare-local/master "$commit" &&
+git merge-base --is-ancestor refs/remotes/origin/master "$commit" &&
 git tag -a "$tag" "$commit" -m "Release $tag" &&
-git push --atomic origin "$commit:refs/heads/$branch" "refs/tags/$tag:refs/tags/$tag"
+git push --atomic bare-local "$commit:refs/heads/master" "refs/tags/$tag:refs/tags/$tag" &&
+git push --atomic origin "$commit:refs/heads/master" "refs/tags/$tag:refs/tags/$tag"
 npm view environment-maintenance@5.3.9 version dist.integrity
 ```
+
+Для уже синхронизированных `master` отправляйте только тег. Перед этим сверяйте
+вершины обеих веток и тег с одобренным коммитом. Если тег уже сохранён в
+`bare-local`, используйте тот же объект. Если тег уже есть в GitHub,
+установите исход существующего запуска. Расхождение ветки, целевого коммита
+тега или его объекта останавливает публикацию до нового решения.
 
 The workflow runs the release checks and verifies the PyPI wheel hash and npm
 integrity against the built artifacts. It waits up to 25 minutes for npm to
