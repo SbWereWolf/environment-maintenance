@@ -9,7 +9,7 @@ parameters and result interpreters.
 
 `start-app` provides `infra`, `deps`, `adjust`, `check`, `run` and
 `stop`. It works independently of ERP, Poise and their databases.
-Requires Linux, Node.js 22+, npm 10+, and Python 3.11+ with venv/pip.
+Requires Linux, Node.js 22+, npm 10+, and Python 3.12+ with venv/pip.
 
 ## Install
 

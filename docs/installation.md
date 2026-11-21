@@ -10,7 +10,7 @@
 
 ## Условия
 
-Linux/POSIX, Node22+, npm10+, абсолютный Python3.11+ с venv/pip и доступ к выбранным build/runtime dependencies. Требования установки указаны в [README](../README.md#install). Writable prefix и индекс либо offline wheelhouse предоставляет владелец установки.
+Linux/POSIX, Node22+, npm10+, абсолютный Python 3.12+ с venv/pip и доступ к выбранным build/runtime dependencies. Требования установки указаны в [README](../README.md#install). Writable prefix и индекс либо offline wheelhouse предоставляет владелец установки.
 
 Python и `.venv` пакета принадлежат инструменту. Python/Node/PHP приложения, терминал, display и команды обслуживания принадлежат приложению. Установка пакета не развёртывает внешние ресурсы.
 

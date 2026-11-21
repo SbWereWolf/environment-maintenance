@@ -4,7 +4,7 @@
 <a id="договор-экземпляра"></a>
 ## Installation contract
 
-Use Linux, Node.js22+, npm10+, and an absolute Python3.11+ with venv/pip.
+Use Linux, Node.js22+, npm10+, and an absolute Python 3.12+ with venv/pip.
 `ENVIRONMENT_MAINTENANCE_PYTHON` selects the installation interpreter.
 npm lifecycle creates the package's private `.venv`; pip resolves its exact
 declared CE dependency and build/runtime requirements. Provide a suitable index
