@@ -212,7 +212,9 @@ def test_maintenance_document_is_refused_by_named_run(package, consumer, scenari
     assert answer['applications'] == [] and answer['file_exists'] is False
     assert not Path(answer['file']).exists()
     assert str(scenario.main).encode() in result.stderr
-    assert b'applications must be an array' in result.stderr
+    assert result.stderr.rstrip().endswith(b'Expected declared collection array')
+    assert len(answer['errors']) == 1
+    assert answer['errors'][0]['error'] == result.stderr.decode().strip()
     assert not scenario.events.exists()
 
 
