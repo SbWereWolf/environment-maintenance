@@ -22,19 +22,20 @@ def validate_release(root, tag):
         raise ValueError("tag must select the stable npm version")
     if python["version"] != version or python["name"] != name:
         raise ValueError("Python and npm package name/version differ")
-    if not any(re.fullmatch(r"command-execution==(?:[2-9]|[1-9][0-9]+)\.[0-9]+\.[0-9]+", dependency)
-               for dependency in python.get("dependencies", [])):
-        raise ValueError("dependency must pin a released shared-core version")
+    ce = npm.get("dependencies", {}).get("command-execution", "")
+    if not re.fullmatch(r"(?:[2-9]|[1-9][0-9]+)\.[0-9]+\.[0-9]+", ce) or \
+            f"command-execution=={ce}" not in python.get("dependencies", []):
+        raise ValueError("dependency must pin the same released shared-core version in both channels")
     return name, version
 
 
-def check_registry(name, version, tarball):
+def check_registry(name, version, tarball, registry="https://registry.npmjs.org"):
     """Allow a new version or recognize identical published bytes."""
     tarball = Path(tarball)
     if not tarball.is_file() or not tarball.stat().st_size:
         raise ValueError("distribution tarball is missing or empty")
     integrity = "sha512-" + base64.b64encode(hashlib.sha512(tarball.read_bytes()).digest()).decode()
-    url = f"https://registry.npmjs.org/{quote(name, safe='')}/{quote(version, safe='')}"
+    url = f"{registry.rstrip('/')}/{quote(name, safe='')}/{quote(version, safe='')}"
     try:
         with urlopen(Request(url, method="GET"), timeout=30) as response:
             document = json.load(response)
@@ -49,6 +50,27 @@ def check_registry(name, version, tarball):
     except (KeyError, TypeError) as error:
         raise ValueError("registry returned no published integrity") from error
     if published != integrity:
+        raise ValueError("published bytes differ from the candidate; use a new version")
+    return "already-published"
+
+
+def check_pypi(name, version, wheel, registry="https://pypi.org"):
+    wheel = Path(wheel)
+    if not wheel.is_file() or not wheel.stat().st_size:
+        raise ValueError("distribution wheel is missing or empty")
+    url = f"{registry.rstrip('/')}/pypi/{quote(name, safe='')}/{quote(version, safe='')}/json"
+    try:
+        with urlopen(Request(url, headers={"Cache-Control": "no-cache"}), timeout=30) as response:
+            files = json.load(response)["urls"]
+    except HTTPError as error:
+        if error.code == 404:
+            return "publish"
+        raise ValueError(f"registry refused the release query: HTTP {error.code}") from error
+    except (URLError, OSError, ValueError, KeyError) as error:
+        raise ValueError(f"registry query failed: {error}") from error
+    expected = hashlib.sha256(wheel.read_bytes()).hexdigest()
+    if len(files) != 1 or files[0].get("filename") != wheel.name or \
+            files[0].get("digests", {}).get("sha256") != expected:
         raise ValueError("published bytes differ from the candidate; use a new version")
     return "already-published"
 

@@ -1,1 +1,7 @@
-{"name":"environment-maintenance","version":"5.1.0"}
+{
+  "name": "environment-maintenance",
+  "version": "5.1.0",
+  "dependencies": {
+    "command-execution": "2.0.6"
+  }
+}

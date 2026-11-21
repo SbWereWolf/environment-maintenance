@@ -1,7 +1,10 @@
 name: Publish environment-maintenance
 on:
   push:
-    tags: ['v[0-9]*']
+    tags:
+      - 'v[0-9]*'
+      - 'qualify-em-v*-npm-outage'
+      - 'qualify-em-v*-pypi-outage'
   pull_request:
 permissions:
   contents: read
@@ -9,134 +12,107 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  build:
+  pr:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: Verify release gates and maintained smoke
-        env:
-          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: |
           python -I -B tests/test_release_contract.py -v
-          if [[ -n "$RELEASE_TAG" ]]; then
-            python -I -B .github/scripts/release.py validate --tag "$RELEASE_TAG"
-          fi
           python -m pip install -e '.[dev]'
-          mkdir "$RUNNER_TEMP/em-wheelhouse" "$RUNNER_TEMP/em-package-tests"
+          mkdir "$RUNNER_TEMP/em-package-tests" "$RUNNER_TEMP/em-wheelhouse"
           mapfile -t runtime_requirements < <(python -c 'import tomllib; print(*tomllib.load(open("pyproject.toml", "rb"))["project"]["dependencies"], sep="\n")')
-          python -m pip download --only-binary=:all: --dest "$RUNNER_TEMP/em-wheelhouse" setuptools wheel "${runtime_requirements[@]}"
-          export ENVIRONMENT_MAINTENANCE_PYTHON=$(command -v python)
-          export ENV2_PACKAGE_TEST_ROOT="$RUNNER_TEMP/em-package-tests"
+          python -m pip download --only-binary=:all: --dest "$RUNNER_TEMP/em-wheelhouse" "${runtime_requirements[@]}"
+          ENVIRONMENT_MAINTENANCE_PYTHON=$(command -v python)
+          export ENVIRONMENT_MAINTENANCE_PYTHON
           export ENV2_PACKAGE_WHEELHOUSE="$RUNNER_TEMP/em-wheelhouse"
+          export ENV2_PACKAGE_TEST_ROOT="$RUNNER_TEMP/em-package-tests"
           python -B -m pytest -p no:cacheprovider -q tests/test_command_package_extraction.py tests/test_npm_delivery.py tests/test_npm_persistent_entry.py
           bash tests/smoke.sh "$(command -v python)"
-      - name: Build both distributions
-        env:
-          RELEASE_REF: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-        run: scripts/build-release.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release
-          path: dist/
-          if-no-files-found: error
-  pypi:
-    needs: build
+  npm:
     if: github.ref_type == 'tag'
+    uses: SbWereWolf/command-execution/.github/workflows/reusable-release.yml@9bc9ddb6ea760c758f28da8b02d983c5c2bbbbda
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      channel: npm
+      mode: ${{ startsWith(github.ref_name, 'qualify-') && 'qualification' || 'production' }}
+      package: ${{ vars.RELEASE_PACKAGE || 'environment-maintenance' }}
+      driver: ${{ vars.RELEASE_DRIVER || '.github/scripts/release-channel.sh' }}
+      python_version: ${{ vars.RELEASE_PYTHON_VERSION || '3.12' }}
+      node_version: ${{ vars.RELEASE_NODE_VERSION || '24' }}
+      npm_version: ${{ vars.RELEASE_NPM_VERSION || '11.21.3' }}
+      npm_environment: ${{ vars.RELEASE_NPM_ENVIRONMENT || 'npm' }}
+
+  pypi:
+    if: github.ref_type == 'tag'
+    uses: SbWereWolf/command-execution/.github/workflows/reusable-release.yml@9bc9ddb6ea760c758f28da8b02d983c5c2bbbbda
+    # Actions validates every nested job's permissions before evaluating its condition.
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      channel: pypi
+      mode: ${{ startsWith(github.ref_name, 'qualify-') && 'qualification' || 'production' }}
+      package: ${{ vars.RELEASE_PACKAGE || 'environment-maintenance' }}
+      driver: ${{ vars.RELEASE_DRIVER || '.github/scripts/release-channel.sh' }}
+      python_version: ${{ vars.RELEASE_PYTHON_VERSION || '3.12' }}
+
+  publish_pypi:
+    name: Publish PyPI distribution
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: pypi
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: pypi
     permissions:
       contents: read
       id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: release
-          path: release/
-      - run: |
-          mkdir dist
-          mv release/*.whl dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          skip-existing: true
-      - name: Verify published wheel
-        run: |
-          python3 - <<'PYTHON'
-          from pathlib import Path
-          import hashlib, json, time, urllib.error, urllib.request
-
-          wheel, = Path("dist").glob("*.whl")
-          package, version, *_ = wheel.name.split("-")
-          expected = hashlib.sha256(wheel.read_bytes()).hexdigest()
-          url = f"https://pypi.org/pypi/{package.replace('_', '-')}/{version}/json"
-          for attempt in range(12):
-              try:
-                  with urllib.request.urlopen(url, timeout=15) as response:
-                      files = json.load(response)["urls"]
-              except urllib.error.HTTPError as error:
-                  if error.code != 404:
-                      raise
-                  files = []
-              actual = next((f["digests"]["sha256"] for f in files if f["filename"] == wheel.name), None)
-              if actual is not None:
-                  if actual != expected:
-                      raise SystemExit("Published wheel does not match the built artifact")
-                  break
-              time.sleep(5)
-          else:
-              raise SystemExit("Published wheel is unavailable")
-          PYTHON
-  npm:
-    needs: pypi
-    if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    environment: npm
-    permissions:
-      contents: read
-      id-token: write
     env:
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_MODE: production
+      RELEASE_PACKAGE: ${{ vars.RELEASE_PACKAGE || 'environment-maintenance' }}
+      RELEASE_DRIVER: ${{ vars.RELEASE_DRIVER || '.github/scripts/release-channel.sh' }}
+      RELEASE_REF_NAME: ${{ github.ref_name }}
+      RELEASE_SHA: ${{ github.sha }}
+      RELEASE_PYTHON: python
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          registry-url: https://registry.npmjs.org
+          python-version: ${{ vars.RELEASE_PYTHON_VERSION || '3.12' }}
       - uses: actions/download-artifact@v4
         with:
-          name: release
-          path: release/
-      - run: npm install --global npm@11.15.0
-      - name: Publish and verify npm artifact
+          name: release-pypi
+          path: ${{ runner.temp }}/release-dist
+      - name: Check artifact and publication status
+        id: registry
         run: |
-          set -euo pipefail
-          shopt -s nullglob
-          archive=(./release/*.tgz)
-          test "${#archive[@]}" -eq 1
-          registry_decision() {
-            env -u GITHUB_OUTPUT python -I -B .github/scripts/release.py registry \
-              --tag "$RELEASE_TAG" --tarball "${archive[0]}" | jq -er '.decision'
-          }
-          decision=$(registry_decision)
-          if [[ "$decision" == publish ]]; then
-            npm publish "${archive[0]}" --access public
-            deadline=$((SECONDS + 25 * 60))
-            while [[ "$decision" == publish ]] && (( SECONDS < deadline )); do
-              printf 'Waiting for npm to make %s public\n' "$RELEASE_TAG"
-              sleep 30
-              decision=$(registry_decision)
-            done
-          fi
-          if [[ "$decision" != already-published ]]; then
-            printf 'npm did not make %s public within 25 minutes.\n' "$RELEASE_TAG" >&2
-            exit 1
-          fi
+          [[ $RELEASE_DRIVER == .github/scripts/* && $RELEASE_DRIVER != *..* ]]
+          path="$RUNNER_TEMP/release-dist"
+          artifact=$(bash "$RELEASE_DRIVER" artifact pypi "$path")
+          decision=$(bash "$RELEASE_DRIVER" registry pypi "$path")
+          [[ $decision == publish || $decision == already-published ]]
+          mkdir "$RUNNER_TEMP/pypi-upload"
+          cp -- "$artifact" "$RUNNER_TEMP/pypi-upload/"
+          printf 'decision=%s\n' "$decision" >> "$GITHUB_OUTPUT"
+      - name: Publish through PyPI Trusted Publishing
+        if: steps.registry.outputs.decision == 'publish'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ runner.temp }}/pypi-upload/
+      - name: Verify registry bytes after publication or exact replay
+        run: bash "$RELEASE_DRIVER" verify pypi "$RUNNER_TEMP/release-dist"

@@ -1,6 +1,7 @@
 """C01–C13: external npm delivery with independent data and actual consumers."""
 import base64
 import hashlib
+from io import BytesIO
 import json
 from pathlib import Path
 import shutil
@@ -288,12 +289,25 @@ def test_venv_failure_stops_installation(package):
 
 def test_real_pip_failure_remains_installation_failure(package):
     package.require_package()
-    empty = package.root / 'empty wheel index'
-    empty.mkdir()
-    installed = package.install('pip-failure', changes=dict(PIP_FIND_LINKS=str(empty)))
+    damaged = package.root / package.archive.name
+    broken_wheel = b"not a wheel archive"
+    with tarfile.open(package.archive) as origin, tarfile.open(damaged, "w:gz") as target:
+        for member in origin:
+            if member.name.startswith("package/vendor/") and member.name.endswith(".whl"):
+                member.size = len(broken_wheel)
+                target.addfile(member, BytesIO(broken_wheel))
+            elif member.name == "package/vendor/SHA256SUMS":
+                old = origin.extractfile(member).read().decode()
+                digest = hashlib.sha256(broken_wheel).hexdigest()
+                manifest = (digest + old[64:]).encode()
+                member.size = len(manifest)
+                target.addfile(member, BytesIO(manifest))
+            else:
+                target.addfile(member, origin.extractfile(member) if member.isfile() else None)
+    installed = package.install('pip-failure', archive=damaged)
     assert installed.result.returncode != 0
-    assert b'pip' in installed.result.stderr.lower()
-    assert any(name in installed.result.stderr.lower() for name in (b'setuptools', b'jsonpatch', b'jsonpointer'))
+    assert b'invalid' in installed.result.stderr.lower()
+    assert b'.whl' in installed.result.stderr.lower()
 
 
 def test_missing_runtime_does_not_select_foreign_python(package):

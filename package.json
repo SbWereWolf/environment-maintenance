@@ -1,12 +1,15 @@
 {
   "name": "environment-maintenance",
-  "version": "5.3.9",
+  "version": "5.3.10",
   "description": "Инструмент обслуживания окружения по конфигурации",
   "bin": {
     "start-app": "src/npm-start-app.cjs"
   },
   "scripts": {
     "install": "node src/npm-install.cjs"
+  },
+  "dependencies": {
+    "command-execution": "2.0.10"
   },
   "engines": {
     "node": ">=22",
@@ -17,6 +20,8 @@
   ],
   "files": [
     "pyproject.toml",
+    "vendor/*.whl",
+    "vendor/SHA256SUMS",
     "MANIFEST.in",
     "start-app",
     "src/**/*.py",

@@ -5,6 +5,7 @@ future gate class is selected only once its interface exists; missing imports
 are never evidence of behavioral RED.
 """
 import ast
+import hashlib
 import importlib.util
 import io
 import json
@@ -43,7 +44,7 @@ class SourceContract(unittest.TestCase):
         python = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
         self.assertEqual(
             (npm["name"], npm["version"], python["version"]),
-            ("environment-maintenance", "5.3.9", "5.3.9"),
+            ("environment-maintenance", "5.3.10", "5.3.10"),
         )
 
     def test_selected_module_declares_release_version(self):
@@ -55,11 +56,13 @@ class SourceContract(unittest.TestCase):
             and any(isinstance(target, ast.Name) and target.id == "__version__"
                     for target in node.targets)
         ]
-        self.assertEqual(versions, ["5.3.9"])
+        self.assertEqual(versions, ["5.3.10"])
 
     def test_selected_source_requires_exact_library_release(self):
         python = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
-        self.assertIn("command-execution==2.0.6", python["dependencies"])
+        self.assertIn("command-execution==2.0.10", python["dependencies"])
+        npm = json.loads((ROOT / "package.json").read_text())
+        self.assertEqual(npm["dependencies"]["command-execution"], "2.0.10")
 
 
 class TransportContract(unittest.TestCase):
@@ -78,12 +81,17 @@ class TransportContract(unittest.TestCase):
                     checked_reply(failure=missing)(target)
 
 
+def load_gate():
+    spec = importlib.util.spec_from_file_location("em_release_gate", ROOT / ".github/scripts/release.py")
+    gate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gate)
+    return gate
+
+
 class ReleaseGateContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        spec = importlib.util.spec_from_file_location("em_release_gate", ROOT / ".github/scripts/release.py")
-        cls.gate = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(cls.gate)
+        cls.gate = load_gate()
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -152,6 +160,38 @@ class ReleaseGateContract(unittest.TestCase):
                 with patch.object(self.gate, "urlopen", side_effect=checked_reply(failure=failure)):
                     with self.assertRaisesRegex(ValueError, "registry"):
                         self.registry()
+
+
+class PythonRegistryContract(unittest.TestCase):
+    def test_publication_gate_distinguishes_missing_identical_and_conflicting_wheels(self):
+        gate = load_gate()
+        name, version = EXPECTED["name"], EXPECTED["version"]
+        expected_url = f"https://pypi.org/pypi/{name}/{version}/json"
+        with tempfile.TemporaryDirectory() as temporary:
+            wheel = Path(temporary) / "environment_maintenance-5.1.0-py3-none-any.whl"
+            content = b"published wheel"
+            wheel.write_bytes(content)
+            exact = {"filename": wheel.name, "digests": {"sha256": hashlib.sha256(content).hexdigest()}}
+
+            def query(files):
+                def reply(request, **kwargs):
+                    self.assertEqual((request.full_url, request.get_method()), (expected_url, "GET"))
+                    if files is None:
+                        raise HTTPError(expected_url, 404, "Not Found", None, None)
+                    return io.BytesIO(json.dumps({"urls": files}).encode())
+                return patch.object(gate, "urlopen", side_effect=reply)
+
+            with query(None):
+                self.assertEqual(gate.check_pypi(name, version, wheel), "publish")
+            with query([exact]):
+                self.assertEqual(gate.check_pypi(name, version, wheel), "already-published")
+                wheel.write_bytes(b"conflicting wheel")
+                with self.assertRaisesRegex(ValueError, "published bytes differ"):
+                    gate.check_pypi(name, version, wheel)
+                wheel.write_bytes(content)
+            with query([exact, {"filename": "unexpected-sdist.tar.gz"}]):
+                with self.assertRaisesRegex(ValueError, "published bytes differ"):
+                    gate.check_pypi(name, version, wheel)
 
 
 if __name__ == "__main__":

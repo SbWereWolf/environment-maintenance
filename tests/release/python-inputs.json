@@ -1,0 +1,32 @@
+{
+  "setuptools-84.2.1-py3-none-any.whl": {
+    "version": "84.2.1",
+    "origin": "https://files.pythonhosted.org/packages/ef/55/6dc6d6bb953bdfc52519a0059592c52b6e3b8ad51cf8256dffceb55b0610/setuptools-84.2.1-py3-none-any.whl",
+    "sha256": "ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2"
+  },
+  "wheel-0.48.0-py3-none-any.whl": {
+    "version": "0.48.0",
+    "origin": "https://files.pythonhosted.org/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl",
+    "sha256": "3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab"
+  },
+  "packaging-26.3-py3-none-any.whl": {
+    "version": "26.3",
+    "origin": "https://files.pythonhosted.org/packages/63/34/ba1c580383c9eada3711951fef0795c80b829a078d72188184bcab9dd527/packaging-26.3-py3-none-any.whl",
+    "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+  },
+  "command_execution-2.0.10-py3-none-any.whl": {
+    "version": "2.0.10",
+    "origin": "https://files.pythonhosted.org/packages/5a/76/6abb36abf317ded18c8771790e4c37d27efb3b56a1767b18ca55b6d73bf5/command_execution-2.0.10-py3-none-any.whl",
+    "sha256": "629a293433fa666eec89a3909752f0817bfb1d572b3bc71130ff9c2623c5e927"
+  },
+  "jsonpatch-1.48-py3-none-any.whl": {
+    "version": "1.48",
+    "origin": "https://files.pythonhosted.org/packages/76/79/524d5f481ffd5095dd8fdf273bc410214d1a2bb19e6c9a3f379071f1cfc4/jsonpatch-1.48-py3-none-any.whl",
+    "sha256": "389f25f006940b7bc939c33ca0f6cf8875527dc70599520652a269040ce40b63"
+  },
+  "jsonpointer-3.12-py3-none-any.whl": {
+    "version": "3.12",
+    "origin": "https://files.pythonhosted.org/packages/72/07/3c953fceee478798f6bdf7b39e0da0793f437e8b5f9e9e1360fba32fb25c/jsonpointer-3.12-py3-none-any.whl",
+    "sha256": "89f391335ee2719ae72149e1bf30a4d4c7c5d92f15a3f53faa8d20cc7c6c7f19"
+  }
+}

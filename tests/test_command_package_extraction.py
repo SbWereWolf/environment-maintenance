@@ -61,7 +61,7 @@ def install_library(target, workspace):
     project = tomllib.loads((ROOT / 'pyproject.toml').read_text())['project']
     requirement, = [item for item in project['dependencies']
                     if item.startswith('command-execution==')]
-    assert requirement == 'command-execution==2.0.6'
+    assert requirement == 'command-execution==2.0.10'
     wheelhouse = Path(os.environ['ENV2_PACKAGE_WHEELHOUSE']).resolve(strict=True)
     run([sys.executable, '-I', '-B', '-m', 'pip', 'install', '--no-index',
          '--find-links', str(wheelhouse), '--target', str(target), requirement],

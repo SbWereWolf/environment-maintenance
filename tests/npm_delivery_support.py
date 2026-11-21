@@ -61,12 +61,10 @@ class PackageLab:
         self.index = 0
         self.children = []
         self.host_python = os.environ['ENVIRONMENT_MAINTENANCE_PYTHON']
-        wheels = Path(os.environ['ENV2_PACKAGE_WHEELHOUSE']).absolute()
-        assert wheels.is_dir() and len(list(wheels.glob('*.whl'))) >= 4, 'Prepare real dependency wheels first'
-        self.env = dict(os.environ)
+        self.env = dict(os.environ, RELEASE_PYTHON=self.host_python)
         for key in ('PYTHONPATH', 'PYTHONHOME'):
             self.env.pop(key, None)
-        self.env.update(PIP_NO_INDEX='1', PIP_FIND_LINKS=str(wheels),
+        self.env.update(PIP_NO_INDEX='1',
             PIP_CACHE_DIR=str(self.root / 'pip-cache'), PIP_DISABLE_PIP_VERSION_CHECK='1',
             npm_config_cache=str(self.root / 'npm-cache'), TMPDIR=str(self.root / 'tmp'))
         Path(self.env['TMPDIR']).mkdir()
@@ -76,7 +74,7 @@ class PackageLab:
             shutil.copyfile(FIXTURES / name, self.tools / name)
         self.archive_dir = self.root / 'archive'
         self.archive_dir.mkdir()
-        self.packed = self.capture('pack', ['npm', 'pack', '--json', '--pack-destination', str(self.archive_dir)], ROOT)
+        self.packed = self.capture('pack', ['bash', 'scripts/build-release.sh', 'npm', self.archive_dir], ROOT)
         self.available = self.packed.returncode == 0
         self.archive = None
         self.metadata = None
@@ -128,7 +126,7 @@ class PackageLab:
     def require_package(self):
         assert self.available, 'Missing working npm delivery package; inspect saved pack streams'
 
-    def install(self, label, *, changes=None, remove=()):
+    def install(self, label, *, changes=None, remove=(), archive=None):
         prefix = self.root / (label + ' independent prefix Ω')
         prefix.mkdir(exist_ok=True)
         consumer = SimpleNamespace(prefix=prefix, entry=prefix / 'bin/start-app', result=None, python=None)
@@ -139,7 +137,7 @@ class PackageLab:
             environment.pop(key, None)
         consumer.result = self.capture('install-' + label,
             ['npm', 'install', '--global', '--prefix', prefix, '--ignore-scripts=false',
-             '--no-audit', '--no-fund', self.archive], self.root, env=environment)
+             '--no-audit', '--no-fund', archive or self.archive], self.root, env=environment)
         return consumer
 
     def require_consumer(self, consumer):
